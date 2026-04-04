@@ -119,11 +119,11 @@ export default function MagicCircleCanvas({
       </div>
 
       {/* デバッグログ表示 */}
-      <div className="fixed bottom-4 left-4 right-4 z-[100] rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
+      <div className="fixed bottom-4 left-4 right-4 z-[100] pointer-events-none rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
         {debugMsg}
       </div>
 
-      <div className="flex gap-3 relative z-[100] mt-4">
+      <div className="flex gap-3 relative z-[110] mt-4 mb-6">
         <button
           onClick={(e) => { e.stopPropagation(); handleEvaluate(); }}
           disabled={userPath.length < 10 || showResult}

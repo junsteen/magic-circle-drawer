@@ -16,7 +16,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: '#0d0d1a' }}>
+    <main
+      className="relative min-h-screen flex flex-col items-center justify-center p-4"
+      style={{ background: '#0d0d1a', pointerEvents: 'auto', touchAction: 'auto' }}
+    >
       <header className="mb-6 text-center">
         <h1
           className="text-4xl font-bold tracking-wide"
@@ -43,9 +46,10 @@ export default function Home() {
       <div
         className="fixed left-2 top-2 z-[9999] bg-red-600 p-2 text-[10px] text-white"
         onClick={() => alert('PAGE_ALERT')}
+        onTouchStart={() => alert('PAGE_TOUCH')}
       >
         DEBUG_CLICK
       </div>
-    </div>
+    </main>
   );
 }
