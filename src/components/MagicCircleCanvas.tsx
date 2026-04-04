@@ -139,8 +139,8 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   const [showResult, setShowResult] = useState(false);
   const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
-  const [debugMsg, setDebugMsg] = useState("タップ待ち");
+  const [showTutorial, setShowTutorial] = useState(false); // DEBUG: 無効化
+  const [debugMsg, setDebugMsg] = useState("タップ待ち - Canvasを触ってください");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const cx = canvasSize / 2;
@@ -358,13 +358,13 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
         ?
       </button>
 
-      <div className="relative">
+      <div className="relative w-[350px] max-w-full">
         <canvas
           ref={canvasRef}
           width={canvasSize}
           height={canvasSize}
-          className="rounded-lg border-2 border-gray-700 touch-none"
-          style={{ background: '#0a0a14', maxWidth: '100%', height: 'auto' }}
+          className="rounded-lg border-2 border-gray-700 w-full h-auto touch-none"
+          style={{ background: '#0a0a14', display: 'block' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
