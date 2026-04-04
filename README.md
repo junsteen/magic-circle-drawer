@@ -1,37 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔮 Arcane Tracer
+
+**「詠唱の正確さが威力になる」**
+
+スマホ画面上で魔法陣を指でなぞり、その正確さをスコア化するWebアプリケーション。
+
+## コンセプト
+
+- お手本の魔法陣をなぞって描画する
+- 正確さに応じてスコア（0〜100点）が算出される
+- スコアを魔法のダメージ倍率として出力
+
+## 技術スタック
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Drawing**: HTML5 Canvas API
+- **Deployment**: Vercel
+
+## MVP機能
+
+1. 三角形のお手本を表示
+2. タッチ操作でなぞって描画
+3. 描画精度をスコア化（S/A/B/Cランク）
+4. 詠唱タイマー（制限時間内に描き切る）
 
 ## Getting Started
 
-First, run the development server:
+### 事前要件
+
+- **Node.js** v18 以上がインストールされていること
+  - [Node.js公式サイト](https://nodejs.org/)からダウンロード可能
+- **npm** （Node.jsに同梱）
+
+### インストール手順
+
+リポジトリをクローン後、必ず依存パッケージをインストールしてください：
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/junsteen/magic-circle-drawer.git
+cd magic-circle-drawer
+
+# 2. 依存パッケージをインストール（必ず実行してください）
+npm install
+```
+
+> ⚠️ **重要**: `npm install` を実行しないと、Next.js、Reactなどの依存パッケージがインストールされず、アプリが起動しません。
+
+手動でインストールする場合は以下を実行します：
+
+```bash
+npm install next react react-dom
+npm install --save-dev typescript tailwindcss @tailwindcss/postcss @types/node @types/react @types/react-dom eslint eslint-config-next
+```
+
+### 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで [http://localhost:3000](http://localhost:3000) を開いてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### プロダクションビルド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+### その他のコマンド
 
-To learn more about Next.js, take a look at the following resources:
+| コマンド | 説明 |
+|---------|------|
+| `npm run dev` | 開発サーバー起動（Turbopack） |
+| `npm run build` | プロダクションビルド |
+| `npm start` | プロダクションサーバー起動 |
+| `npm run lint` | ESLintによるコードチェック |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## プロジェクト構成
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+arcane-tracer/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx        # ルートレイアウト（ビューポート設定）
+│   │   ├── page.tsx           # メインページ
+│   │   └── globals.css        # グローバルスタイル
+│   ├── components/
+│   │   └── MagicCircleCanvas.tsx  # Canvas描画コンポーネント
+│   └── lib/
+│       └── scoring.ts         # スコア判定ロジック
+├── package.json
+├── tsconfig.json
+└── next.config.ts
+```
 
-## Deploy on Vercel
+## ライセンス
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
----
+MIT
