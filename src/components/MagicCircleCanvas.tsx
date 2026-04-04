@@ -15,11 +15,13 @@ function HelpModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-center justify-center tutorial-overlay"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
+      onTouchEnd={onClose}
     >
       <div
         className="mx-4 max-w-sm rounded-xl p-6"
         style={{ background: '#1a1a2e', border: '1px solid rgba(0,229,255,0.3)' }}
         onClick={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
       >
         <h2 className="mb-4 text-xl font-bold" style={{ color: '#00e5ff' }}>
           🔮 ヘルプ
@@ -52,7 +54,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
         </div>
         <button
           onClick={onClose}
-          className="cursor-pointer mt-4 w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
+          onTouchEnd={onClose}
+          className="mt-4 w-full cursor-pointer rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           閉じる
@@ -111,7 +114,12 @@ function TutorialOverlay({ onStart }: { onStart: () => void }) {
         </div>
         <button
           onClick={nextStep}
-          className="cursor-pointer w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            nextStep();
+          }}
+          className="w-full cursor-pointer rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           {step < steps.length - 1 ? '次へ →' : '始める ✨'}
@@ -138,7 +146,6 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   const cy = canvasSize / 2;
   const r = canvasSize * 0.35;
 
-  /** お手本（三角形）の始点 */
   const startPoint = {
     x: cx + r * Math.cos(-Math.PI / 2),
     y: cy + r * Math.sin(-Math.PI / 2),
@@ -152,19 +159,16 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
 
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Outer circle
     ctx.strokeStyle = 'rgba(100, 100, 150, 0.3)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r + 20, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner circle
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Triangle
     ctx.strokeStyle = highlight ? 'rgba(0, 229, 255, 0.7)' : 'rgba(100, 100, 150, 0.5)';
     ctx.lineWidth = 3;
     ctx.setLineDash(highlight ? [] : [5, 5]);
@@ -230,23 +234,82 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
     };
   }, [isActive, timeLeft]);
 
-  const startDrawing = (x: number, y: number) => {
+  const getCanvasPos = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }, []);
+
+  // 生のタッチイベントハンドラ
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    e.preventDefault();
     if (showResult) return;
-    if (!isActive) {
-      setIsActive(true);
-    }
+    const touch = e.touches[0];
+    const pos = getCanvasPos(touch.clientX, touch.clientY);
+    if (!isActive) setIsActive(true);
     setIsDrawing(true);
-    setUserPath([{ x, y }]);
-  };
+    setUserPath([{ x: pos.x, y: pos.y }]);
+  }, [showResult, isActive, getCanvasPos]);
 
-  const draw = (x: number, y: number) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    e.preventDefault();
     if (!isDrawing || showResult) return;
-    setUserPath((prev) => [...prev, { x, y }]);
+    const touch = e.touches[0];
+    const pos = getCanvasPos(touch.clientX, touch.clientY);
+    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
+  }, [isDrawing, showResult, getCanvasPos]);
+
+  const handleTouchEnd = useCallback((_e: TouchEvent) => {
+    setIsDrawing(false);
+  }, []);
+
+  // Canvas に生のイベントリスナーを設定
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
+  // マウスイベント（デスクトップ用）
+  const startDrawing = (pos: { x: number; y: number }) => {
+    if (showResult) return;
+    if (!isActive) setIsActive(true);
+    setIsDrawing(true);
+    setUserPath([{ x: pos.x, y: pos.y }]);
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
+  const draw = (pos: { x: number; y: number }) => {
+    if (!isDrawing || showResult) return;
+    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
   };
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    startDrawing(getCanvasPos(e.clientX, e.clientY));
+  }, [getCanvasPos]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDrawing) return;
+    draw(getCanvasPos(e.clientX, e.clientY));
+  }, [isDrawing, getCanvasPos]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDrawing(false);
+  }, []);
 
   const handleEvaluate = () => {
     const result = calculateScore(userPath, canvasSize, canvasSize);
@@ -266,50 +329,6 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
     drawTemplate();
   };
 
-  const getPos = (e: React.TouchEvent | React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    if ('touches' in e) {
-      const touch = e.touches[0] || e.changedTouches[0];
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY,
-      };
-    }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    console.log('[DEBUG] onTouchStart fired', e.touches.length);
-    e.preventDefault();
-    const pos = getPos(e);
-    console.log('[DEBUG] startDrawing at', pos.x, pos.y);
-    startDrawing(pos.x, pos.y);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    const pos = getPos(e);
-    draw(pos.x, pos.y);
-  };
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    const pos = getPos(e);
-    startDrawing(pos.x, pos.y);
-  };
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    const pos = getPos(e);
-    draw(pos.x, pos.y);
-  };
-
   const getRankColor = (rank: string) => {
     switch (rank) {
       case 'S': return '#ffd700';
@@ -326,40 +345,34 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
       )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
-      {/* ヘルプボタン */}
       <button
         onClick={() => setShowHelp(true)}
-        className="cursor-pointer absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border-2 text-lg font-bold transition-all hover:border-cyan-400"
-        style={{ borderColor: 'rgba(0,229,255,0.3)', color: '#00e5ff' }}
+        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
+        style={{ borderColor: 'rgba(0,229,255,0.5)', color: '#00e5ff', background: 'rgba(10,10,20,0.8)' }}
         aria-label="ヘルプ"
       >
         ?
       </button>
 
       <div className="relative">
-        {/* Canvas */}
         <canvas
           ref={canvasRef}
           width={canvasSize}
           height={canvasSize}
           className="rounded-lg border-2 border-gray-700 touch-none"
-          style={{ background: '#0a0a14' }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={stopDrawing}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
+          style={{ background: '#0a0a14', maxWidth: '100%', height: 'auto' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         />
 
-        {/* スタートマーカー */}
         {!isDrawing && !showResult && (
           <div
             className="absolute tutorial-arrow"
             style={{
-              left: startPoint.x * (350 / canvasSize) - 10,
-              top: startPoint.y * (350 / canvasSize) - 10,
+              left: startPoint.x - 10,
+              top: startPoint.y - 10,
               width: 20,
               height: 20,
               pointerEvents: 'none',
@@ -372,7 +385,6 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
           </div>
         )}
 
-        {/* ガイドテキスト */}
         {!isActive && !isDrawing && !showResult && (
           <div
             className="absolute left-0 right-0 top-2 -translate-y-full text-center text-xs"
@@ -382,13 +394,12 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
           </div>
         )}
 
-        {/* 結果オーバーレイ */}
         {showResult && scoreResult && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center"
             style={{
               background: 'rgba(13, 13, 26, 0.85)',
-              animation: 'glow-pulse 2s ease-in-out infinite',
+              borderRadius: '8px',
             }}
           >
             <div className="text-6xl font-bold" style={{ color: getRankColor(scoreResult.rank) }}>
@@ -401,7 +412,6 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
           </div>
         )}
 
-        {/* タイマー */}
         {isActive && (
           <div className="absolute right-2 top-2 rounded-md bg-black/60 px-3 py-1 font-mono text-xl">
             {timeLeft}s
@@ -409,14 +419,12 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
         )}
       </div>
 
-      {/* ステータステキスト */}
-      <div className="mt-1 h-5 text-sm text-gray-400">
+      <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
         {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
         {!isActive && !isDrawing && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
         {!isActive && !isDrawing && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
       </div>
 
-      {/* ボタン */}
       <div className="flex gap-3">
         <button
           onClick={handleEvaluate}
