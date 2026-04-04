@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
-import { useMagicCircle } from '@/hooks/useMagicCircle';
 import HelpModal from './HelpModal';
-import TutorialOverlay from './TutorialOverlay';
 
 export default function MagicCircleCanvas({
   onScore,
@@ -13,127 +11,38 @@ export default function MagicCircleCanvas({
   onScore: (result: ScoringResult) => void;
   onReset: () => void;
 }) {
-  const {
-    canvasRef, canvasSize, isDrawing, userPath,
-    timeLeft, isActive, showResult, scoreResult,
-    debugMsg, startPoint, handleEvaluate, handleReset,
-    getRankColor, onMouseDown, onMouseMove, onMouseUp,
-  } = useMagicCircle(onScore, onReset);
-
+  const [count, setCount] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <button
-        onClick={() => alert('TEST OK!')}
-        className="fixed left-0 top-0 z-[99999] bg-red-600 p-6 text-xl font-bold text-white"
-      >
-        ●TEST●
-      </button>
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+    <div className="flex flex-col items-center justify-center gap-8 p-10 rounded-2xl border-2 border-cyan-500" style={{ background: '#1a1a2e' }}>
+      <h2 className="text-xl font-bold text-cyan-400">最小機能テスト</h2>
+
+      <p className="text-4xl font-mono text-white">
+        CLICK: {count}
+      </p>
 
       <button
-        onClick={() => setShowHelp(true)}
-        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
-        style={{ borderColor: 'rgba(0,229,255,0.5)', color: '#00e5ff', background: 'rgba(10,10,20,0.8)' }}
-        aria-label="ヘルプ"
+        onClick={() => {
+          setCount((c) => c + 1);
+          alert('ボタンが押されました！');
+        }}
+        className="rounded-full p-8 text-2xl font-bold text-black active:scale-95 transition-transform"
+        style={{ touchAction: 'manipulation', background: '#00e5ff' }}
       >
-        ?
+        ここをタップ
       </button>
 
-      <div className="relative w-[350px] max-w-full">
-        <canvas
-          ref={canvasRef}
-          width={canvasSize}
-          height={canvasSize}
-          className="rounded-lg border-2 border-gray-700 w-full h-auto touch-none"
-          style={{ background: '#0a0a14', display: 'block' }}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-        />
+      <button
+        onClick={() => alert('HELP OK')}
+        className="rounded-full p-4 text-lg font-bold text-cyan-400"
+        style={{ border: '1px solid rgba(0,229,255,0.5)' }}
+      >
+        ヘルプテスト
+      </button>
 
-        {!isDrawing && !showResult && (
-          <div
-            className="absolute tutorial-arrow"
-            style={{
-              left: startPoint.x - 10,
-              top: startPoint.y - 10,
-              width: 20,
-              height: 20,
-              pointerEvents: 'none',
-            }}
-          >
-            <div className="absolute inset-0 animate-ping rounded-full bg-pink-500 opacity-75" />
-            <div className="relative flex h-5 w-5 items-center justify-center rounded-full border-2 border-pink-400 bg-pink-500">
-              <span className="text-[10px] text-white">▶</span>
-            </div>
-          </div>
-        )}
-
-        {!isActive && !isDrawing && !showResult && (
-          <div
-            className="absolute left-0 right-0 top-2 -translate-y-full text-center text-xs"
-            style={{ color: '#7676aa' }}
-          >
-            ▲ 赤い点から三角形をなぞってください
-          </div>
-        )}
-
-        {showResult && scoreResult && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{
-              background: 'rgba(13, 13, 26, 0.85)',
-              borderRadius: '8px',
-            }}
-          >
-            <div className="text-6xl font-bold" style={{ color: getRankColor(scoreResult.rank) }}>
-              {scoreResult.rank}
-            </div>
-            <div className="mt-2 text-2xl">{scoreResult.score}点</div>
-            <div className="mt-1 text-lg" style={{ color: '#00e5ff' }}>
-              威力: {scoreResult.damageMultiplier}
-            </div>
-          </div>
-        )}
-
-        {isActive && (
-          <div className="absolute right-2 top-2 rounded-md bg-black/60 px-3 py-1 font-mono text-xl">
-            {timeLeft}s
-          </div>
-        )}
-      </div>
-
-      <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
-        {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
-        {!isActive && !isDrawing && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
-        {!isActive && !isDrawing && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
-      </div>
-
-      {/* デバッグログ表示 */}
-      <div className="rounded-lg border border-green-500 bg-black/80 p-2 text-center text-xs font-mono text-green-400">
-        {debugMsg}
-      </div>
-
-      <div className="flex gap-3">
-        <button
-          onClick={(e) => { e.stopPropagation(); handleEvaluate(); }}
-          disabled={userPath.length < 10 || showResult}
-          className="cursor-pointer touch-auto rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
-          style={{ pointerEvents: 'auto', touchAction: 'manipulation', background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
-        >
-          詠唱完了！
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); handleReset(); }}
-          className="cursor-pointer touch-auto rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
-          style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}
-        >
-          リセット
-        </button>
+      <div className="text-xs text-gray-500">
+        これが動かない場合、ブラウザがJSイベントをブロックしています
       </div>
     </div>
   );
