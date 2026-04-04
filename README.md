@@ -7,30 +7,9 @@
 ## コンセプト
 
 - お手本の魔法陣をなぞって描画する
-- 正確さに応じてスコア（0〜100点）が算出される
-- スコアを魔法のダメージ倍率として出力
-
-## 操作ガイド
-
-1. アプリを開くと、薄いグレーの**三角形のお手本**が表示されます
-2. 左上の**赤い点（▶）** をタップ/クリックして描画を開始します
-3. 指を離さずに三角形の線に沿って**一周**なぞってください
-   - ⚠️ 制限時間は **5秒** です！
-4. 描き終わったら **「詠唱完了！」** ボタンをタップ
-5. スコアとランク（S/A/B/C）とダメージ倍率が表示されます
-6. **「リセット」** ボタンでもう一度チャレンジできます
-
-<details>
-<summary>🎯 ランク一覧</summary>
-
-| ランク | 必要スコア | ダメージ倍率 |
-|--------|-----------|-------------|
-| <span style="color:#ffd700">**S**</span> | 90点以上 | 120% |
-| <span style="color:#00e5ff">**A**</span> | 70点以上 | 100% |
-| <span style="color:#76ff03">**B**</span> | 50点以上 | 70% |
-| <span style="color:#ff4081">**C**</span> | 50点未満 | 0% |
-
-</details>
+- 指でなぞった軌跡が光のラインで描画される
+- 正確さに応じてスコア（0〜100点）とランク（S/A/B/C）が算出される
+- スコアは魔法のダメージ倍率として出力
 
 ## 技術スタック
 
@@ -38,77 +17,65 @@
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Drawing**: HTML5 Canvas API
+- **Touch Events**: Pointer Events API (`onPointerDown`/`onPointerMove`/`onPointerUp`)
+- **Build**: Static Export (`output: 'export'`)
 - **Deployment**: Vercel
+
+## MVP機能
+
+1. 三角形の魔法陣お手本を表示
+2. スマホのタッチ操作でなぞって描画
+3. 描画精度をスコア化（S/A/B/Cランク）
+4. 詠唱タイマー（5秒以内に描き切る）
+5. リセット＆再挑戦
+
+## ランク表
+
+| ランク | スコア | 倍率 | 目安 |
+|--------|--------|------|------|
+| **S** | 90〜100 | x3.0 | 完璧な詠唱 |
+| **A** | 70〜89 | x2.0 | 精密な詠唱 |
+| **B** | 50〜69 | x1.5 | 合格ライン |
+| **C** | 〜49 | x1.0 | 要練習 |
 
 ## Getting Started
 
-### 事前要件
-
-- **Node.js** v18 以上がインストールされていること
-  - [Node.js公式サイト](https://nodejs.org/)からダウンロード可能
-- **npm** （Node.jsに同梱）
-
-### インストール手順
+### 開発
 
 ```bash
-# 1. リポジトリをクローン
-git clone https://github.com/junsteen/magic-circle-drawer.git
-cd magic-circle-drawer
-
-# 2. 依存パッケージをインストール（必ず実行してください）
 npm install
-```
-
-> ⚠️ **重要**: `npm install` を実行しないと、Next.js、Reactなどの依存パッケージがインストールされず、アプリが起動しません。
-
-手動でインストールする場合は以下を実行します：
-
-```bash
-npm install next react react-dom
-npm install --save-dev typescript tailwindcss @tailwindcss/postcss @types/node @types/react @types/react-dom eslint eslint-config-next
-```
-
-### 開発サーバーの起動
-
-```bash
 npm run dev
 ```
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開いてください。
+ブラウザで http://localhost:3000 を開く
 
-### プロダクションビルド
+### 静的ビルド（本番用）
 
 ```bash
 npm run build
-npm start
+npx serve out -l 5000
 ```
 
-### その他のコマンド
+ビルドされた静的ファイルが `out/` ディレクトリに出力されます。
+`npx serve out -l 5000` でローカルサーバーを起動し、スマホからアクセスして確認できます。
 
-| コマンド | 説明 |
-|---------|------|
-| `npm run dev` | 開発サーバー起動（Turbopack） |
-| `npm run build` | プロダクションビルド |
-| `npm start` | プロダクションサーバー起動 |
-| `npm run lint` | ESLintによるコードチェック |
+### Vercelデプロイ
 
-## プロジェクト構成
+このプロジェクトは `output: 'export'` で静的エクスポート設定済みです。Vercelにリポジトリを接続するだけで自動デプロイされます。
 
-```
-arcane-tracer/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx        # ルートレイアウト（ビューポート設定）
-│   │   ├── page.tsx           # メインページ
-│   │   └── globals.css        # グローバルスタイル
-│   ├── components/
-│   │   └── MagicCircleCanvas.tsx  # Canvas描画コンポーネント
-│   └── lib/
-│       └── scoring.ts         # スコア判定ロジック
-├── package.json
-├── tsconfig.json
-└── next.config.ts
-```
+## 操作方法
+
+1. **Start!** をタップして描画開始
+2. Canvas上の **赤い点** から指でなぞる
+3. 三角形をなぞりながら、お手本に沿って描画
+4. 完了したら **詠唱完了！** ボタンでスコア判定
+5. **リセット** で再挑戦
+
+## タッチ対応
+
+- `onPointerDown` / `onPointerMove` / `onPointerUp` を使用
+- iPhone Safari・Android Chrome で動作確認済み
+- `touch-action: none` でスクロール干渉を防止
 
 ## ライセンス
 

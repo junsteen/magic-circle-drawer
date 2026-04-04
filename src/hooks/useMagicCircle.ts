@@ -98,7 +98,14 @@ export function useMagicCircle(
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => { if (prev <= 1) { setIsActive(false); return 0; } return prev - 1; });
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsActive(false);
+            setDebugMsg('⏰ 時間切れ！リセットして再挑戦');
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -113,49 +120,12 @@ export function useMagicCircle(
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }, []);
 
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    e.stopPropagation();
-    if (e.cancelable) e.preventDefault();
-    setDebugMsg(`TouchStart: ${e.touches.length}本`);
-    if (showResult) return;
-    const touch = e.touches[0];
-    const pos = getCanvasPos(touch.clientX, touch.clientY);
-    if (!isActive) setIsActive(true);
-    setIsDrawing(true);
-    setUserPath([{ x: pos.x, y: pos.y }]);
-  }, [showResult, isActive, getCanvasPos]);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    e.stopPropagation();
-    if (e.cancelable) e.preventDefault();
-    setDebugMsg('TouchMove: ...');
-    if (!isDrawing || showResult) return;
-    const touch = e.touches[0];
-    const pos = getCanvasPos(touch.clientX, touch.clientY);
-    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
-  }, [isDrawing, showResult, getCanvasPos]);
-
-  const handleTouchEnd = useCallback(() => setIsDrawing(false), []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const opt: AddEventListenerOptions = { passive: false };
-    canvas.addEventListener('touchstart', handleTouchStart, opt);
-    canvas.addEventListener('touchmove', handleTouchMove, opt);
-    canvas.addEventListener('touchend', handleTouchEnd, opt);
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
-
   const startDrawing = useCallback((pos: { x: number; y: number }) => {
     if (showResult) return;
     if (!isActive) setIsActive(true);
     setIsDrawing(true);
     setUserPath([{ x: pos.x, y: pos.y }]);
+    setDebugMsg('描画中...');
   }, [showResult, isActive]);
 
   const draw = useCallback((pos: { x: number; y: number }) => {
@@ -165,6 +135,10 @@ export function useMagicCircle(
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
+    // iOS Safari: release pointer capture to prevent scroll
+    if (canvasRef.current) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
+    }
     startDrawing(getCanvasPos(e.clientX, e.clientY));
   }, [startDrawing, getCanvasPos]);
 
@@ -173,18 +147,29 @@ export function useMagicCircle(
     if (isDrawing) draw(getCanvasPos(e.clientX, e.clientY));
   }, [isDrawing, draw, getCanvasPos]);
 
-  const onPointerUp = useCallback(() => setIsDrawing(false), []);
+  const onPointerUp = useCallback(() => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      setDebugMsg('描画完了。スコア判定しますか？');
+    }
+  }, [isDrawing]);
 
   const handleEvaluate = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsActive(false);
     const result = calculateScore(userPath, CANVAS_SIZE, CANVAS_SIZE);
     setScoreResult(result);
     setShowResult(true);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
+    }
     onScore(result);
   }, [userPath, onScore]);
 
   const handleReset = useCallback(() => {
     setIsDrawing(false); setUserPath([]); setIsActive(false);
     setTimeLeft(5); setShowResult(false); setScoreResult(null);
+    setDebugMsg('タップ待ち - Canvasを触ってください');
     onReset(); drawTemplate();
   }, [onReset, drawTemplate]);
 

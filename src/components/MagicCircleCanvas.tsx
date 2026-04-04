@@ -102,12 +102,30 @@ export default function MagicCircleCanvas({
             {timeLeft}s
           </div>
         )}
+
+        {!isActive && !isDrawing && !showResult && timeLeft === 0 && (
+          <div
+            className="absolute inset-0 z-40 flex flex-col items-center justify-center"
+            style={{ background: 'rgba(13, 13, 26, 0.85)' }}
+          >
+            <div className="mb-4 text-2xl font-bold" style={{ color: '#ff4081' }}>
+              ⏰ 時間切れ！
+            </div>
+            <button
+              onClick={handleReset}
+              className="cursor-pointer rounded-lg px-8 py-3 text-lg font-bold text-black transition-transform hover:scale-105 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #ff4081, #7c4dff)' }}
+            >
+              🔄 再挑戦
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
         {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
-        {!isActive && !isDrawing && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
-        {!isActive && !isDrawing && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
+        {!isActive && !isDrawing && !showResult && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
+        {!isActive && !isDrawing && !showResult && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
       </div>
 
       {/* デバッグログ表示 */}
