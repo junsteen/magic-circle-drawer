@@ -140,6 +140,7 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
+  const [debugMsg, setDebugMsg] = useState("タップ待ち");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const cx = canvasSize / 2;
@@ -248,6 +249,7 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
 
   // 生のタッチイベントハンドラ
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    setDebugMsg(`TouchStart: ${e.touches.length}本`);
     e.preventDefault();
     if (showResult) return;
     const touch = e.touches[0];
@@ -258,6 +260,7 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   }, [showResult, isActive, getCanvasPos]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
+    setDebugMsg("TouchMove: ...");
     e.preventDefault();
     if (!isDrawing || showResult) return;
     const touch = e.touches[0];
@@ -299,6 +302,7 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   };
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setDebugMsg("Mouse Down");
     startDrawing(getCanvasPos(e.clientX, e.clientY));
   }, [getCanvasPos]);
 
@@ -423,6 +427,11 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
         {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
         {!isActive && !isDrawing && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
         {!isActive && !isDrawing && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
+      </div>
+
+      {/* デバッグログ表示 */}
+      <div className="fixed bottom-4 left-4 right-4 z-[100] rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
+        {debugMsg}
       </div>
 
       <div className="flex gap-3">
