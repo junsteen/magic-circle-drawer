@@ -19,9 +19,9 @@ export interface UseMagicCircleReturn {
   handleEvaluate: () => void;
   handleReset: () => void;
   getRankColor: (rank: string) => string;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onMouseMove: (e: React.MouseEvent) => void;
-  onMouseUp: () => void;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: () => void;
 }
 
 /** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
@@ -163,15 +163,17 @@ export function useMagicCircle(
     setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
   }, [isDrawing, showResult]);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
     startDrawing(getCanvasPos(e.clientX, e.clientY));
   }, [startDrawing, getCanvasPos]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
     if (isDrawing) draw(getCanvasPos(e.clientX, e.clientY));
   }, [isDrawing, draw, getCanvasPos]);
 
-  const onMouseUp = useCallback(() => setIsDrawing(false), []);
+  const onPointerUp = useCallback(() => setIsDrawing(false), []);
 
   const handleEvaluate = useCallback(() => {
     const result = calculateScore(userPath, CANVAS_SIZE, CANVAS_SIZE);
@@ -199,6 +201,6 @@ export function useMagicCircle(
     canvasRef, canvasSize: CANVAS_SIZE, isDrawing, userPath,
     timeLeft, isActive, showResult, scoreResult, debugMsg,
     startPoint, handleEvaluate, handleReset, getRankColor,
-    onMouseDown, onMouseMove, onMouseUp,
+    onPointerDown, onPointerMove, onPointerUp,
   };
 }
