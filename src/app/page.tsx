@@ -39,6 +39,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <div
+        className="fixed left-2 top-2 z-[9999] bg-red-600 p-2 text-[10px] text-white"
+        onClick={() => alert('PAGE_ALERT')}
+      >
+        DEBUG_CLICK
+      </div>
     </div>
   );
 }
