@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
-import HelpModal from './HelpModal';
 
 export default function MagicCircleCanvas({
   onScore,
@@ -12,38 +11,38 @@ export default function MagicCircleCanvas({
   onReset: () => void;
 }) {
   const [count, setCount] = useState(0);
-  const [showHelp, setShowHelp] = useState(false);
+  const [lastEvent, setLastEvent] = useState('-');
+
+  const handleTap = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setCount((c) => c + 1);
+    setLastEvent(`pointerDown #${count + 1}`);
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-8 p-10 rounded-2xl border-2 border-cyan-500" style={{ background: '#1a1a2e' }}>
-      <h2 className="text-xl font-bold text-cyan-400">最小機能テスト</h2>
+    <div className="flex flex-col items-center justify-center gap-6 p-10 rounded-2xl border-2 border-cyan-500" style={{ background: '#1a1a2e', minHeight: 300 }}>
+      <h2 className="text-xl font-bold text-cyan-400">イベント検知テスト</h2>
 
-      <p className="text-4xl font-mono text-white">
-        CLICK: {count}
-      </p>
+      <p className="text-6xl font-mono select-none text-white">{count}</p>
+      <p className="text-xs font-mono text-green-400">Last: {lastEvent}</p>
 
       <button
-        onClick={() => {
-          setCount((c) => c + 1);
-          alert('ボタンが押されました！');
+        onPointerDown={handleTap}
+        className="rounded-full p-8 text-2xl font-bold text-black active:scale-90 transition-transform"
+        style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          background: '#00e5ff',
+          boxShadow: '0 0 20px rgba(0,229,255,0.5)',
         }}
-        className="rounded-full p-8 text-2xl font-bold text-black active:scale-95 transition-transform"
-        style={{ touchAction: 'manipulation', background: '#00e5ff' }}
       >
         ここをタップ
       </button>
 
-      <button
-        onClick={() => alert('HELP OK')}
-        className="rounded-full p-4 text-lg font-bold text-cyan-400"
-        style={{ border: '1px solid rgba(0,229,255,0.5)' }}
-      >
-        ヘルプテスト
-      </button>
-
-      <div className="text-xs text-gray-500">
-        これが動かない場合、ブラウザがJSイベントをブロックしています
-      </div>
+      <p className="text-xs text-gray-400">
+        アニメーションが動くなら、onPointerDownも届くはずです
+      </p>
     </div>
   );
 }
