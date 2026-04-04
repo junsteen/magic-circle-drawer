@@ -25,6 +25,14 @@ export default function MagicCircleCanvas({
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
+      {/* 切り分けテストボタン */}
+      <button
+        onClick={() => alert('TEST CLICK OK!')}
+        className="fixed left-0 top-0 z-[9999] bg-white p-4 text-black"
+      >
+        TEST CLICK
+      </button>
+
       {showTutorial && (
         <TutorialOverlay onStart={() => setShowTutorial(false)} />
       )}
