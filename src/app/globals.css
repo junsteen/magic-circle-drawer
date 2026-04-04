@@ -16,8 +16,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Georgia', serif;
-  overflow: hidden;
-  
+  margin: 0;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ボタンはタップを許可 */
+button, a {
+  touch-action: manipulation !important;
+  pointer-events: auto !important;
 }
 
 @keyframes glow-pulse {

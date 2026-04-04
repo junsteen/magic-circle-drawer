@@ -10,16 +10,14 @@ interface HelpModalProps {
 export default function HelpModal({ onClose }: HelpModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center tutorial-overlay"
+      className="fixed inset-0 z-[200] flex items-center justify-center tutorial-overlay"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
-      onTouchEnd={onClose}
     >
       <div
         className="mx-4 max-w-sm rounded-xl p-6"
         style={{ background: '#1a1a2e', border: '1px solid rgba(0,229,255,0.3)' }}
         onClick={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
       >
         <h2 className="mb-4 text-xl font-bold" style={{ color: '#00e5ff' }}>
           🔮 ヘルプ
@@ -52,7 +50,6 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         </div>
         <button
           onClick={onClose}
-          onTouchEnd={onClose}
           className="mt-4 w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >

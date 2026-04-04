@@ -32,7 +32,7 @@ export default function TutorialOverlay({ onStart }: TutorialOverlayProps) {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center tutorial-overlay"
+      className="fixed inset-0 z-[200] flex items-center justify-center tutorial-overlay"
       style={{ background: 'rgba(0,0,0,0.85)' }}
     >
       <div
@@ -56,11 +56,6 @@ export default function TutorialOverlay({ onStart }: TutorialOverlayProps) {
         </div>
         <button
           onClick={nextStep}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            nextStep();
-          }}
           className="w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >

@@ -140,9 +140,10 @@ export function useMagicCircle(
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    const opt: AddEventListenerOptions = { passive: false };
+    canvas.addEventListener('touchstart', handleTouchStart, opt);
+    canvas.addEventListener('touchmove', handleTouchMove, opt);
+    canvas.addEventListener('touchend', handleTouchEnd, opt);
     return () => {
       canvas.removeEventListener('touchstart', handleTouchStart);
       canvas.removeEventListener('touchmove', handleTouchMove);
