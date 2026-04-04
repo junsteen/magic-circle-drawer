@@ -1,0 +1,24 @@
+{
+  "name": "Arcane Tracer - 魔法陣詠唱ゲーム",
+  "short_name": "ArcaneTracer",
+  "description": "魔法陣をなぞって詠唱するゲーム",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#00e5ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
