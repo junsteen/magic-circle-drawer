@@ -25,17 +25,12 @@ export default function MagicCircleCanvas({
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {/* 切り分けテストボタン */}
       <button
-        onClick={() => alert('TEST CLICK OK!')}
-        className="fixed left-0 top-0 z-[9999] bg-white p-4 text-black"
+        onClick={() => alert('TEST OK!')}
+        className="fixed left-0 top-0 z-[99999] bg-red-600 p-6 text-xl font-bold text-white"
       >
-        TEST CLICK
+        ●TEST●
       </button>
-
-      {showTutorial && (
-        <TutorialOverlay onStart={() => setShowTutorial(false)} />
-      )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
       <button
@@ -119,11 +114,11 @@ export default function MagicCircleCanvas({
       </div>
 
       {/* デバッグログ表示 */}
-      <div className="fixed bottom-4 left-4 right-4 z-[100] pointer-events-none rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
+      <div className="rounded-lg border border-green-500 bg-black/80 p-2 text-center text-xs font-mono text-green-400">
         {debugMsg}
       </div>
 
-      <div className="flex gap-3 relative z-[110] mt-4 mb-6">
+      <div className="flex gap-3">
         <button
           onClick={(e) => { e.stopPropagation(); handleEvaluate(); }}
           disabled={userPath.length < 10 || showResult}
