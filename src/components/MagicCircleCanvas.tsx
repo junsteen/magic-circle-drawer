@@ -286,8 +286,10 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
+    console.log('[DEBUG] onTouchStart fired', e.touches.length);
     e.preventDefault();
     const pos = getPos(e);
+    console.log('[DEBUG] startDrawing at', pos.x, pos.y);
     startDrawing(pos.x, pos.y);
   };
 
