@@ -1,227 +1,27 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { calculateScore, type ScoringResult } from '@/lib/scoring';
-
-interface MagicCircleCanvasProps {
-  onScore: (result: ScoringResult) => void;
-  onReset: () => void;
-}
+import { useState } from 'react';
+import type { ScoringResult } from '@/lib/scoring';
+import { useMagicCircle } from '@/hooks/useMagicCircle';
 import HelpModal from './HelpModal';
 import TutorialOverlay from './TutorialOverlay';
 
-export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const canvasSize = 350;
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [userPath, setUserPath] = useState<{ x: number; y: number }[]>([]);
-  const [timeLeft, setTimeLeft] = useState(5);
-  const [isActive, setIsActive] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
+export default function MagicCircleCanvas({
+  onScore,
+  onReset,
+}: {
+  onScore: (result: ScoringResult) => void;
+  onReset: () => void;
+}) {
+  const {
+    canvasRef, canvasSize, isDrawing, userPath,
+    timeLeft, isActive, showResult, scoreResult,
+    debugMsg, startPoint, handleEvaluate, handleReset,
+    getRankColor, onMouseDown, onMouseMove, onMouseUp,
+  } = useMagicCircle(onScore, onReset);
+
   const [showHelp, setShowHelp] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false); // DEBUG: 無効化
-  const [debugMsg, setDebugMsg] = useState("タップ待ち - Canvasを触ってください");
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const cx = canvasSize / 2;
-  const cy = canvasSize / 2;
-  const r = canvasSize * 0.35;
-
-  const startPoint = {
-    x: cx + r * Math.cos(-Math.PI / 2),
-    y: cy + r * Math.sin(-Math.PI / 2),
-  };
-
-  const drawTemplate = useCallback((highlight = false) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-
-    ctx.strokeStyle = 'rgba(100, 100, 150, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 20, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = highlight ? 'rgba(0, 229, 255, 0.7)' : 'rgba(100, 100, 150, 0.5)';
-    ctx.lineWidth = 3;
-    ctx.setLineDash(highlight ? [] : [5, 5]);
-    ctx.beginPath();
-    for (let i = 0; i <= 3; i++) {
-      const angle = (Math.PI * 2 * (i % 3)) / 3 - Math.PI / 2;
-      const x = cx + r * Math.cos(angle);
-      const y = cy + r * Math.sin(angle);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }, [cx, cy, r, canvasSize]);
-
-  const drawUserPath = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || userPath.length < 2) return;
-
-    drawTemplate();
-
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00e5ff';
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(userPath[0].x, userPath[0].y);
-    for (let i = 1; i < userPath.length; i++) {
-      ctx.lineTo(userPath[i].x, userPath[i].y);
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  }, [userPath, drawTemplate]);
-
-  useEffect(() => {
-    drawTemplate();
-  }, [drawTemplate]);
-
-  useEffect(() => {
-    if (userPath.length > 0) {
-      drawUserPath();
-    }
-  }, [userPath, drawUserPath]);
-
-  useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setIsActive(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isActive, timeLeft]);
-
-  const getCanvasPos = useCallback((clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
-  }, []);
-
-  // 生のタッチイベントハンドラ
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    setDebugMsg(`TouchStart: ${e.touches.length}本`);
-    e.preventDefault();
-    if (showResult) return;
-    const touch = e.touches[0];
-    const pos = getCanvasPos(touch.clientX, touch.clientY);
-    if (!isActive) setIsActive(true);
-    setIsDrawing(true);
-    setUserPath([{ x: pos.x, y: pos.y }]);
-  }, [showResult, isActive, getCanvasPos]);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    setDebugMsg("TouchMove: ...");
-    e.preventDefault();
-    if (!isDrawing || showResult) return;
-    const touch = e.touches[0];
-    const pos = getCanvasPos(touch.clientX, touch.clientY);
-    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
-  }, [isDrawing, showResult, getCanvasPos]);
-
-  const handleTouchEnd = useCallback((_e: TouchEvent) => {
-    setIsDrawing(false);
-  }, []);
-
-  // Canvas に生のイベントリスナーを設定
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  // マウスイベント（デスクトップ用）
-  const startDrawing = (pos: { x: number; y: number }) => {
-    if (showResult) return;
-    if (!isActive) setIsActive(true);
-    setIsDrawing(true);
-    setUserPath([{ x: pos.x, y: pos.y }]);
-  };
-
-  const draw = (pos: { x: number; y: number }) => {
-    if (!isDrawing || showResult) return;
-    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
-  };
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setDebugMsg("Mouse Down");
-    startDrawing(getCanvasPos(e.clientX, e.clientY));
-  }, [getCanvasPos]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    draw(getCanvasPos(e.clientX, e.clientY));
-  }, [isDrawing, getCanvasPos]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDrawing(false);
-  }, []);
-
-  const handleEvaluate = () => {
-    const result = calculateScore(userPath, canvasSize, canvasSize);
-    setScoreResult(result);
-    setShowResult(true);
-    onScore(result);
-  };
-
-  const handleReset = () => {
-    setIsDrawing(false);
-    setUserPath([]);
-    setIsActive(false);
-    setTimeLeft(5);
-    setShowResult(false);
-    setScoreResult(null);
-    onReset();
-    drawTemplate();
-  };
-
-  const getRankColor = (rank: string) => {
-    switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
-    }
-  };
+  const [showTutorial, setShowTutorial] = useState(false);
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -246,10 +46,10 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
           height={canvasSize}
           className="rounded-lg border-2 border-gray-700 w-full h-auto touch-none"
           style={{ background: '#0a0a14', display: 'block' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
         />
 
         {!isDrawing && !showResult && (
