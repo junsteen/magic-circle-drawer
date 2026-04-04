@@ -115,18 +115,19 @@ export default function MagicCircleCanvas({
         {debugMsg}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 relative z-10">
         <button
           onClick={handleEvaluate}
           disabled={userPath.length < 10 || showResult}
-          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
-          style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
+          className="cursor-pointer touch-auto rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+          style={{ pointerEvents: 'auto', touchAction: 'auto', background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
         </button>
         <button
           onClick={handleReset}
-          className="cursor-pointer rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
+          className="cursor-pointer touch-auto rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
+          style={{ pointerEvents: 'auto', touchAction: 'auto' }}
         >
           リセット
         </button>

@@ -114,8 +114,9 @@ export function useMagicCircle(
   }, []);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
     setDebugMsg(`TouchStart: ${e.touches.length}本`);
-    e.preventDefault();
     if (showResult) return;
     const touch = e.touches[0];
     const pos = getCanvasPos(touch.clientX, touch.clientY);
@@ -125,8 +126,9 @@ export function useMagicCircle(
   }, [showResult, isActive, getCanvasPos]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
     setDebugMsg('TouchMove: ...');
-    e.preventDefault();
     if (!isDrawing || showResult) return;
     const touch = e.touches[0];
     const pos = getCanvasPos(touch.clientX, touch.clientY);
