@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔮 Arcane Tracer
+
+**「詠唱の正確さが威力になる」**
+
+スマホ画面上で魔法陣を指でなぞり、その正確さをスコア化するWebアプリケーション。
+
+## コンセプト
+
+- お手本の魔法陣をなぞって描画する
+- 指でなぞった軌跡が光のラインで描画される
+- 正確さに応じてスコア（0〜100点）とランク（S/A/B/C）が算出される
+- スコアは魔法のダメージ倍率として出力
+
+## 技術スタック
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Drawing**: HTML5 Canvas API
+- **Touch Events**: Pointer Events API (`onPointerDown`/`onPointerMove`/`onPointerUp`)
+- **Build**: Static Export (`output: 'export'`)
+- **Deployment**: Vercel
+
+## MVP機能
+
+1. 三角形の魔法陣お手本を表示
+2. スマホのタッチ操作でなぞって描画
+3. 描画精度をスコア化（S/A/B/Cランク）
+4. 詠唱タイマー（5秒以内に描き切る）
+5. リセット＆再挑戦
+
+## ランク表
+
+| ランク | スコア | 倍率 | 目安 |
+|--------|--------|------|------|
+| **S** | 90〜100 | x3.0 | 完璧な詠唱 |
+| **A** | 70〜89 | x2.0 | 精密な詠唱 |
+| **B** | 50〜69 | x1.5 | 合格ライン |
+| **C** | 〜49 | x1.0 | 要練習 |
 
 ## Getting Started
 
-First, run the development server:
+### 開発
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで http://localhost:3000 を開く
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 静的ビルド（本番用）
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npx serve out -l 5000
+```
 
-## Learn More
+ビルドされた静的ファイルが `out/` ディレクトリに出力されます。
+`npx serve out -l 5000` でローカルサーバーを起動し、スマホからアクセスして確認できます。
 
-To learn more about Next.js, take a look at the following resources:
+### Vercelデプロイ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+このプロジェクトは `output: 'export'` で静的エクスポート設定済みです。Vercelにリポジトリを接続するだけで自動デプロイされます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 操作方法
 
-## Deploy on Vercel
+1. **Start!** をタップして描画開始
+2. Canvas上の **赤い点** から指でなぞる
+3. 三角形をなぞりながら、お手本に沿って描画
+4. 完了したら **詠唱完了！** ボタンでスコア判定
+5. **リセット** で再挑戦
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## タッチ対応
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `onPointerDown` / `onPointerMove` / `onPointerUp` を使用
+- iPhone Safari・Android Chrome で動作確認済み
+- `touch-action: none` でスクロール干渉を防止
+
+## ライセンス
+
+MIT

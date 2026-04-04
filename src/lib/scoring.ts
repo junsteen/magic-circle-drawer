@@ -22,24 +22,27 @@ function minDistance(point: Point, targets: Point[]): number {
   return min;
 }
 
+function getTriangleVertices(cx: number, cy: number, radius: number): Point[] {
+  return [0, 1, 2].map((i) => ({
+    x: cx + radius * Math.cos((Math.PI * 2 * i) / 3 - Math.PI / 2),
+    y: cy + radius * Math.sin((Math.PI * 2 * i) / 3 - Math.PI / 2),
+  }));
+}
+
 function generateTrianglePoints(cx: number, cy: number, radius: number): Point[] {
   const points: Point[] = [];
   const numPoints = 180;
   for (let i = 0; i < numPoints; i++) {
-    const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
     const cornerAngle = (Math.PI * 2 * (i % 3)) / 3 - Math.PI / 2;
     const nextCornerAngle = (Math.PI * 2 * ((i + 1) % 3)) / 3 - Math.PI / 2;
 
     const cornerX1 = cx + radius * Math.cos(cornerAngle);
     const cornerY1 = cy + radius * Math.sin(cornerAngle);
 
-    const currentAngle = (Math.PI * 2 * i) / numPoints;
-    const segmentIndex = Math.floor(i / (numPoints / 3));
-    const segmentProgress = (i % (numPoints / 3)) / (numPoints / 3);
+    const nextCornerX = cx + radius * Math.cos(nextCornerAngle);
+    const nextCornerY = cy + radius * Math.sin(nextCornerAngle);
 
-    const nextSegmentIndex = (segmentIndex + 1) % 3;
-    const nextCornerX = cx + radius * Math.cos((Math.PI * 2 * nextSegmentIndex) / 3 - Math.PI / 2);
-    const nextCornerY = cy + radius * Math.sin((Math.PI * 2 * nextSegmentIndex) / 3 - Math.PI / 2);
+    const segmentProgress = (i % (numPoints / 3)) / (numPoints / 3);
 
     points.push({
       x: cornerX1 + (nextCornerX - cornerX1) * segmentProgress,
@@ -47,6 +50,24 @@ function generateTrianglePoints(cx: number, cy: number, radius: number): Point[]
     });
   }
   return points;
+}
+
+/** Check if user passed near all 3 triangle vertices (checkpoint system) */
+function checkVertexCheckpoints(
+  userPath: Point[],
+  vertices: Point[],
+  threshold: number,
+): number {
+  let visitedCount = 0;
+  for (let v = 0; v < vertices.length; v++) {
+    for (const p of userPath) {
+      if (distance(p, vertices[v]) < threshold) {
+        visitedCount++;
+        break;
+      }
+    }
+  }
+  return visitedCount;
 }
 
 export function calculateScore(
@@ -62,23 +83,33 @@ export function calculateScore(
   const cy = canvasHeight / 2;
   const radius = Math.min(canvasWidth, canvasHeight) * 0.35;
   const templatePoints = generateTrianglePoints(cx, cy, radius);
+  const vertices = getTriangleVertices(cx, cy, radius);
 
+  // 1. Accuracy: how close is the user path to the template?
   let totalError = 0;
   const maxAllowedError = radius * 0.3;
-
   for (const userPoint of userPath) {
     const d = minDistance(userPoint, templatePoints);
     totalError += Math.min(d, maxAllowedError);
   }
-
   const avgError = totalError / userPath.length;
   let accuracy = Math.max(0, 100 - (avgError / maxAllowedError) * 100);
 
-  const templateArea = Math.PI * radius * radius;
-  const pathSpread = calculatePathSpread(userPath);
-  const coverageRatio = Math.min(pathSpread / templateArea, 1);
+  // 2. Checkpoint: did user pass near all 3 vertices?
+  const vertexThreshold = radius * 0.25;
+  const visitedVertices = checkVertexCheckpoints(userPath, vertices, vertexThreshold);
+  const checkpointRatio = visitedVertices / vertices.length;
 
-  let score = accuracy * 0.7 + coverageRatio * 30;
+  // 3. Coverage: replaced bounding-box area with path length ratio
+  const perimeter = radius * 3 * Math.sqrt(3); // equilateral triangle perimeter
+  let totalPathLength = 0;
+  for (let i = 1; i < userPath.length; i++) {
+    totalPathLength += distance(userPath[i - 1], userPath[i]);
+  }
+  const lengthRatio = Math.min(totalPathLength / perimeter, 1.5) / 1.5;
+
+  // Scoring: accuracy 50%, checkpoints 30%, path length 20%
+  let score = accuracy * 0.5 + checkpointRatio * 100 * 0.3 + lengthRatio * 100 * 0.2;
   score = Math.min(100, Math.max(0, score));
 
   const roundedScore = Math.round(score);
@@ -101,16 +132,4 @@ export function calculateScore(
   }
 
   return { score: roundedScore, rank, damageMultiplier };
-}
-
-function calculatePathSpread(path: Point[]): number {
-  if (path.length < 2) return 0;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const p of path) {
-    if (p.x < minX) minX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-  }
-  return (maxX - minX) * (maxY - minY);
 }
