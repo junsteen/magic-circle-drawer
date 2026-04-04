@@ -52,7 +52,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
         </div>
         <button
           onClick={onClose}
-          className="mt-4 w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
+          className="cursor-pointer mt-4 w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           閉じる
@@ -111,7 +111,7 @@ function TutorialOverlay({ onStart }: { onStart: () => void }) {
         </div>
         <button
           onClick={nextStep}
-          className="w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
+          className="cursor-pointer w-full rounded-md py-2 font-bold text-black transition-opacity hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           {step < steps.length - 1 ? '次へ →' : '始める ✨'}
@@ -327,7 +327,7 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
       {/* ヘルプボタン */}
       <button
         onClick={() => setShowHelp(true)}
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border-2 text-lg font-bold transition-all hover:border-cyan-400"
+        className="cursor-pointer absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border-2 text-lg font-bold transition-all hover:border-cyan-400"
         style={{ borderColor: 'rgba(0,229,255,0.3)', color: '#00e5ff' }}
         aria-label="ヘルプ"
       >
@@ -419,14 +419,14 @@ export default function MagicCircleCanvas({ onScore, onReset }: MagicCircleCanva
         <button
           onClick={handleEvaluate}
           disabled={userPath.length < 10 || showResult}
-          className="rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
         </button>
         <button
           onClick={handleReset}
-          className="rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
+          className="cursor-pointer rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
         >
           リセット
         </button>
