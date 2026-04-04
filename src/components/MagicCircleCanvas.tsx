@@ -39,7 +39,7 @@ export default function MagicCircleCanvas({
         ?
       </button>
 
-      <div className="relative w-[350px] max-w-full">
+      <div className="relative w-full max-w-sm">
         <canvas
           ref={canvasRef}
           width={canvasSize}
@@ -56,11 +56,12 @@ export default function MagicCircleCanvas({
           <div
             className="absolute tutorial-arrow"
             style={{
-              left: startPoint.x - 10,
-              top: startPoint.y - 10,
+              left: `${(startPoint.x / canvasSize) * 100}%`,
+              top: `${(startPoint.y / canvasSize) * 100}%`,
               width: 20,
               height: 20,
               pointerEvents: 'none',
+                transform: 'translate(-50%, -50%)',
             }}
           >
             <div className="absolute inset-0 animate-ping rounded-full bg-pink-500 opacity-75" />
