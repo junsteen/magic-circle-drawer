@@ -18,14 +18,7 @@ body {
   font-family: 'Georgia', serif;
   margin: 0;
   overscroll-behavior: none;
-  touch-action: none;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* ボタンはタップを許可 */
-button, a {
-  touch-action: manipulation !important;
-  pointer-events: auto !important;
 }
 
 @keyframes glow-pulse {
