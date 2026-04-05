@@ -22,6 +22,8 @@ export default function MagicCircleCanvas({
     debugMsg, startPoint, patternName, currentIndex, totalPatterns,
     difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
+    // リプレイ関連
+    drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
   } = useMagicCircle(onScore, onReset);
 
   const [showHelp, setShowHelp] = useState(false);
@@ -66,7 +68,7 @@ export default function MagicCircleCanvas({
           width={canvasSize}
           height={canvasSize}
           className="rounded-lg border-2 border-gray-700 w-full h-auto touch-none"
-          style={{ background: '#0a0a14', display: 'block' }}
+          style={{ background: '#0a0a14', display: 'block', pointerEvents: isReplaying ? 'none' : 'auto' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -154,14 +156,30 @@ export default function MagicCircleCanvas({
         {debugMsg}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap justify-center">
         <button
           onClick={handleEvaluate}
-          disabled={userPath.length < 10 || showResult}
+          disabled={userPath.length < 10 || showResult || isReplaying}
           className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
+        </button>
+        <button
+          onClick={handleReplay}
+          disabled={drawLogs.length === 0 || isReplaying}
+          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+          style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
+        >
+          {isReplaying ? '再生中...' : '🔄 リプレイ'}
+        </button>
+        <button
+          onClick={() => handleSaveData()}
+          disabled={drawLogs.length === 0}
+          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+          style={{ background: 'linear-gradient(135deg, #76ff03, #00e5ff)' }}
+        >
+          💾 保存
         </button>
         <button
           onClick={handleReset}

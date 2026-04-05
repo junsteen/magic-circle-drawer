@@ -13,8 +13,17 @@ import {
   DIFFICULTY_TOLERANCE,
   DIFFICULTY_LABELS,
 } from '@/lib/patterns';
+import type { DrawEvent, DrawStroke, MagicCircleData } from '@/lib/types';
 
 const CANVAS_SIZE = 350;
+
+function createReplayDrawLogs(strokes: DrawStroke[]): DrawEvent[][] {
+  return strokes.map((stroke) => {
+    if (stroke.length === 0) return [];
+    const t0 = stroke[0].t;
+    return stroke.map((e) => ({ ...e, t: e.t - t0 }));
+  });
+}
 
 export interface UseMagicCircleReturn {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -40,6 +49,13 @@ export interface UseMagicCircleReturn {
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: () => void;
+  // リプレイ関連
+  drawLogs: DrawStroke[];
+  savedMagicData: MagicCircleData | null;
+  isReplaying: boolean;
+  handleReplay: () => void;
+  handleSaveData: () => MagicCircleData | null;
+  handleLoadData: (data: MagicCircleData) => void;
 }
 
 /** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
@@ -55,6 +71,16 @@ export function useMagicCircle(
   const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
   const [debugMsg, setDebugMsg] = useState('タップ待ち - Canvasを触ってください');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ─── 描画ログ記録 ───
+  const [drawLogs, setDrawLogs] = useState<DrawStroke[]>([]);
+  const drawLogRef = useRef<DrawEvent[]>([]);
+  const strokeStartTimeRef = useRef<number>(0);
+
+  // ─── リプレイ状態 ───
+  const [isReplaying, setIsReplaying] = useState(false);
+  const replayAnimRef = useRef<number | null>(null);
+  const [savedMagicData, setSavedMagicData] = useState<MagicCircleData | null>(null);
 
   // ─── パターン・難易度管理 ───
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
@@ -170,17 +196,23 @@ export function useMagicCircle(
   }, []);
 
   const startDrawing = useCallback((pos: { x: number; y: number }) => {
-    if (showResult) return;
+    if (showResult || isReplaying) return;
     if (!isActive) setIsActive(true);
     setIsDrawing(true);
     setUserPath([{ x: pos.x, y: pos.y }]);
+    // 描画ログ記録: start タイミングで新しいストロークを開始
+    strokeStartTimeRef.current = performance.now();
+    drawLogRef.current = [{ x: pos.x, y: pos.y, t: 0, type: 'start' }];
     setDebugMsg('描画中...');
-  }, [showResult, isActive]);
+  }, [showResult, isActive, isReplaying]);
 
   const draw = useCallback((pos: { x: number; y: number }) => {
-    if (!isDrawing || showResult) return;
+    if (!isDrawing || showResult || isReplaying) return;
     setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
-  }, [isDrawing, showResult]);
+    // 描画ログ記録: move イベント
+    const elapsed = performance.now() - strokeStartTimeRef.current;
+    drawLogRef.current.push({ x: pos.x, y: pos.y, t: elapsed, type: 'move' });
+  }, [isDrawing, showResult, isReplaying]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -198,6 +230,12 @@ export function useMagicCircle(
   const onPointerUp = useCallback(() => {
     if (isDrawing) {
       setIsDrawing(false);
+      // 描画ログ記録: end イベントでストロークを保存
+      const elapsed = performance.now() - strokeStartTimeRef.current;
+      const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
+      drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
+      setDrawLogs((prev) => [...prev, [...drawLogRef.current]]);
+      drawLogRef.current = [];
       setDebugMsg('描画完了。スコア判定しますか？');
     }
   }, [isDrawing]);
@@ -228,6 +266,15 @@ export function useMagicCircle(
     setScoreResult(null);
     setActualTimeLeft(DIFFICULTY_TIME[difficulty]);
     setDebugMsg('タップ待ち - Canvasを触ってください');
+    // 描画ログもクリア
+    setDrawLogs([]);
+    drawLogRef.current = [];
+    // リプレイ中の場合は停止
+    if (replayAnimRef.current !== null) {
+      cancelAnimationFrame(replayAnimRef.current);
+      replayAnimRef.current = null;
+    }
+    setIsReplaying(false);
     onReset();
     if (currentPattern) drawTemplate(currentPattern);
   }, [onReset, drawTemplate, currentPattern, difficulty]);
@@ -244,6 +291,14 @@ export function useMagicCircle(
     setScoreResult(null);
     setActualTimeLeft(DIFFICULTY_TIME[difficulty]);
     setDebugMsg(`new pattern: ${randomP.name}`);
+    // 描画ログもクリア
+    setDrawLogs([]);
+    drawLogRef.current = [];
+    if (replayAnimRef.current !== null) {
+      cancelAnimationFrame(replayAnimRef.current);
+      replayAnimRef.current = null;
+    }
+    setIsReplaying(false);
   }, [difficulty]);
 
   const changeDifficulty = useCallback((d: Difficulty) => {
@@ -259,6 +314,152 @@ export function useMagicCircle(
     }
   };
 
+  // ─── リプレイ機能 ───
+  const handleReplay = useCallback(() => {
+    if (drawLogs.length === 0 || isReplaying) return;
+    setIsReplaying(true);
+    setIsActive(false);
+    setShowResult(false);
+
+    const normalizedLogs = createReplayDrawLogs(drawLogs);
+    const canvas = canvasRef.current;
+    if (!canvas || !currentPattern) { setIsReplaying(false); return; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { setIsReplaying(false); return; }
+
+    // Flatten all strokes with intervals
+    const STROKE_INTERVAL_MS = 500;
+    const allEvents: DrawEvent[] = [];
+    let timeOffset = 0;
+    for (const stroke of normalizedLogs) {
+      if (stroke.length === 0) continue;
+      for (const ev of stroke) {
+        allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+      }
+      timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+    }
+
+    if (allEvents.length === 0) { setIsReplaying(false); return; }
+    const totalDuration = allEvents[allEvents.length - 1].t;
+
+    // Draw template background
+    drawTemplate(currentPattern);
+
+    const startTime = performance.now();
+    const replayedPoints: { x: number; y: number }[] = [];
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+
+      // Redraw background
+      drawTemplate(currentPattern);
+
+      // Collect all points up to current time
+      const pts: { x: number; y: number }[] = [];
+      for (const ev of allEvents) {
+        if (ev.t <= elapsed) {
+          pts.push({ x: ev.x, y: ev.y });
+        }
+      }
+
+      if (pts.length > 1) {
+        // Connect points by stroke boundaries
+        // Draw each segment with glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00e5ff';
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Leading glow
+        const last = pts[pts.length - 1];
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#00e5ff';
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#00e5ff';
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      if (elapsed >= totalDuration) {
+        // Replay complete
+        drawTemplate(currentPattern);
+        // Draw all points as final state
+        if (pts.length > 1) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#00e5ff';
+          ctx.strokeStyle = '#00e5ff';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        setDebugMsg('🔄 リプレイ完了！');
+        replayAnimRef.current = null;
+        setIsReplaying(false);
+        return;
+      }
+
+      replayAnimRef.current = requestAnimationFrame(animate);
+    };
+
+    replayAnimRef.current = requestAnimationFrame(animate);
+    setDebugMsg('🔄 リプレイ再生中...');
+  }, [drawLogs, isReplaying, currentPattern, drawTemplate]);
+
+  // ─── 魔法陣データの保存 ───
+  const handleSaveData = useCallback((): MagicCircleData | null => {
+    if (!currentPattern || drawLogs.length === 0) {
+      setDebugMsg('⚠️ 保存する描画データがありません');
+      return null;
+    }
+
+    const data: MagicCircleData = {
+      seed: Math.floor(Math.random() * 1e9),
+      pattern: {
+        name: currentPattern.name,
+        vertices: currentPattern.vertices,
+        edges: currentPattern.edges,
+        circles: currentPattern.circles,
+      },
+      drawLogs: drawLogs.map((stroke) => [...stroke]),
+      timestamp: Date.now(),
+    };
+    setSavedMagicData(data);
+    setDebugMsg(`💾 保存完了: "${data.pattern.name}" (${data.drawLogs.length}ストローク)`);
+    return data;
+  }, [currentPattern, drawLogs]);
+
+  // ─── 魔法陣データの読み込み ───
+  const handleLoadData = useCallback((data: MagicCircleData) => {
+    setSavedMagicData(data);
+    drawTemplate(currentPattern);
+    setDrawLogs(data.drawLogs);
+    setUserPath([]);
+    drawTemplate(currentPattern);
+    setDebugMsg(`📂 読込完了: "${data.pattern.name}" (${data.drawLogs.length}ストローク)`);
+  }, [currentPattern, drawTemplate]);
+
   return {
     canvasRef, canvasSize: CANVAS_SIZE, isDrawing, userPath,
     timeLeft: actualTimeLeft, isActive, showResult, scoreResult, debugMsg,
@@ -266,5 +467,6 @@ export function useMagicCircle(
     difficulty, difficultyLabel: DIFFICULTY_LABELS[difficulty],
     handleEvaluate, handleReset, handleNext, changeDifficulty, getRankColor,
     onPointerDown, onPointerMove, onPointerUp,
+    drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
   };
 }
