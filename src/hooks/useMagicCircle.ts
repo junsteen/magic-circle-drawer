@@ -83,6 +83,9 @@ export function useMagicCircle(
   const replayAnimRef = useRef<number | null>(null);
   const [savedMagicData, setSavedMagicData] = useState<MagicCircleData | null>(null);
 
+  // use a ref to sync replay state so userPath effect won't clear canvas during animation
+  const isReplayingRef = useRef(false);
+
   // ─── パターン・難易度管理 ───
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [patterns, setPatterns] = useState<MagicCirclePattern[]>([]);
@@ -185,7 +188,11 @@ export function useMagicCircle(
   }, [userPath, drawTemplate, currentPattern]);
 
   useEffect(() => { if (currentPattern) drawTemplate(currentPattern); }, [drawTemplate, currentPattern]);
-  useEffect(() => { if (userPath.length > 0) drawUserPath(); }, [userPath, drawUserPath]);
+  useEffect(() => {
+    if (userPath.length > 0 && !isReplayingRef.current) {
+      drawUserPath();
+    }
+  }, [userPath, drawUserPath]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -355,16 +362,17 @@ export function useMagicCircle(
 
   // ─── リプレイ機能 ───
   const handleReplay = useCallback(() => {
-    if (drawLogs.length === 0 || isReplaying) return;
+    if (drawLogs.length === 0 || isReplayingRef.current) return;
     setIsReplaying(true);
+    isReplayingRef.current = true;
     setIsActive(false);
     setShowResult(false);
 
     const normalizedLogs = createReplayDrawLogs(drawLogs);
     const canvas = canvasRef.current;
-    if (!canvas || !currentPattern) { setIsReplaying(false); return; }
+    if (!canvas || !currentPattern) { isReplayingRef.current = false; setIsReplaying(false); return; }
     const ctx = canvas.getContext('2d');
-    if (!ctx) { setIsReplaying(false); return; }
+    if (!ctx) { isReplayingRef.current = false; setIsReplaying(false); return; }
 
     // Flatten all strokes with intervals
     const STROKE_INTERVAL_MS = 500;
@@ -375,17 +383,18 @@ export function useMagicCircle(
       for (const ev of stroke) {
         allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
       }
-      timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+      if (allEvents.length > 0) {
+        timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+      }
     }
 
-    if (allEvents.length === 0) { setIsReplaying(false); return; }
+    if (allEvents.length === 0) { isReplayingRef.current = false; setIsReplaying(false); return; }
     const totalDuration = allEvents[allEvents.length - 1].t;
 
     // Draw template background
     drawTemplate(currentPattern);
 
     const startTime = performance.now();
-    const replayedPoints: { x: number; y: number }[] = [];
 
     const animate = (now: number) => {
       const elapsed = now - startTime;
@@ -455,6 +464,7 @@ export function useMagicCircle(
         }
         setDebugMsg('🔄 リプレイ完了！');
         replayAnimRef.current = null;
+        isReplayingRef.current = false;
         setIsReplaying(false);
         return;
       }

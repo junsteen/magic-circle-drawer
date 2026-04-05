@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
@@ -26,6 +26,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const replayAnimRef = useRef<number | null>(null);
   const [isReplaying, setIsReplaying] = useState(false);
   const [debugMsg, setDebugMsg] = useState('');
+  const canvasReadyRef = useRef(false);
 
   const drawTemplate = useCallback((pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices' | 'name'>) => {
     const canvas = canvasRef.current;
@@ -58,9 +59,75 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     ctx.setLineDash([]);
   }, []);
 
-  useEffect(() => {
-    if (!history || !canvasRef.current) return;
+  const drawAllStroke = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !history) return;
     drawTemplate(history.data.pattern);
+
+    const allPoints: { x: number; y: number }[] = [];
+    for (const stroke of history.data.drawLogs) {
+      for (const ev of stroke) {
+        allPoints.push({ x: ev.x, y: ev.y });
+      }
+    }
+    if (allPoints.length > 1) {
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#00e5ff';
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(allPoints[0].x, allPoints[0].y);
+      for (let i = 1; i < allPoints.length; i++) {
+        ctx.lineTo(allPoints[i].x, allPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    setDebugMsg('');
+  }, [history, drawTemplate]);
+
+  // Draw template AND stroke when history changes or canvas becomes available
+  useLayoutEffect(() => {
+    if (!history) return;
+    canvasReadyRef.current = false;
+  }, [history]);
+
+  // Callback ref ensures we draw as soon as canvas is available
+  const handleCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    canvasRef.current = node;
+    if (node && history && !canvasReadyRef.current) {
+      canvasReadyRef.current = true;
+      // Draw template + final state immediately
+      drawTemplate(history.data.pattern);
+      const allPoints: { x: number; y: number }[] = [];
+      for (const stroke of history.data.drawLogs) {
+        for (const ev of stroke) {
+          allPoints.push({ x: ev.x, y: ev.y });
+        }
+      }
+      if (allPoints.length > 1) {
+        const ctx = node.getContext('2d');
+        if (ctx) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#00e5ff';
+          ctx.strokeStyle = '#00e5ff';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(allPoints[0].x, allPoints[0].y);
+          for (let i = 1; i < allPoints.length; i++) {
+            ctx.lineTo(allPoints[i].x, allPoints[i].y);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
   }, [history, drawTemplate]);
 
   // Cleanup replay animation on unmount
@@ -74,15 +141,14 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   }, []);
 
   const handleReplay = useCallback(() => {
-    if (!history || isReplaying) return;
+    if (!history || isReplaying || !canvasRef.current) return;
     setIsReplaying(true);
 
-    const drawLogs = history.data.drawLogs;
     const canvas = canvasRef.current;
-    if (!canvas) { setIsReplaying(false); return; }
     const ctx = canvas.getContext('2d');
     if (!ctx) { setIsReplaying(false); return; }
 
+    const drawLogs = history.data.drawLogs;
     const normalizedLogs = createReplayDrawLogs(drawLogs);
     const STROKE_INTERVAL_MS = 500;
     const allEvents: DrawEvent[] = [];
@@ -92,11 +158,15 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       for (const ev of stroke) {
         allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
       }
-      timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+      if (allEvents.length > 0) {
+        timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+      }
     }
 
     if (allEvents.length === 0) { setIsReplaying(false); return; }
     const totalDuration = allEvents[allEvents.length - 1].t;
+
+    drawTemplate(history.data.pattern);
 
     const startTime = performance.now();
 
@@ -198,37 +268,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     return d.toLocaleString('ja-JP');
   };
 
-  const drawAllStroke = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    drawTemplate(history.data.pattern);
-
-    const allPoints: { x: number; y: number }[] = [];
-    for (const stroke of history.data.drawLogs) {
-      for (const ev of stroke) {
-        allPoints.push({ x: ev.x, y: ev.y });
-      }
-    }
-    if (allPoints.length > 1) {
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00e5ff';
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(allPoints[0].x, allPoints[0].y);
-      for (let i = 1; i < allPoints.length; i++) {
-        ctx.lineTo(allPoints[i].x, allPoints[i].y);
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-    setDebugMsg('');
-  }, [history, drawTemplate]);
-
   return (
     <>
       {/* Backdrop */}
@@ -254,7 +293,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
           {/* Canvas Area */}
           <div className="flex w-full flex-col items-center sm:w-1/2">
             <canvas
-              ref={canvasRef}
+              ref={handleCanvasRef}
               width={CANVAS_SIZE}
               height={CANVAS_SIZE}
               className="w-full max-w-[350px] rounded-lg border-2 border-gray-700"
