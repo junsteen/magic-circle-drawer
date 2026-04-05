@@ -24,3 +24,16 @@ export interface MagicCircleData {
   drawLogs: DrawStroke[];
   timestamp: number;
 }
+
+/** 魔法陣履歴データ (保存・表示用) */
+export interface MagicCircleHistory {
+  id: string;
+  data: MagicCircleData;
+  score: number;
+  rank: string;
+  difficulty: string;
+  difficultyMultiplier: number;
+  damageMultiplier: string;
+  thumbnail?: string; // DataURL of canvas snapshot
+  createdAt: number;
+}
