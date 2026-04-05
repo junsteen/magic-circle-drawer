@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
 import { useMagicCircle } from '@/hooks/useMagicCircle';
+import type { MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import HelpModal from './HelpModal';
+import HistoryPanel from './HistoryPanel';
+import HistoryDetail from './HistoryDetail';
 import TutorialOverlay from './TutorialOverlay';
 
 export default function MagicCircleCanvas({
   onScore,
   onReset,
   initialDifficulty,
+  onLoadDataRef,
 }: {
   onScore: (result: ScoringResult) => void;
   onReset: () => void;
   initialDifficulty: Difficulty;
+  onLoadDataRef?: (loadFn: (data: MagicCircleData) => void) => void;
 }) {
   const {
     canvasRef, canvasSize, isDrawing, userPath,
@@ -28,9 +33,35 @@ export default function MagicCircleCanvas({
 
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
 
   // Sync external difficulty prop
   useEffect(() => { changeDifficulty(initialDifficulty); }, [initialDifficulty, changeDifficulty]);
+
+  // Expose load function to parent via ref callback
+  const passLoadData = useCallback(() => {
+    if (onLoadDataRef) onLoadDataRef(handleLoadData);
+  }, [onLoadDataRef, handleLoadData]);
+
+  useEffect(() => {
+    passLoadData();
+  }, [passLoadData]);
+
+  const handleHistorySelect = (history: MagicCircleHistory) => {
+    setSelectedHistory(history);
+    setShowHistory(false);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedHistory(null);
+  };
+
+  const handleReEdit = ({ data }: { data: MagicCircleData }) => {
+    handleReset();
+    handleLoadData(data);
+    setSelectedHistory(null);
+  };
 
   const guideText = patternName
     ? `赤い点から「${patternName}」をなぞってください`
@@ -50,6 +81,16 @@ export default function MagicCircleCanvas({
         aria-label="ヘルプ"
       >
         ?
+      </button>
+
+      {/* 履歴ボタン */}
+      <button
+        onClick={() => setShowHistory(true)}
+        className="absolute left-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
+        style={{ borderColor: 'rgba(124,77,255,0.5)', color: '#7c4dff', background: 'rgba(10,10,20,0.8)' }}
+        aria-label="履歴"
+      >
+        📜
       </button>
 
       {/* パターン名とカウンター */}
@@ -195,6 +236,20 @@ export default function MagicCircleCanvas({
           次の魔法陣 →
         </button>
       </div>
+
+      {/* History Panel */}
+      <HistoryPanel
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelect={handleHistorySelect}
+      />
+
+      {/* History Detail Modal */}
+      <HistoryDetail
+        history={selectedHistory}
+        onClose={handleCloseDetail}
+        onReEdit={handleReEdit}
+      />
     </div>
   );
 }

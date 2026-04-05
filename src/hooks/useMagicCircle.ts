@@ -13,7 +13,8 @@ import {
   DIFFICULTY_TOLERANCE,
   DIFFICULTY_LABELS,
 } from '@/lib/patterns';
-import type { DrawEvent, DrawStroke, MagicCircleData } from '@/lib/types';
+import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
+import { addHistory } from '@/lib/historyDB';
 
 const CANVAS_SIZE = 350;
 
@@ -256,7 +257,45 @@ export function useMagicCircle(
       navigator.vibrate(100);
     }
     onScore(result);
-  }, [userPath, currentPattern, difficulty, onScore]);
+
+    // ─── 作成後自動保存 (履歴に保存) ───
+    const data: MagicCircleData = {
+      seed: Math.floor(Math.random() * 1e9),
+      pattern: {
+        name: currentPattern.name,
+        vertices: currentPattern.vertices,
+        edges: currentPattern.edges,
+        circles: currentPattern.circles,
+      },
+      drawLogs: drawLogs.map((stroke) => [...stroke]),
+      timestamp: Date.now(),
+    };
+
+    // Generate thumbnail from canvas
+    let thumbnail: string | undefined;
+    try {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        thumbnail = canvas.toDataURL('image/png');
+      }
+    } catch {
+      // Thumbnail generation failed, continue without it
+    }
+
+    const historyItem: MagicCircleHistory = {
+      id: `history_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      data,
+      score: result.score,
+      rank: result.rank,
+      difficulty: DIFFICULTY_LABELS[difficulty],
+      difficultyMultiplier: result.difficultyMultiplier,
+      damageMultiplier: result.damageMultiplier,
+      thumbnail,
+      createdAt: Date.now(),
+    };
+
+    addHistory(historyItem).catch((e) => console.error('Failed to save history:', e));
+  }, [userPath, currentPattern, difficulty, onScore, drawLogs, canvasRef]);
 
   const handleReset = useCallback(() => {
     setIsDrawing(false);
