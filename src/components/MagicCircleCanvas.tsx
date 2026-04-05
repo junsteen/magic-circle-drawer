@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
+import type { Difficulty } from '@/lib/patterns';
 import { useMagicCircle } from '@/hooks/useMagicCircle';
 import HelpModal from './HelpModal';
 import TutorialOverlay from './TutorialOverlay';
@@ -9,19 +10,29 @@ import TutorialOverlay from './TutorialOverlay';
 export default function MagicCircleCanvas({
   onScore,
   onReset,
+  initialDifficulty,
 }: {
   onScore: (result: ScoringResult) => void;
   onReset: () => void;
+  initialDifficulty: Difficulty;
 }) {
   const {
     canvasRef, canvasSize, isDrawing, userPath,
     timeLeft, isActive, showResult, scoreResult,
-    debugMsg, startPoint, handleEvaluate, handleReset,
+    debugMsg, startPoint, patternName, currentIndex, totalPatterns,
+    difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
   } = useMagicCircle(onScore, onReset);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  // Sync external difficulty prop
+  useEffect(() => { changeDifficulty(initialDifficulty); }, [initialDifficulty, changeDifficulty]);
+
+  const guideText = patternName
+    ? `赤い点から「${patternName}」をなぞってください`
+    : '赤い点から魔法陣をなぞってください';
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -38,6 +49,16 @@ export default function MagicCircleCanvas({
       >
         ?
       </button>
+
+      {/* パターン名とカウンター */}
+      <div className="flex items-center gap-3 text-sm">
+        <span className="font-bold" style={{ color: '#7c4dff' }}>
+          {patternName || '準備中...'}
+        </span>
+        <span className="text-gray-500">
+          #{currentIndex + 1} / {totalPatterns}
+        </span>
+      </div>
 
       <div className="relative w-[350px] max-w-full">
         <canvas
@@ -75,7 +96,7 @@ export default function MagicCircleCanvas({
             className="absolute left-0 right-0 top-2 -translate-y-full text-center text-xs"
             style={{ color: '#7676aa' }}
           >
-            ▲ 赤い点から三角形をなぞってください
+            ▲ {guideText}
           </div>
         )}
 
@@ -92,7 +113,7 @@ export default function MagicCircleCanvas({
             </div>
             <div className="mt-2 text-2xl">{scoreResult.score}点</div>
             <div className="mt-1 text-lg" style={{ color: '#00e5ff' }}>
-              威力: {scoreResult.damageMultiplier}
+              威力: {scoreResult.damageMultiplier} ({difficultyLabel})
             </div>
           </div>
         )}
@@ -125,11 +146,11 @@ export default function MagicCircleCanvas({
       <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
         {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
         {!isActive && !isDrawing && !showResult && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
-        {!isActive && !isDrawing && !showResult && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : '▲ 赤い点から三角形をなぞってください')}
+        {!isActive && !isDrawing && !showResult && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : `▲ ${guideText}`)}
       </div>
 
       {/* デバッグログ表示 */}
-      <div className="fixed bottom-4 left-4 right-4 z-[100] rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
+      <div className="rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
         {debugMsg}
       </div>
 
@@ -147,6 +168,13 @@ export default function MagicCircleCanvas({
           className="cursor-pointer rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
         >
           リセット
+        </button>
+        <button
+          onClick={handleNext}
+          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity hover:opacity-80"
+          style={{ background: 'linear-gradient(135deg, #7c4dff, #ff4081)' }}
+        >
+          次の魔法陣 →
         </button>
       </div>
     </div>

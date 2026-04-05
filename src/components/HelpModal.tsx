@@ -25,7 +25,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         <ol className="space-y-3 text-sm" style={{ color: '#c0c0e0' }}>
           <li className="flex gap-2">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-600 font-bold text-white">1</span>
-            <span>グレーの<strong>三角形のお手本</strong>が表示されます</span>
+            <span>グレーの<strong>魔法陣のお手本</strong>が表示されます</span>
           </li>
           <li className="flex gap-2">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-600 font-bold text-white">2</span>
@@ -33,11 +33,15 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           </li>
           <li className="flex gap-2">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-600 font-bold text-white">3</span>
-            <span>三角形の頂点に沿って<strong>一周</strong>してください（制限時間: 5秒）</span>
+            <span>線に沿って<strong>一周</strong>してください（制限時間: 難易度により変動）</span>
           </li>
           <li className="flex gap-2">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-600 font-bold text-white">4</span>
             <span><strong>詠唱完了！</strong>ボタンでスコア判定されます</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-600 font-bold text-white">5</span>
+            <span><strong>次の魔法陣 →</strong>ボタンでランダム生成された新しい魔法陣に挑戦</span>
           </li>
         </ol>
         <hr className="my-4" style={{ borderColor: 'rgba(0,229,255,0.2)' }} />
