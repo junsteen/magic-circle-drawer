@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import TutorialCanvasAnimation from './TutorialCanvasAnimation';
 
 interface TutorialOverlayProps {
   onStart: () => void;
@@ -10,18 +11,26 @@ const steps = [
   {
     title: '🔮 Arcane Tracerへようこそ！',
     body: '魔法陣をお手本通りになぞって、正確さを競うアプリです。',
+    showCanvas: false,
   },
   {
     title: '📐 手順',
-    body: '画面に表示される灰色の三角形を、赤い点の位置から指でなぞってください。制限時間は5秒です。\n\n正確さによってS〜Cランクのスコアが出ます！',
+    body: '画面に表示される灰色の魔法陣を、赤い点の位置から指でなぞってください。\n\n制限時間は難易度により異なります。',
+    showCanvas: false,
   },
   {
-    title: '✨ 詠唱完了！',
-    body: '描き終わったら「詠唱完了！」ボタンを押してスコア判定を受けましょう。\n\nよい魔力を！',
+    title: '✨ お手本アニメーション',
+    body: '以下のように光りながら描画されます。STARTの位置から始めて、番号順に辺をなぞってください！',
+    showCanvas: true,
+  },
+  {
+    title: '⚡ 詠唱完了！',
+    body: '描き終わったら「詠唱完了！」ボタンを押してスコア判定を受けましょう。\n\nS/A/B/Cランクで評価され、正確さに応じてスコアが決定します！\n\nよい魔力を！',
+    showCanvas: false,
   },
 ];
 
-/** チュートリアルオーバーレイ（初回表示） */
+/** チュートリアルオーバーレイ（初回表示+アニメーション） */
 export default function TutorialOverlay({ onStart }: TutorialOverlayProps) {
   const [step, setStep] = useState(0);
 
@@ -42,9 +51,16 @@ export default function TutorialOverlay({ onStart }: TutorialOverlayProps) {
         <h2 className="mb-3 text-xl font-bold" style={{ color: '#00e5ff' }}>
           {steps[step].title}
         </h2>
-        <p className="mb-6 whitespace-pre-line text-sm" style={{ color: '#c0c0e0' }}>
+        <p className="mb-4 whitespace-pre-line text-sm" style={{ color: '#c0c0e0' }}>
           {steps[step].body}
         </p>
+
+        {steps[step].showCanvas && (
+          <div className="mb-4">
+            <TutorialCanvasAnimation />
+          </div>
+        )}
+
         <div className="mb-4 flex justify-center gap-1">
           {steps.map((_, i) => (
             <div
