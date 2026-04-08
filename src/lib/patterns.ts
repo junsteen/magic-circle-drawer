@@ -226,7 +226,107 @@ export function createPresetPattern(
     circleCount: 3,
   };
 
-  return [triangle, pentagram, hexagram, circle, complex];
+  // ─── 八芒星 ───
+  const octaVerts = regularPolygonVertices(cx, cy, r, 8);
+  const octagram: MagicCirclePattern = {
+    name: '八芒星',
+    vertices: octaVerts,
+    edges: starEdges(8, 3), // 八芒星はstep=3
+    circles: [
+      { cx: 0.5, cy: 0.5, radius: r + 25 },
+      { cx: 0.5, cy: 0.5, radius: r + 5 },
+    ],
+    vertexCount: 8,
+    edgeCount: 8,
+    circleCount: 2,
+  };
+
+  // ─── 三重円（一重枚目） ───
+  const tripleCircleVerts = regularPolygonVertices(cx, cy, r * 0.8, 32); // 円滑にするため十分な頂点数
+  const tripleCircleEdges: Edge[] = [];
+  for (let i = 0; i < 32; i++) {
+    tripleCircleEdges.push({ from: i, to: (i + 1) % 32 });
+  }
+  const tripleCircle: MagicCirclePattern = {
+    name: '三重円',
+    vertices: tripleCircleVerts,
+    edges: tripleCircleEdges,
+    circles: [
+      { cx: 0.5, cy: 0.5, radius: r * 0.8 },   // 内圈
+      { cx: 0.5, cy: 0.5, radius: r * 1.0 },   // 中圈
+      { cx: 0.5, cy: 0.5, radius: r * 1.2 },   // 外圈
+    ],
+    vertexCount: 32,
+    edgeCount: 32,
+    circleCount: 3,
+  };
+
+  // ─── 五重星結界 ───
+  const sealVerts = regularPolygonVertices(cx, cy, r, 5);
+  const pentagramSeal: MagicCirclePattern = {
+    name: '五重星結界',
+    vertices: sealVerts,
+    edges: [
+      ...starEdges(5, 2),      // 五芒星
+      ...polygonEdges(5),      // 外枠五角形
+    ],
+    circles: [
+      { cx: 0.5, cy: 0.5, radius: r + 15 },
+      { cx: 0.5, cy: 0.5, radius: r - 10 },
+    ],
+    vertexCount: 5,
+    edgeCount: 10, // 5 (star) + 5 (pentagon)
+    circleCount: 2,
+  };
+
+  // ─── 魔方陣風パターン 3x3グリッド ───
+  const magicSquareVerts: Point[] = [];
+  const magicSquareSize = r * 0.6;
+  const startX = cx - magicSquareSize / 2;
+  const startY = cy - magicSquareSize / 2;
+  const cellSize = magicSquareSize / 3;
+  
+  // 3x3グリッドの交点を頂点とする
+  for (let row = 0; row <= 3; row++) {
+    for (let col = 0; col <= 3; col++) {
+      magicSquareVerts.push({
+        x: startX + col * cellSize,
+        y: startY + row * cellSize,
+      });
+    }
+  }
+  
+  const magicSquareEdges: Edge[] = [];
+  // 水平線
+  for (let row = 0; row <= 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const from = row * 4 + col;
+      const to = row * 4 + col + 1;
+      magicSquareEdges.push({ from, to });
+    }
+  }
+  // 垂直線
+  for (let col = 0; col <= 3; col++) {
+    for (let row = 0; row < 3; row++) {
+      const from = row * 4 + col;
+      const to = (row + 1) * 4 + col;
+      magicSquareEdges.push({ from, to });
+    }
+  }
+  
+  const magicSquare: MagicCirclePattern = {
+    name: '魔方陣風',
+    vertices: magicSquareVerts,
+    edges: magicSquareEdges,
+    circles: [
+      { cx: 0.5, cy: 0.5, radius: r * 0.7 },
+    ],
+    vertexCount: 16, // 4x4 grid points
+    edgeCount: 24,   // 12 horizontal + 12 vertical
+    circleCount: 1,
+  };
+
+  return [triangle, pentagram, hexagram, circle, complex, octagram, tripleCircle, pentagramSeal, magicSquare];
 }
 
 /* =================================================================== */
