@@ -49,7 +49,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Arcane Tracer" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className="min-h-full flex flex-col select-none" style={{ pointerEvents: 'auto', touchAction: 'none', overscrollBehavior: 'none' }}>{children}</body>
+      <body className="min-h-full flex flex-col select-none" style={{ pointerEvents: 'auto', touchAction: 'none', overscrollBehavior: 'none' }}>
+        {children}
+        {/* Service Worker Registration */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch((error) => {
+                  console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+          }
+        `}} />
+      </body>
     </html>
   );
 }
