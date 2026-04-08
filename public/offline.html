@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オフライン - Arcane Tracer</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background-color: #0d0d1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+        h1 {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        p {
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+        .refresh-btn {
+            background-color: #00e5ff;
+            color: #0d0d1a;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-icon">📴</div>
+    <h1>オフラインです</h1>
+    <p>インターネット接続が確認できません。以前に訪問したページはオフラインでも利用可能ですが、新しいコンテンツの読み込みやデータの保存には接続が必要です。</p>
+    <button class="refresh-btn" onclick="window.location.reload()">ページを更新</button>
+</body>
+</html>
