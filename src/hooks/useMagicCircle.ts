@@ -15,6 +15,7 @@ import {
 } from '@/lib/patterns';
 import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import { addHistory } from '@/lib/historyDB';
+import { updateCompletion, isPatternCompleted, getCompletedCount, getTotalPatternsCount } from '@/lib/completionDB';
 
 const CANVAS_SIZE = 350;
 
@@ -57,12 +58,15 @@ export interface UseMagicCircleReturn {
   handleReplay: () => void;
   handleSaveData: () => MagicCircleData | null;
   handleLoadData: (data: MagicCircleData) => void;
+  // 完了追跡
+  completionStatus: { completed: number; total: number } | null;
 }
 
 /** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
 export function useMagicCircle(
   onScore: (result: ScoringResult) => void,
   onReset: () => void,
+  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void
 ): UseMagicCircleReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -71,6 +75,7 @@ export function useMagicCircle(
   const [showResult, setShowResult] = useState(false);
   const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
   const [debugMsg, setDebugMsg] = useState('タップ待ち - Canvasを触ってください');
+  const [completionStatus, setCompletionStatus] = useState<{ completed: number; total: number } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── 描画ログ記録 ───
@@ -97,6 +102,41 @@ export function useMagicCircle(
     setPatterns(preset);
     setCurrentIdx(0);
   }, []);
+
+  // Update completion status when patterns change
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCompletionStatus() {
+      try {
+        const [completedCount, totalCount] = await Promise.all([
+          getCompletedCount(),
+          getTotalPatternsCount()
+        ]);
+        if (isMounted) {
+          const status = { completed: completedCount, total: totalCount };
+          setCompletionStatus(status);
+          // 親コンポーネントに完了状況を通知
+          if (onCompletionUpdate) {
+            onCompletionUpdate(status);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load completion status:', e);
+        if (isMounted && onCompletionUpdate) {
+          onCompletionUpdate(null);
+        }
+      }
+    }
+    loadCompletionStatus();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 完了状況の変更を親に通知する別のエフェクト
+  useEffect(() => {
+    if (onCompletionUpdate) {
+      onCompletionUpdate(completionStatus);
+    }
+  }, [completionStatus, onCompletionUpdate]);
 
   const currentPattern = patterns[currentIdx];
   const [actualTimeLeft, setActualTimeLeft] = useState(DIFFICULTY_TIME.normal);
@@ -302,6 +342,10 @@ export function useMagicCircle(
     };
 
     addHistory(historyItem).catch((e) => console.error('Failed to save history:', e));
+    
+    // ─── 完了状況を更新 ───
+    updateCompletion(currentPattern.name, result.score, result.rank).catch((e) => 
+      console.error('Failed to update completion:', e));
   }, [userPath, currentPattern, difficulty, onScore, drawLogs, canvasRef]);
 
   const handleReset = useCallback(() => {
@@ -517,5 +561,7 @@ export function useMagicCircle(
     handleEvaluate, handleReset, handleNext, changeDifficulty, getRankColor,
     onPointerDown, onPointerMove, onPointerUp,
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
+    // 完了追跡
+    completionStatus
   };
 }
