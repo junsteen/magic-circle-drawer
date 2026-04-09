@@ -332,6 +332,56 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
               >
                 👁️ 最終描画
               </button>
+              {/* Share Button */}
+              <button
+                onClick={async () => {
+                  if (history && history.data) {
+                    try {
+                      const dataStr = JSON.stringify(history.data, null, 2);
+                      const blob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      
+                      // Try to use the Web Share API if available
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: `Arcane Tracer - ${history.data.pattern.name}`,
+                          text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
+                          files: [
+                            new File([blob], `magic-circle-${Date.now()}.json`, {
+                              type: 'application/json'
+                            })
+                          ]
+                        });
+                      } else {
+                        // Fallback: create a download link
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `magic-circle-${history.data.pattern.name}-${history.rank}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        
+                        // Show success message
+                        const originalMsg = debugMsg;
+                        setDebugMsg('📤 魔法陣データをエクスポートしました！');
+                        setTimeout(() => setDebugMsg(originalMsg), 3000);
+                      }
+                      
+                      // Clean up
+                      setTimeout(() => URL.revokeObjectURL(url), 100);
+                    } catch (err) {
+                      console.error('Failed to share:', err);
+                      const originalMsg = debugMsg;
+                      setDebugMsg('共有に失敗しました');
+                      setTimeout(() => setDebugMsg(originalMsg), 3000);
+                    }
+                  }
+                }}
+                className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity hover:opacity-80"
+                style={{ background: 'linear-gradient(135deg, #00e5ff, #76ff03)' }}
+              >
+                📤 共有
+              </button>
             </div>
           </div>
 
