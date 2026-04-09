@@ -15,11 +15,13 @@ export default function MagicCircleCanvas({
   onReset,
   initialDifficulty,
   onLoadDataRef,
+  onCompletionUpdate,
 }: {
   onScore: (result: ScoringResult) => void;
   onReset: () => void;
   initialDifficulty: Difficulty;
   onLoadDataRef?: (loadFn: (data: MagicCircleData) => void) => void;
+  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
 }) {
   const {
     canvasRef, canvasSize, isDrawing, userPath,
@@ -29,7 +31,9 @@ export default function MagicCircleCanvas({
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
     // リプレイ関連
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
-  } = useMagicCircle(onScore, onReset);
+    // 完了追跡
+    completionStatus
+  } = useMagicCircle(onScore, onReset, onCompletionUpdate);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);

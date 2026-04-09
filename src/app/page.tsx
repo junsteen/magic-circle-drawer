@@ -3,10 +3,11 @@
 import MagicCircleCanvas from '@/components/MagicCircleCanvas';
 import { Difficulty, DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
 import { ScoringResult } from '@/lib/scoring';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [lastResult, setLastResult] = useState<ScoringResult | null>(null);
+  const [completionStatus, setCompletionStatus] = useState<{ completed: number; total: number } | null>(null);
 
   const handleScore = (result: ScoringResult) => {
     setLastResult(result);
@@ -14,6 +15,10 @@ export default function Home() {
 
   const handleReset = () => {
     setLastResult(null);
+  };
+
+  const handleCompletionUpdate = (status: { completed: number; total: number } | null) => {
+    setCompletionStatus(status);
   };
 
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
@@ -36,7 +41,12 @@ export default function Home() {
       {/* 難易度セレクター */}
       <DifficultySelector currentDifficulty={difficulty} onChange={setDifficulty} />
 
-      <MagicCircleCanvas onScore={handleScore} onReset={handleReset} initialDifficulty={difficulty} />
+      <MagicCircleCanvas 
+        onScore={handleScore} 
+        onReset={handleReset} 
+        initialDifficulty={difficulty}
+        onCompletionUpdate={handleCompletionUpdate}
+      />
 
       {lastResult && (
         <div className="mt-4 text-center">
@@ -44,6 +54,16 @@ export default function Home() {
             前回の結果: <span className="font-bold">{lastResult.rank}</span>{' '}
             (スコア: {lastResult.score}, 倍率: {lastResult.difficultyMultiplier ?? 1}x, {lastResult.damageMultiplier}ダメージ)
           </div>
+        </div>
+      )}
+      
+      {/* 完了状況表示 */}
+      {completionStatus && (
+        <div className="mt-4 text-center text-sm text-gray-400">
+          魔法陣修得: {completionStatus.completed} / {completionStatus.total} 
+          {completionStatus.completed === completionStatus.total && 
+            <span className="text-lg font-bold text-green-500 ml-2">🎉 全制覇！</span>
+          }
         </div>
       )}
     </div>
