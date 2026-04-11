@@ -1,0 +1,21 @@
+# Cloudflare Pages headers for better performance and security
+
+# Cache static assets for a long time
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache manifest and service worker for offline capabilities
+manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Cache HTML files for a short time (SPA routing)
+*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Security headers
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
