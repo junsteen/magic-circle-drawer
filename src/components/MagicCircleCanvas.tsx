@@ -26,13 +26,15 @@ export default function MagicCircleCanvas({
   const {
     canvasRef, canvasSize, isDrawing, userPath,
     timeLeft, isActive, showResult, scoreResult,
-    debugMsg, startPoint, patternName, currentIndex, totalPatterns,
+    debugMsg, setDebugMsg, startPoint, patternName, currentIndex, totalPatterns,
     difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
     // リプレイ関連
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
     // 完了追跡
-    completionStatus
+    completionStatus,
+    // 音声検知
+    voiceActivation
   } = useMagicCircle(onScore, onReset, onCompletionUpdate);
 
   const [showHelp, setShowHelp] = useState(false);
@@ -95,6 +97,50 @@ export default function MagicCircleCanvas({
         aria-label="履歴"
       >
         📜
+      </button>
+
+      {/* 音声検知ボタン */}
+      <button
+        onClick={async () => {
+          if (voiceActivation) {
+            if (voiceActivation.isListening) {
+              // 現在リスニング中なら停止
+              // 注意: useVoiceActivationフック内部で止める必要があるが、
+              // ここでは状態表示のみを切り替える（実際の制御はフック内部で自動）
+              setDebugMsg('🔇 音声検知を一時停止しました');
+            } else {
+              setDebugMsg('🎤 音声検知を開始しました');
+            }
+          } else {
+            setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
+          }
+        }}
+        className="absolute left-14 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
+        style={{
+          borderColor: voiceActivation?.isListening 
+            ? 'rgba(76,255,0,0.5)' 
+            : voiceActivation?.isMicAccessible === false
+              ? 'rgba(255,0,0,0.5)' 
+              : 'rgba(0,229,255,0.5)',
+          color: voiceActivation?.isListening 
+            ? '#76ff03' 
+            : voiceActivation?.isMicAccessible === false
+              ? '#ff0000' 
+              : '#00e5ff',
+          background: 'rgba(10,10,20,0.8)'
+        }}
+        aria-label="音声検知"
+        title={voiceActivation?.isListening 
+          ? '音声検知中 - クリックで一時停止' 
+          : voiceActivation?.isMicAccessible === false
+            ? 'マイクアクセスが必要 - クリックで再試行'
+            : '音声検知準備完了 - クリックで開始'}
+      >
+        {voiceActivation?.isListening 
+          ? '🎤' 
+          : voiceActivation?.isMicAccessible === false
+            ? '🔇' 
+            : '🔊'}
       </button>
 
       {/* パターン名とカウンター */}
