@@ -34,7 +34,8 @@ export default function MagicCircleCanvas({
     // 完了追跡
     completionStatus,
     // 音声検知
-    voiceActivation
+    voiceActivation,
+    setVoiceActivation
   } = useMagicCircle(onScore, onReset, onCompletionUpdate);
 
   const [showHelp, setShowHelp] = useState(false);
@@ -105,11 +106,24 @@ export default function MagicCircleCanvas({
           if (voiceActivation) {
             if (voiceActivation.isListening) {
               // 現在リスニング中なら停止
-              // 注意: useVoiceActivationフック内部で止める必要があるが、
-              // ここでは状態表示のみを切り替える（実際の制御はフック内部で自動）
-              setDebugMsg('🔇 音声検知を一時停止しました');
+              try {
+                await voiceActivation.stopListening();
+                setDebugMsg('🔇 音声検知を停止しました');
+              } catch (err) {
+                console.error('音声検知停止エラー:', err);
+                setDebugMsg('⚠️ 音声検知停止エラー');
+              }
             } else {
-              setDebugMsg('🎤 音声検知を開始しました');
+              // マイクアクセスを要求してリスニング開始
+              try {
+                await voiceActivation.startListening();
+                setDebugMsg('🎤 音声検知を開始しました');
+              } catch (err) {
+                console.error('音声検知開始エラー:', err);
+                setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
+                // エラー状態を反映 - マイクアクセス失敗時は音声検知を無効化
+                setVoiceActivation(null);
+              }
             }
           } else {
             setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
