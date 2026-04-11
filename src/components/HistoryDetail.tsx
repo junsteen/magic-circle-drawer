@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
-import { compressForUrl } from '@/lib/shareUtils';
+import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
 interface HistoryDetailProps {
   history: MagicCircleHistory | null;

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
 import { getAllHistories, deleteHistory } from '@/lib/historyDB';
-import { compressForUrl } from '@/lib/shareUtils';
+import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
 interface HistoryPanelProps {
   isOpen: boolean;
