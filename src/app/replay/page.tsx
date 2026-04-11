@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { MagicCircleHistory } from '@/lib/types';
-import { decompressFromUrl } from '@/lib/shareUtils';
+import { decompressFromUrlOptimized as decompressFromUrl } from '@/lib/shareUtils';
 import HistoryDetail from '@/components/HistoryDetail';
 
 // Helper component to handle search params in suspense
