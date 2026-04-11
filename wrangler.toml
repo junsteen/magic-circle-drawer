@@ -1,0 +1,8 @@
+name = "magic-circle-drawer"
+main = "./out/index.html"
+compatibility_date = "2024-01-01"
+
+# For static site deployment with Pages
+[pages]
+# The build output directory is "out" due to next.config.ts output: 'export'
+# This tells Wrangler to serve the contents of the out directory
