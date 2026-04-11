@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
+import { compressForUrl } from '@/lib/shareUtils';
 
 interface HistoryDetailProps {
   history: MagicCircleHistory | null;
@@ -337,38 +338,42 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                 onClick={async () => {
                   if (history && history.data) {
                     try {
-                      const dataStr = JSON.stringify(history.data, null, 2);
-                      const blob = new Blob([dataStr], { type: 'application/json' });
-                      const url = URL.createObjectURL(blob);
+                      // Compress the data for URL sharing (only essential data to keep URL short)
+                      const shareData = {
+                        pattern: history.data.pattern,
+                        drawLogs: history.data.drawLogs,
+                        // Include minimal metadata for proper scoring
+                        score: history.score,
+                        rank: history.rank,
+                        difficulty: history.difficulty,
+                        difficultyMultiplier: history.difficultyMultiplier,
+                        damageMultiplier: history.damageMultiplier
+                      };
+                      
+                      const compressed = compressForUrl(shareData);
+                      if (!compressed) {
+                        throw new Error('Failed to compress data');
+                      }
+                      
+                      // Create shareable URL
+                      const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
                       
                       // Try to use the Web Share API if available
                       if (navigator.share) {
                         await navigator.share({
                           title: `Arcane Tracer - ${history.data.pattern.name}`,
                           text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
-                          files: [
-                            new File([blob], `magic-circle-${Date.now()}.json`, {
-                              type: 'application/json'
-                            })
-                          ]
+                          url: shareUrl
                         });
                       } else {
-                        // Fallback: create a download link
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `magic-circle-${history.data.pattern.name}-${history.rank}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        // Fallback: copy to clipboard
+                        await navigator.clipboard.writeText(shareUrl);
                         
                         // Show success message
                         const originalMsg = debugMsg;
-                        setDebugMsg('📤 魔法陣データをエクスポートしました！');
+                        setDebugMsg('📤 共有リンクをクリップボードにコピーしました！');
                         setTimeout(() => setDebugMsg(originalMsg), 3000);
                       }
-                      
-                      // Clean up
-                      setTimeout(() => URL.revokeObjectURL(url), 100);
                     } catch (err) {
                       console.error('Failed to share:', err);
                       const originalMsg = debugMsg;

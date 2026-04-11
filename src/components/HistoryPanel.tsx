@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
 import { getAllHistories, deleteHistory } from '@/lib/historyDB';
+import { compressForUrl } from '@/lib/shareUtils';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -150,6 +151,72 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                       {h.data.pattern.name}
                     </div>
                     <div className="text-xs text-gray-500">{formatTime(h.createdAt)}</div>
+                    {/* Share Button */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation(); // Prevent triggering onSelect
+                        if (h && h.data) {
+                          try {
+                            // Compress the data for URL sharing (only essential data to keep URL short)
+                            const shareData = {
+                              pattern: h.data.pattern,
+                              drawLogs: h.data.drawLogs,
+                              // Include minimal metadata for proper scoring
+                              score: h.score,
+                              rank: h.rank,
+                              difficulty: h.difficulty,
+                              difficultyMultiplier: h.difficultyMultiplier,
+                              damageMultiplier: h.damageMultiplier
+                            };
+                            
+                            const compressed = compressForUrl(shareData);
+                            if (!compressed) {
+                              throw new Error('Failed to compress data');
+                            }
+                            
+                            // Create shareable URL
+                            const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
+                            
+                            // Try to use the Web Share API if available
+                            if (navigator.share) {
+                              await navigator.share({
+                                title: `Arcane Tracer - ${h.data.pattern.name}`,
+                                text: `私の魔法陣詠唱結果: ${h.rank}ランク (${h.score}点)`,
+                                url: shareUrl
+                              });
+                            } else {
+                              // Fallback: copy to clipboard
+                              await navigator.clipboard.writeText(shareUrl);
+                              
+                              // Show temporary visual feedback
+                              const originalBtn = e.target as HTMLButtonElement;
+                              const originalContent = originalBtn.innerHTML;
+                              originalBtn.innerHTML = '✅ コピー済み';
+                              originalBtn.classList.add('bg-green-500');
+                              setTimeout(() => {
+                                originalBtn.innerHTML = originalContent;
+                                originalBtn.classList.remove('bg-green-500');
+                              }, 2000);
+                            }
+                          } catch (err) {
+                            console.error('Failed to share:', err);
+                            // Show error feedback
+                            const originalBtn = e.target as HTMLButtonElement;
+                            const originalContent = originalBtn.innerHTML;
+                            originalBtn.innerHTML = '❌ エラー';
+                            originalBtn.classList.add('bg-red-500');
+                            setTimeout(() => {
+                              originalBtn.innerHTML = originalContent;
+                              originalBtn.classList.remove('bg-red-500');
+                            }, 2000);
+                          }
+                        }
+                      }}
+                      className="absolute top-1 left-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all hover:bg-gray-700"
+                      title="共有"
+                    >
+                      📤
+                    </button>
                   </div>
                 </div>
               ))}
