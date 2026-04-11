@@ -68,6 +68,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx || !history) return;
+    if (!history.data) return;
     drawTemplate(history.data.pattern);
 
     const allPoints: { x: number; y: number }[] = [];
@@ -106,6 +107,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (node && history && !canvasReadyRef.current) {
       canvasReadyRef.current = true;
       // Draw template + final state immediately
+      if (!history.data) return;
       drawTemplate(history.data.pattern);
       const allPoints: { x: number; y: number }[] = [];
       for (const stroke of history.data.drawLogs) {
@@ -184,6 +186,8 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const totalDuration = allEvents[allEvents.length - 1].t;
     setTotalDuration(totalDuration);
 
+    if (!history) return;
+    if (!history.data) return;
     drawTemplate(history.data.pattern);
 
     const startTime = performance.now() - currentTime;
@@ -195,6 +199,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       const elapsed = now - startTime;
       setCurrentTime(Math.min(elapsed, totalDuration));
 
+      if (!history.data) return;
       drawTemplate(history.data.pattern);
 
       const pts: { x: number; y: number }[] = [];
@@ -236,6 +241,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
 
       if (elapsed >= totalDuration) {
+        if (!history.data) return;
         drawTemplate(history.data.pattern);
         if (pts.length > 1) {
           ctx.shadowBlur = 15;
@@ -290,6 +296,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       const ctx = canvas?.getContext('2d');
       if (!ctx) return;
       
+      if (!history.data) return;
       drawTemplate(history.data.pattern);
       
       const startTime = performance.now() - clampedTime;
@@ -357,6 +364,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         }
         
         if (elapsed >= totalDuration) {
+          if (!history.data) return;
           drawTemplate(history.data.pattern);
           if (pts.length > 1) {
             ctx.shadowBlur = 15;
