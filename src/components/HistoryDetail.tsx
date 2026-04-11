@@ -25,7 +25,10 @@ function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs']): 
 export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDetailProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const replayAnimRef = useRef<number | null>(null);
-  const [isReplaying, setIsReplaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [totalDuration, setTotalDuration] = useState(0);
   const [debugMsg, setDebugMsg] = useState('');
   const canvasReadyRef = useRef(false);
 
@@ -65,6 +68,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx || !history) return;
+    if (!history.data) return;
     drawTemplate(history.data.pattern);
 
     const allPoints: { x: number; y: number }[] = [];
@@ -103,6 +107,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (node && history && !canvasReadyRef.current) {
       canvasReadyRef.current = true;
       // Draw template + final state immediately
+      if (!history.data) return;
       drawTemplate(history.data.pattern);
       const allPoints: { x: number; y: number }[] = [];
       for (const stroke of history.data.drawLogs) {
@@ -141,13 +146,26 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     };
   }, []);
 
-  const handleReplay = useCallback(() => {
-    if (!history || isReplaying || !canvasRef.current) return;
-    setIsReplaying(true);
+  // Reset playback state when history changes
+  useEffect(() => {
+    if (!history) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setTotalDuration(0);
+      setStartTime(null);
+      if (replayAnimRef.current !== null) {
+        cancelAnimationFrame(replayAnimRef.current);
+        replayAnimRef.current = null;
+      }
+    }
+  }, [history]);
+
+  const handlePlay = useCallback(() => {
+    if (!history || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) { setIsReplaying(false); return; }
+    if (!ctx) return;
 
     const drawLogs = history.data.drawLogs;
     const normalizedLogs = createReplayDrawLogs(drawLogs);
@@ -164,15 +182,24 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
     }
 
-    if (allEvents.length === 0) { setIsReplaying(false); return; }
+    if (allEvents.length === 0) return;
     const totalDuration = allEvents[allEvents.length - 1].t;
+    setTotalDuration(totalDuration);
 
+    if (!history) return;
+    if (!history.data) return;
     drawTemplate(history.data.pattern);
 
-    const startTime = performance.now();
+    const startTime = performance.now() - currentTime;
+    setStartTime(startTime);
+    setIsPlaying(true);
+    setDebugMsg('🔄 再生中...');
 
     const animate = (now: number) => {
       const elapsed = now - startTime;
+      setCurrentTime(Math.min(elapsed, totalDuration));
+
+      if (!history.data) return;
       drawTemplate(history.data.pattern);
 
       const pts: { x: number; y: number }[] = [];
@@ -214,6 +241,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
 
       if (elapsed >= totalDuration) {
+        if (!history.data) return;
         drawTemplate(history.data.pattern);
         if (pts.length > 1) {
           ctx.shadowBlur = 15;
@@ -232,7 +260,8 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         }
         setDebugMsg('🔄 リプレイ完了！');
         replayAnimRef.current = null;
-        setIsReplaying(false);
+        setIsPlaying(false);
+        setCurrentTime(totalDuration);
         return;
       }
 
@@ -240,18 +269,132 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     };
 
     replayAnimRef.current = requestAnimationFrame(animate);
-    setDebugMsg('🔄 リプレイ再生中...');
-  }, [history, isReplaying, drawTemplate]);
+  }, [history, currentTime, drawTemplate]);
 
-  const handleCancelReplay = useCallback(() => {
+  const handlePause = useCallback(() => {
     if (replayAnimRef.current !== null) {
       cancelAnimationFrame(replayAnimRef.current);
       replayAnimRef.current = null;
     }
-    setIsReplaying(false);
+    setIsPlaying(false);
     setDebugMsg('');
-    if (history) drawTemplate(history.data.pattern);
-  }, [history, drawTemplate]);
+  }, []);
+
+  const handleSeek = useCallback((time: number) => {
+    // Clamp time between 0 and totalDuration
+    const clampedTime = Math.max(0, Math.min(time, totalDuration));
+    setCurrentTime(clampedTime);
+    
+    // If currently playing, restart animation from new position
+    if (isPlaying) {
+      if (replayAnimRef.current !== null) {
+        cancelAnimationFrame(replayAnimRef.current);
+        replayAnimRef.current = null;
+      }
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx) return;
+      
+      if (!history) return;
+      if (!history.data) return;
+      drawTemplate(history.data.pattern);
+      
+      const startTime = performance.now() - clampedTime;
+      setStartTime(startTime);
+      
+      const drawLogs = history.data.drawLogs;
+      const normalizedLogs = createReplayDrawLogs(drawLogs);
+      const STROKE_INTERVAL_MS = 500;
+      const allEvents: DrawEvent[] = [];
+      let timeOffset = 0;
+      for (const stroke of normalizedLogs) {
+        if (stroke.length === 0) continue;
+        for (const ev of stroke) {
+          allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+        }
+        if (allEvents.length > 0) {
+          timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+        }
+      }
+      
+      if (allEvents.length === 0) return;
+      
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        setCurrentTime(Math.min(elapsed, totalDuration));
+        
+        drawTemplate(history.data.pattern);
+        
+        const pts: { x: number; y: number }[] = [];
+        for (const ev of allEvents) {
+          if (ev.t <= elapsed) {
+            pts.push({ x: ev.x, y: ev.y });
+          }
+        }
+        
+        if (pts.length > 1) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#00e5ff';
+          ctx.strokeStyle = '#00e5ff';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+          }
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+          
+          // Leading glow
+          const last = pts[pts.length - 1];
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = '#00e5ff';
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = '#00e5ff';
+          ctx.beginPath();
+          ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        
+        if (elapsed >= totalDuration) {
+          if (!history.data) return;
+          drawTemplate(history.data.pattern);
+          if (pts.length > 1) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00e5ff';
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) {
+              ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+          setDebugMsg('🔄 リプレイ完了！');
+          replayAnimRef.current = null;
+          setIsPlaying(false);
+          setCurrentTime(totalDuration);
+          return;
+        }
+        
+        replayAnimRef.current = requestAnimationFrame(animate);
+      };
+      
+      replayAnimRef.current = requestAnimationFrame(animate);
+    }
+  }, [history, isPlaying, currentTime, totalDuration, drawTemplate]);
 
   if (!history) return null;
 
@@ -311,21 +454,36 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             {/* Action Buttons */}
             <div className="mt-3 flex gap-2 flex-wrap justify-center">
               <button
-                onClick={handleReplay}
-                disabled={isReplaying}
+                onClick={isPlaying ? handlePause : handlePlay}
+                disabled={totalDuration === 0}
                 className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
               >
-                {isReplaying ? '再生中...' : '🔄 リプレイ'}
+                {isPlaying ? '⏸️ 一時停止' : '▶️ 再生'}
               </button>
-              {isReplaying && (
-                <button
-                  onClick={handleCancelReplay}
-                  className="cursor-pointer rounded-md border-2 border-gray-600 px-4 py-2 text-sm font-bold transition-colors hover:bg-gray-800"
-                >
-                  停止
-                </button>
+              
+              {/* Seek Bar */}
+              {totalDuration > 0 && (
+                <div className="flex-1 min-w-[200px] flex flex-col items-center">
+                  <div className="flex w-full justify-between text-xs text-gray-400">
+                    <span>{Math.floor(currentTime / 1000)}s</span>
+                    <span>{Math.floor(totalDuration / 1000)}s</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={totalDuration}
+                    value={currentTime}
+                    onChange={(e) => {
+                      const time = parseFloat(e.target.value);
+                      setCurrentTime(time);
+                      handleSeek(time);
+                    }}
+                    className="w-full"
+                  />
+                </div>
               )}
+              
               <button
                 onClick={drawAllStroke}
                 className="cursor-pointer rounded-md border-2 border-gray-600 px-4 py-2 text-sm font-bold transition-colors hover:bg-gray-800"
