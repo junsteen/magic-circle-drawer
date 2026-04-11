@@ -296,6 +296,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       const ctx = canvas?.getContext('2d');
       if (!ctx) return;
       
+      if (!history) return;
       if (!history.data) return;
       drawTemplate(history.data.pattern);
       
