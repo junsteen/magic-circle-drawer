@@ -66,7 +66,15 @@ export interface UseMagicCircleReturn {
   voiceActivation: {
     isMicAccessible: boolean;
     isListening: boolean;
+    startListening: () => Promise<void>;
+    stopListening: () => void;
   } | null;
+  setVoiceActivation: (activation: {
+    isMicAccessible: boolean;
+    isListening: boolean;
+    startListening: () => Promise<void>;
+    stopListening: () => void;
+  } | null) => void;
 }
 
 /** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
@@ -116,39 +124,21 @@ export function useMagicCircle(
   const [voiceActivation, setVoiceActivation] = useState<{
     isMicAccessible: boolean;
     isListening: boolean;
+    startListening: () => Promise<void>;
+    stopListening: () => void;
   } | null>(null);
 
-  // 音声検知の開始/停止を管理
+  // 音声検知の状態を同期（フックの状態変更を監視）
   useEffect(() => {
-    let isMounted = true;
-
-    // 音声検知を開始
-    const startVoiceActivation = async () => {
-      try {
-        await voiceHook.startListening();
-        if (isMounted) {
-          setVoiceActivation({
-            isMicAccessible: voiceHook.isMicAccessible,
-            isListening: voiceHook.isListening
-          });
-        }
-      } catch (err) {
-        console.error('音声検知の初期化に失敗:', err);
-        // 音声検知が利用できなくても機能は継続
-        if (isMounted) {
-          setVoiceActivation(null);
-        }
-      }
-    };
-
-    startVoiceActivation();
-
-    return () => {
-      isMounted = false;
-      // クリーンアップ
-      voiceHook.stopListening();
-    };
-  }, [voiceHook]); // voiceHookが変わったときに再初期化（ただし実際は変わらない）
+    if (voiceHook) {
+      setVoiceActivation({
+        isMicAccessible: voiceHook.isMicAccessible,
+        isListening: voiceHook.isListening,
+        startListening: voiceHook.startListening,
+        stopListening: voiceHook.stopListening
+      });
+    }
+  }, [voiceHook]);
 
   // ─── パターン・難易度管理 ───
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
@@ -623,6 +613,7 @@ export function useMagicCircle(
     // 完了追跡
     completionStatus,
     // 音声検知
-    voiceActivation
+    voiceActivation,
+    setVoiceActivation
   };
 }
