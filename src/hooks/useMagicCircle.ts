@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { calculateScore, type ScoringResult } from '@/lib/scoring';
+import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 import {
   type MagicCirclePattern,
   type Difficulty,
@@ -37,6 +38,7 @@ export interface UseMagicCircleReturn {
   showResult: boolean;
   scoreResult: ScoringResult | null;
   debugMsg: string;
+  setDebugMsg: (msg: string) => void;
   startPoint: { x: number; y: number };
   patternName: string;
   currentIndex: number;
@@ -60,6 +62,11 @@ export interface UseMagicCircleReturn {
   handleLoadData: (data: MagicCircleData) => void;
   // 完了追跡
   completionStatus: { completed: number; total: number } | null;
+  // 音声検知
+  voiceActivation: {
+    isMicAccessible: boolean;
+    isListening: boolean;
+  } | null;
 }
 
 /** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
@@ -90,6 +97,58 @@ export function useMagicCircle(
 
   // use a ref to sync replay state so userPath effect won't clear canvas during animation
   const isReplayingRef = useRef(false);
+
+  // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
+  const voiceHook = useVoiceActivation(async () => {
+    // 音声が検知されたときのコールバック
+    // 評価ボタンを自動的に押す（ただし、アクティブで結果が表示されていない場合のみ）
+    if (isActive && !showResult && userPath.length >= 10) {
+      handleEvaluate();
+      setDebugMsg('🔊 音声検知により自動評価を実行しました');
+    }
+  }, {
+    threshold: 0.15, // やや高めの閾値に設定（環境ノイズ対策）
+    silentTime: 800, // 0.8秒無音で音声終了と判定
+    checkInterval: 100
+  });
+
+  // 音声検知の状態を管理
+  const [voiceActivation, setVoiceActivation] = useState<{
+    isMicAccessible: boolean;
+    isListening: boolean;
+  } | null>(null);
+
+  // 音声検知の開始/停止を管理
+  useEffect(() => {
+    let isMounted = true;
+
+    // 音声検知を開始
+    const startVoiceActivation = async () => {
+      try {
+        await voiceHook.startListening();
+        if (isMounted) {
+          setVoiceActivation({
+            isMicAccessible: voiceHook.isMicAccessible,
+            isListening: voiceHook.isListening
+          });
+        }
+      } catch (err) {
+        console.error('音声検知の初期化に失敗:', err);
+        // 音声検知が利用できなくても機能は継続
+        if (isMounted) {
+          setVoiceActivation(null);
+        }
+      }
+    };
+
+    startVoiceActivation();
+
+    return () => {
+      isMounted = false;
+      // クリーンアップ
+      voiceHook.stopListening();
+    };
+  }, [voiceHook]); // voiceHookが変わったときに再初期化（ただし実際は変わらない）
 
   // ─── パターン・難易度管理 ───
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
@@ -555,13 +614,15 @@ export function useMagicCircle(
 
   return {
     canvasRef, canvasSize: CANVAS_SIZE, isDrawing, userPath,
-    timeLeft: actualTimeLeft, isActive, showResult, scoreResult, debugMsg,
+    timeLeft: actualTimeLeft, isActive, showResult, scoreResult, debugMsg, setDebugMsg,
     startPoint, patternName, currentIndex: currentIdx, totalPatterns: patterns.length,
     difficulty, difficultyLabel: DIFFICULTY_LABELS[difficulty],
     handleEvaluate, handleReset, handleNext, changeDifficulty, getRankColor,
     onPointerDown, onPointerMove, onPointerUp,
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
     // 完了追跡
-    completionStatus
+    completionStatus,
+    // 音声検知
+    voiceActivation
   };
 }
