@@ -142,7 +142,7 @@ export function useMagicCircle(
         stopListening: voiceHook.stopListening
       });
     }
-  }, [voiceHook]);
+  }, [voiceHook?.isMicAccessible, voiceHook?.isListening]);
 
   // ─── パターン・難易度管理 ───
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
