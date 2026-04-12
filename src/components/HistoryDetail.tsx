@@ -269,7 +269,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     };
 
     replayAnimRef.current = requestAnimationFrame(animate);
-  }, [history, currentTime, drawTemplate]);
+  }, [history, currentTime, totalDuration, drawTemplate]);
 
   const handlePause = useCallback(() => {
     if (replayAnimRef.current !== null) {
