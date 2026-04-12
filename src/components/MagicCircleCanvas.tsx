@@ -234,13 +234,6 @@ export default function MagicCircleCanvas({
             </div>
             <div className="mt-6 flex space-x-3 justify-center flex-wrap">
               <button
-                onClick={handleReset}
-                className="flex items-center px-6 py-3 rounded-lg font-medium transition-all"
-                style={{ background: 'linear-gradient(135deg, #ff4081, #7c4dff)' }}
-              >
-                🔄 再挑戦
-              </button>
-              <button
                 onClick={handleReplay}
                 disabled={drawLogs.length === 0 || isReplaying}
                 className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
