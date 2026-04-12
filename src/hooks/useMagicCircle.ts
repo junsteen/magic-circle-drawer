@@ -50,6 +50,7 @@ export interface UseMagicCircleReturn {
   handleEvaluate: () => void;
   handleReset: () => void;
   handleNext: () => void;
+  handlePrevious: () => void;
   changeDifficulty: (d: Difficulty) => void;
   getRankColor: (rank: string) => string;
   onPointerDown: (e: React.PointerEvent) => void;
@@ -469,6 +470,28 @@ export function useMagicCircle(
     setIsReplaying(false);
   }, [difficulty]);
 
+  const handlePrevious = useCallback(() => {
+    // Go to previous pattern if available
+    if (currentIdx > 0) {
+      setCurrentIdx((prev) => prev - 1);
+      setIsDrawing(false);
+      setUserPath([]);
+      setIsActive(false);
+      setShowResult(false);
+      setScoreResult(null);
+      setActualTimeLeft(DIFFICULTY_TIME[difficulty]);
+      setDebugMsg(`前のパターン: ${patterns[currentIdx - 1].name}`);
+      // 描画ログもクリア
+      setDrawLogs([]);
+      drawLogRef.current = [];
+      if (replayAnimRef.current !== null) {
+        cancelAnimationFrame(replayAnimRef.current);
+        replayAnimRef.current = null;
+      }
+      setIsReplaying(false);
+    }
+  }, [currentIdx, difficulty]);
+
   const changeDifficulty = useCallback((d: Difficulty) => {
     setDifficulty(d);
   }, []);
@@ -613,7 +636,7 @@ export function useMagicCircle(
     timeLeft: actualTimeLeft, isActive, showResult, scoreResult, debugMsg, setDebugMsg,
     startPoint, patternName, currentIndex: currentIdx, totalPatterns: patterns.length,
     difficulty, difficultyLabel: DIFFICULTY_LABELS[difficulty],
-    handleEvaluate, handleReset, handleNext, changeDifficulty, getRankColor,
+    handleEvaluate, handleReset, handleNext, handlePrevious, changeDifficulty, getRankColor,
     onPointerDown, onPointerMove, onPointerUp,
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
     // 完了追跡
