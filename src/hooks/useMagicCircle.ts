@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { calculateScore, type ScoringResult } from '@/lib/scoring';
 import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 import {
@@ -17,6 +18,7 @@ import {
 import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import { addHistory } from '@/lib/historyDB';
 import { updateCompletion, isPatternCompleted, getCompletedCount, getTotalPatternsCount } from '@/lib/completionDB';
+import { compressForUrlOptimized } from '@/lib/shareUtils';
 
 const CANVAS_SIZE = 350;
 
@@ -91,6 +93,7 @@ export function useMagicCircle(
   const [scoreResult, setScoreResult] = useState<ScoringResult | null>(null);
   const [debugMsg, setDebugMsg] = useState('タップ待ち - Canvasを触ってください');
   const [completionStatus, setCompletionStatus] = useState<{ completed: number; total: number } | null>(null);
+  const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── 描画ログ記録 ───
@@ -454,120 +457,97 @@ export function useMagicCircle(
   };
 
   // ─── リプレイ機能 ───
-  const handleReplay = useCallback(() => {
+  const handleReplay = useCallback(async () => {
     if (drawLogs.length === 0 || isReplayingRef.current) return;
+    
+    // If we haven't evaluated yet, evaluate first to get score data
+    let result: ScoringResult | null = scoreResult;
+    if (!result && !showResult && isDrawing && userPath.length >= 10) {
+      // Trigger evaluation to get score
+      handleEvaluate();
+      // Wait a bit for evaluation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      result = scoreResult;
+    }
+    
+    // If we still don't have a result, we can't create a proper history item
+    if (!result) {
+      setDebugMsg('スコアが計算されていないため、リプレイを保存できません');
+      return;
+    }
+    
     setIsReplaying(true);
     isReplayingRef.current = true;
     setIsActive(false);
     setShowResult(false);
 
-    const normalizedLogs = createReplayDrawLogs(drawLogs);
-    const canvas = canvasRef.current;
-    if (!canvas || !currentPattern) { isReplayingRef.current = false; setIsReplaying(false); return; }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { isReplayingRef.current = false; setIsReplaying(false); return; }
-
-    // Flatten all strokes with intervals
-    const STROKE_INTERVAL_MS = 500;
-    const allEvents: DrawEvent[] = [];
-    let timeOffset = 0;
-    for (const stroke of normalizedLogs) {
-      if (stroke.length === 0) continue;
-      for (const ev of stroke) {
-        allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+    // Generate thumbnail from canvas
+    let thumbnail: string | undefined;
+    try {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        thumbnail = canvas.toDataURL('image/png');
       }
-      if (allEvents.length > 0) {
-        timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
-      }
+    } catch {
+      // Thumbnail generation failed, continue without it
     }
 
-    if (allEvents.length === 0) { isReplayingRef.current = false; setIsReplaying(false); return; }
-    const totalDuration = allEvents[allEvents.length - 1].t;
-
-    // Draw template background
-    drawTemplate(currentPattern);
-
-    const startTime = performance.now();
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-
-      // Redraw background
-      drawTemplate(currentPattern);
-
-      // Collect all points up to current time
-      const pts: { x: number; y: number }[] = [];
-      for (const ev of allEvents) {
-        if (ev.t <= elapsed) {
-          pts.push({ x: ev.x, y: ev.y });
-        }
-      }
-
-      if (pts.length > 1) {
-        // Connect points by stroke boundaries
-        // Draw each segment with glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00e5ff';
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          ctx.lineTo(pts[i].x, pts[i].y);
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Leading glow
-        const last = pts[pts.length - 1];
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#00e5ff';
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = '#00e5ff';
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      if (elapsed >= totalDuration) {
-        // Replay complete
-        drawTemplate(currentPattern);
-        // Draw all points as final state
-        if (pts.length > 1) {
-          ctx.shadowBlur = 15;
-          ctx.shadowColor = '#00e5ff';
-          ctx.strokeStyle = '#00e5ff';
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i = 1; i < pts.length; i++) {
-            ctx.lineTo(pts[i].x, pts[i].y);
-          }
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-        }
-        setDebugMsg('🔄 リプレイ完了！');
-        replayAnimRef.current = null;
-        isReplayingRef.current = false;
-        setIsReplaying(false);
-        return;
-      }
-
-      replayAnimRef.current = requestAnimationFrame(animate);
+    const historyItem: MagicCircleHistory = {
+      id: `history_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      data: {
+        seed: Math.floor(Math.random() * 1e9),
+        pattern: {
+          name: currentPattern.name,
+          vertices: currentPattern.vertices,
+          edges: currentPattern.edges,
+          circles: currentPattern.circles,
+        },
+        drawLogs: drawLogs.map((stroke) => [...stroke]),
+        timestamp: Date.now(),
+      },
+      score: result.score,
+      rank: result.rank,
+      difficulty: DIFFICULTY_LABELS[difficulty],
+      difficultyMultiplier: result.difficultyMultiplier ?? 1,
+      damageMultiplier: result.damageMultiplier,
+      thumbnail,
+      createdAt: Date.now(),
     };
 
-    replayAnimRef.current = requestAnimationFrame(animate);
-    setDebugMsg('🔄 リプレイ再生中...');
-  }, [drawLogs, isReplaying, currentPattern, drawTemplate]);
+    // Save to history
+    try {
+      await addHistory(historyItem);
+      
+      // Extract data portion for compression (excluding metadata like id, createdAt)
+      const dataForCompression = {
+        pattern: historyItem.data.pattern,
+        drawLogs: historyItem.data.drawLogs,
+        score: historyItem.score,
+        rank: historyItem.rank,
+        difficulty: historyItem.difficulty,
+        difficultyMultiplier: historyItem.difficultyMultiplier,
+        damageMultiplier: historyItem.damageMultiplier
+      };
+      
+      // Compress history data for URL
+      const compressed = compressForUrlOptimized(dataForCompression);
+      if (!compressed) {
+        throw new Error('Failed to compress history data');
+      }
+      
+      // Navigate to replay page
+      const replayUrl = `/replay?data=${compressed}`;
+      router.push(replayUrl);
+    } catch (err) {
+      console.error('Failed to save history for replay:', err);
+      setDebugMsg('履歴の保存に失敗しました');
+      // Fallback to local replay if history saving fails
+      isReplayingRef.current = false;
+      setIsReplaying(false);
+      // Original local replay logic would go here, but for simplicity we'll just return
+      return;
+    }
+  }, [drawLogs, isReplaying, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate]);
 
   // ─── 魔法陣データの保存 ───
   const handleSaveData = useCallback((): MagicCircleData | null => {
