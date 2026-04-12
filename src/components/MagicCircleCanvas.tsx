@@ -30,7 +30,7 @@ export default function MagicCircleCanvas({
     difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, handlePrevious, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
     // リプレイ関連
-    drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
+    drawLogs, savedMagicData, isReplaying, handleReplay, handleLoadData,
     // 完了追跡
     completionStatus,
     // 音声検知
@@ -300,19 +300,11 @@ export default function MagicCircleCanvas({
       <div className="flex gap-3 flex-wrap justify-center">
         <button
           onClick={handleEvaluate}
-          disabled={userPath.length < 10 || showResult || isReplaying}
+          disabled={showResult || isReplaying}
           className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
-        </button>
-        <button
-          onClick={() => handleSaveData()}
-          disabled={drawLogs.length === 0}
-          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
-          style={{ background: 'linear-gradient(135deg, #76ff03, #00e5ff)' }}
-        >
-          💾 保存
         </button>
         <button
           onClick={handleReset}
