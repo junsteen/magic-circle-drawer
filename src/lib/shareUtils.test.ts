@@ -25,15 +25,15 @@ const testData = {
   },
   drawLogs: [
     [
-      { x: 100, y: 50, t: 0, type: 'start' },
-      { x: 110, y: 55, t: 100, type: 'move' },
-      { x: 120, y: 60, t: 200, type: 'move' },
-      { x: 130, y: 70, t: 300, type: 'end' }
+      { x: 100, y: 50, t: 0, type: 'start' as const },
+      { x: 110, y: 55, t: 100, type: 'move' as const },
+      { x: 120, y: 60, t: 200, type: 'move' as const },
+      { x: 130, y: 70, t: 300, type: 'end' as const }
     ],
     [
-      { x: 150, y: 120, t: 400, type: 'start' },
-      { x: 160, y: 130, t: 500, type: 'move' },
-      { x: 170, y: 140, t: 600, type: 'end' }
+      { x: 150, y: 120, t: 400, type: 'start' as const },
+      { x: 160, y: 130, t: 500, type: 'move' as const },
+      { x: 170, y: 140, t: 600, type: 'end' as const }
     ]
   ],
   score: 95,
