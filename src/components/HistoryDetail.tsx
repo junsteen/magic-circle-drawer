@@ -167,6 +167,8 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    if (!history.data) return;
+
     const drawLogs = history.data.drawLogs;
     const normalizedLogs = createReplayDrawLogs(drawLogs);
     const STROKE_INTERVAL_MS = 500;
@@ -186,8 +188,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const totalDuration = allEvents[allEvents.length - 1].t;
     setTotalDuration(totalDuration);
 
-    if (!history) return;
-    if (!history.data) return;
     drawTemplate(history.data.pattern);
 
     const startTime = performance.now() - currentTime;
@@ -454,8 +454,10 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             {/* Action Buttons */}
             <div className="mt-3 flex gap-2 flex-wrap justify-center">
               <button
-                onClick={isPlaying ? handlePause : handlePlay}
-                disabled={totalDuration === 0}
+                onClick={() => {
+                  return isPlaying ? handlePause() : handlePlay();
+                }}
+                disabled={!history || !history.data || !history.data.drawLogs || history.data.drawLogs.length === 0}
                 className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
               >
