@@ -100,72 +100,76 @@ export default function MagicCircleCanvas({
         📜
       </button>
 
-      {/* 音声検知ボタン */}
-      <button
-        onClick={async () => {
-          if (voiceActivation) {
-            if (voiceActivation.isListening) {
-              // 現在リスニング中なら停止
-              try {
-                await voiceActivation.stopListening();
-                setDebugMsg('🔇 音声検知を停止しました');
-              } catch (err) {
-                console.error('音声検知停止エラー:', err);
-                setDebugMsg('⚠️ 音声検知停止エラー');
+      {/* 音声検知ボタン - プレイ中は非表示にしてUIを簡素化 */}
+      {!isActive && (
+        <button
+          onClick={async () => {
+            if (voiceActivation) {
+              if (voiceActivation.isListening) {
+                // 現在リスニング中なら停止
+                try {
+                  await voiceActivation.stopListening();
+                  setDebugMsg('🔇 音声検知を停止しました');
+                } catch (err) {
+                  console.error('音声検知停止エラー:', err);
+                  setDebugMsg('⚠️ 音声検知停止エラー');
+                }
+              } else {
+                // マイクアクセスを要求してリスニング開始
+                try {
+                  await voiceActivation.startListening();
+                  setDebugMsg('🎤 音声検知を開始しました');
+                } catch (err) {
+                  console.error('音声検知開始エラー:', err);
+                  setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
+                  // エラー状態を反映 - マイクアクセス失敗時は音声検知を無効化
+                  setVoiceActivation(null);
+                }
               }
             } else {
-              // マイクアクセスを要求してリスニング開始
-              try {
-                await voiceActivation.startListening();
-                setDebugMsg('🎤 音声検知を開始しました');
-              } catch (err) {
-                console.error('音声検知開始エラー:', err);
-                setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
-                // エラー状態を反映 - マイクアクセス失敗時は音声検知を無効化
-                setVoiceActivation(null);
-              }
+              setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
             }
-          } else {
-            setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
-          }
-        }}
-        className="absolute left-14 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
-        style={{
-          borderColor: voiceActivation?.isListening 
-            ? 'rgba(76,255,0,0.5)' 
+          }}
+          className="absolute left-14 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
+          style={{
+            borderColor: voiceActivation?.isListening 
+              ? 'rgba(76,255,0,0.5)' 
+              : voiceActivation?.isMicAccessible === false
+                ? 'rgba(255,0,0,0.5)' 
+                : 'rgba(0,229,255,0.5)',
+            color: voiceActivation?.isListening 
+              ? '#76ff03' 
+              : voiceActivation?.isMicAccessible === false
+                ? '#ff0000' 
+                : '#00e5ff',
+            background: 'rgba(10,10,20,0.8)'
+          }}
+          aria-label="音声検知"
+          title={voiceActivation?.isListening 
+            ? '音声検知中 - クリックで一時停止' 
             : voiceActivation?.isMicAccessible === false
-              ? 'rgba(255,0,0,0.5)' 
-              : 'rgba(0,229,255,0.5)',
-          color: voiceActivation?.isListening 
-            ? '#76ff03' 
+              ? 'マイクアクセスが必要 - クリックで再試行'
+              : '音声検知準備完了 - クリックで開始'}
+        >
+          {voiceActivation?.isListening 
+            ? '🎤' 
             : voiceActivation?.isMicAccessible === false
-              ? '#ff0000' 
-              : '#00e5ff',
-          background: 'rgba(10,10,20,0.8)'
-        }}
-        aria-label="音声検知"
-        title={voiceActivation?.isListening 
-          ? '音声検知中 - クリックで一時停止' 
-          : voiceActivation?.isMicAccessible === false
-            ? 'マイクアクセスが必要 - クリックで再試行'
-            : '音声検知準備完了 - クリックで開始'}
-      >
-        {voiceActivation?.isListening 
-          ? '🎤' 
-          : voiceActivation?.isMicAccessible === false
-            ? '🔇' 
-            : '🔊'}
-      </button>
+              ? '🔇' 
+              : '🔊'}
+        </button>
+      )}
 
-      {/* パターン名とカウンター */}
-      <div className="flex items-center gap-3 text-sm">
-        <span className="font-bold" style={{ color: '#7c4dff' }}>
-          {patternName || '準備中...'}
-        </span>
-        <span className="text-gray-500">
-          #{currentIndex + 1} / {totalPatterns}
-        </span>
-      </div>
+      {/* パターン名とカウンター - プレイ中は簡素化 */}
+      {!isActive && (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="font-bold" style={{ color: '#7c4dff' }}>
+            {patternName || '準備中...'}
+          </span>
+          <span className="text-gray-500">
+            #{currentIndex + 1} / {totalPatterns}
+          </span>
+        </div>
+      )}
 
       <div className="relative w-[350px] max-w-full">
         <canvas
@@ -209,18 +213,40 @@ export default function MagicCircleCanvas({
 
         {showResult && scoreResult && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-4"
             style={{
-              background: 'rgba(13, 13, 26, 0.85)',
-              borderRadius: '8px',
+              background: 'rgba(13, 13, 26, 0.9)',
+              backdropFilter: 'blur(4px)',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '90vw',
+              textAlign: 'center'
             }}
           >
-            <div className="text-6xl font-bold" style={{ color: getRankColor(scoreResult.rank) }}>
+            <div className="text-8xl font-bold" style={{ color: getRankColor(scoreResult.rank) }}>
               {scoreResult.rank}
             </div>
-            <div className="mt-2 text-2xl">{scoreResult.score}点</div>
-            <div className="mt-1 text-lg" style={{ color: '#00e5ff' }}>
-              威力: {scoreResult.damageMultiplier} ({difficultyLabel})
+            <div className="space-y-2">
+              <div className="text-4xl font-bold">{scoreResult.score}点</div>
+              <div className="text-2xl text-[#00e5ff]">
+                威力: {scoreResult.damageMultiplier}x ({difficultyLabel})
+              </div>
+            </div>
+            <div className="mt-6 flex space-x-3 justify-center flex-wrap">
+              <button
+                onClick={handleReset}
+                className="flex items-center px-6 py-3 rounded-lg font-medium transition-all"
+                style={{ background: 'linear-gradient(135deg, #ff4081, #7c4dff)' }}
+              >
+                🔄 再挑戦
+              </button>
+              <button
+                onClick={handleNext}
+                className="flex items-center px-6 py-3 rounded-lg font-medium transition-all"
+                style={{ background: 'linear-gradient(135deg, #7c4dff, #ff4081)' }}
+              >
+                次の魔法陣 →
+              </button>
             </div>
           </div>
         )}
@@ -251,15 +277,17 @@ export default function MagicCircleCanvas({
       </div>
 
       <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
-        {isActive && `⏱ 詠唱中... 残り${timeLeft}秒`}
+        {isActive && `⏱ 残り${timeLeft}秒`}
         {!isActive && !isDrawing && !showResult && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
         {!isActive && !isDrawing && !showResult && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : `▲ ${guideText}`)}
       </div>
 
-      {/* デバッグログ表示 */}
-      <div className="rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
-        {debugMsg}
-      </div>
+      {/* デバッグログ表示 - プレイ中は非表示にしてUIを簡素化 */}
+      {!isActive && (
+        <div className="rounded-lg bg-black/80 p-2 text-center text-xs font-mono text-green-400 backdrop-blur-sm">
+          {debugMsg}
+        </div>
+      )}
 
       <div className="flex gap-3 flex-wrap justify-center">
         <button
