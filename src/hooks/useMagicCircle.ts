@@ -257,31 +257,56 @@ export function useMagicCircle(
     }
   }, [CANVAS_SIZE]);
 
-  const drawUserPath = useCallback(() => {
+  const drawStrokes = useCallback((strokes: { x: number; y: number }[][], offset: { x: number; y: number } = { x: 0, y: 0 }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx || userPath.length < 2) return;
-    drawTemplate(currentPattern);
+    if (!ctx) return;
+    
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#00e5ff';
     ctx.strokeStyle = '#00e5ff';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(userPath[0].x, userPath[0].y);
-    for (let i = 1; i < userPath.length; i++) ctx.lineTo(userPath[i].x, userPath[i].y);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  }, [userPath, drawTemplate, currentPattern]);
-
-  useEffect(() => { if (currentPattern) drawTemplate(currentPattern); }, [drawTemplate, currentPattern]);
-  useEffect(() => {
-    if (userPath.length > 0 && !isReplayingRef.current) {
-      drawUserPath();
+    
+    for (const stroke of strokes) {
+      if (stroke.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x + offset.x, stroke[0].y + offset.y);
+      for (let i = 1; i < stroke.length; i++) {
+        ctx.lineTo(stroke[i].x + offset.x, stroke[i].y + offset.y);
+      }
+      ctx.stroke();
     }
-  }, [userPath, drawUserPath]);
+    ctx.shadowBlur = 0;
+  }, []);
+
+  const drawUserPath = useCallback(() => {
+    if (userPath.length >= 2) {
+      drawStrokes([userPath]);
+    }
+  }, [userPath, drawStrokes]);
+
+  useEffect(() => { 
+    if (currentPattern) {
+      drawTemplate(currentPattern);
+    }
+  }, [drawTemplate, currentPattern]);
+  
+  useEffect(() => {
+    if (!isReplayingRef.current) {
+      // Draw completed strokes
+      if (drawLogs.length > 0) {
+        drawStrokes(drawLogs);
+      }
+      
+      // Draw current stroke being drawn
+      if (userPath.length > 0) {
+        drawUserPath();
+      }
+    }
+  }, [drawLogs, userPath, drawStrokes, drawUserPath]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -333,6 +358,7 @@ export function useMagicCircle(
       drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
       setDrawLogs((prev) => [...prev, [...drawLogRef.current]]);
       drawLogRef.current = [];
+      setUserPath([]);
       setDebugMsg('描画完了。スコア判定しますか？');
     }
   }, [isDrawing]);
