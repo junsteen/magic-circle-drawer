@@ -27,7 +27,7 @@ export default function MagicCircleCanvas({
     canvasRef, canvasSize, isDrawing, userPath,
     timeLeft, isActive, showResult, scoreResult,
     debugMsg, setDebugMsg, startPoint, patternName, currentIndex, totalPatterns,
-    difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, changeDifficulty,
+    difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, handlePrevious, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
     // リプレイ関連
     drawLogs, savedMagicData, isReplaying, handleReplay, handleSaveData, handleLoadData,
@@ -159,15 +159,29 @@ export default function MagicCircleCanvas({
         </button>
       )}
 
-      {/* パターン名とカウンター - プレイ中は簡素化 */}
+      {/* パターン名とページネーション - プレイ中は簡素化 */}
       {!isActive && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="font-bold" style={{ color: '#7c4dff' }}>
+        <div className="flex items-center gap-2 text-sm">
+          <button
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-600 bg-gray-800/50 text-gray-400 hover:bg-gray-600/70 transition-colors disabled:opacity-50"
+          >
+            〈
+          </button>
+          <span className="flex-1 flex items-center justify-center font-bold" style={{ color: '#7c4dff' }}>
             {patternName || '準備中...'}
           </span>
           <span className="text-gray-500">
             #{currentIndex + 1} / {totalPatterns}
           </span>
+          <button
+            onClick={handleNext}
+            disabled={currentIndex >= totalPatterns - 1}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-600 bg-gray-800/50 text-gray-400 hover:bg-gray-600/70 transition-colors disabled:opacity-50"
+          >
+            〉
+          </button>
         </div>
       )}
 
@@ -239,13 +253,6 @@ export default function MagicCircleCanvas({
                 style={{ background: 'linear-gradient(135deg, #ff4081, #7c4dff)' }}
               >
                 🔄 再挑戦
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex items-center px-6 py-3 rounded-lg font-medium transition-all"
-                style={{ background: 'linear-gradient(135deg, #7c4dff, #ff4081)' }}
-              >
-                次の魔法陣 →
               </button>
             </div>
           </div>
@@ -319,13 +326,6 @@ export default function MagicCircleCanvas({
           className="cursor-pointer rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
         >
           リセット
-        </button>
-        <button
-          onClick={handleNext}
-          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity hover:opacity-80"
-          style={{ background: 'linear-gradient(135deg, #7c4dff, #ff4081)' }}
-        >
-          次の魔法陣 →
         </button>
       </div>
 
