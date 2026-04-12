@@ -241,6 +241,14 @@ export default function MagicCircleCanvas({
                 🔄 再挑戦
               </button>
               <button
+                onClick={handleReplay}
+                disabled={drawLogs.length === 0 || isReplaying}
+                className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+                style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
+              >
+                {isReplaying ? '再生中...' : '🔄 リプレイ'}
+              </button>
+              <button
                 onClick={handleNext}
                 className="flex items-center px-6 py-3 rounded-lg font-medium transition-all"
                 style={{ background: 'linear-gradient(135deg, #7c4dff, #ff4081)' }}
@@ -297,14 +305,6 @@ export default function MagicCircleCanvas({
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
-        </button>
-        <button
-          onClick={handleReplay}
-          disabled={drawLogs.length === 0 || isReplaying}
-          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
-          style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
-        >
-          {isReplaying ? '再生中...' : '🔄 リプレイ'}
         </button>
         <button
           onClick={() => handleSaveData()}
