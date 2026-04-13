@@ -43,30 +43,73 @@ const testData = {
   damageMultiplier: '2.0x'
 };
 
-console.log('Testing share data compression...');
-const originalJson = JSON.stringify(testData);
-console.log('Original JSON size:', originalJson.length);
-
-// Test original compression
-const compressedOriginal = compressForUrl(testData);
-console.log('Original compressed size:', compressedOriginal.length);
-console.log('Original compression ratio:', (1 - compressedOriginal.length / originalJson.length) * 100 + '%');
-
-// Test optimized compression
-const compressedOptimized = compressForUrlOptimized(testData);
-console.log('Optimized compressed size:', compressedOptimized.length);
-console.log('Optimized compression ratio:', (1 - compressedOptimized.length / originalJson.length) * 100 + '');
-console.log('Improvement:', ((compressedOriginal.length - compressedOptimized.length) / compressedOriginal.length * 100).toFixed(2) + '% smaller');
-
-// Test decompression for both
-const decompressedOriginal = decompressFromUrl<typeof testData>(compressedOriginal);
-console.log('Original decompression successful:', !!decompressedOriginal);
-if (decompressedOriginal) {
-  console.log('Original data integrity check:', JSON.stringify(decompressedOriginal) === JSON.stringify(testData));
-}
-
-const decompressedOptimized = decompressFromUrlOptimized<typeof testData>(compressedOptimized);
-console.log('Optimized decompression successful:', !!decompressedOptimized);
-if (decompressedOptimized) {
-  console.log('Optimized data integrity check:', JSON.stringify(decompressedOptimized) === JSON.stringify(testData));
-}
+describe('shareUtils functions', () => {
+  it('should compress and decompress data using original algorithm', () => {
+    // Test original compression
+    const compressed = compressForUrl(testData);
+    expect(compressed).toBeDefined();
+    expect(typeof compressed).toBe('string');
+    expect(compressed.length).toBeGreaterThan(0);
+    
+    // Test decompression
+    const decompressed = decompressFromUrl(compressed);
+    expect(decompressed).toBeDefined();
+    expect(decompressed).not.toBeNull();
+    
+    // Test data integrity
+    if (decompressed) {
+      expect(decompressed.pattern.name).toBe(testData.pattern.name);
+      expect(decompressed.drawLogs).toHaveLength(testData.drawLogs.length);
+    }
+  });
+  
+  it('should compress and decompress data using optimized algorithm', () => {
+    // Test optimized compression
+    const compressed = compressForUrlOptimized(testData);
+    expect(compressed).toBeDefined();
+    expect(typeof compressed).toBe('string');
+    expect(compressed.length).toBeGreaterThan(0);
+    
+    // Test decompression
+    const decompressed = decompressFromUrlOptimized(compressed);
+    expect(decompressed).toBeDefined();
+    expect(decompressed).not.toBeNull();
+    
+    // Test data integrity
+    if (decompressed) {
+      expect(decompressed.pattern.name).toBe(testData.pattern.name);
+      expect(decompressed.drawLogs).toHaveLength(testData.drawLogs.length);
+    }
+  });
+  
+  it('should produce smaller output with optimized compression', () => {
+    const compressedOriginal = compressForUrl(testData);
+    const compressedOptimized = compressForUrlOptimized(testData);
+    
+    // Optimized version should be smaller or equal
+    expect(compressedOptimized.length).toBeLessThanOrEqual(compressedOriginal.length);
+  });
+  
+  it('should handle empty data gracefully', () => {
+    const emptyData = {
+      pattern: {
+        name: '',
+        vertices: [],
+        edges: [],
+        circles: []
+      },
+      drawLogs: [],
+      score: 0,
+      rank: '',
+      difficulty: '',
+      difficultyMultiplier: 0,
+      damageMultiplier: ''
+    };
+    
+    const compressed = compressForUrl(emptyData);
+    expect(compressed).toBeDefined();
+    
+    const decompressed = decompressFromUrl(compressed);
+    expect(decompressed).toBeDefined();
+  });
+});

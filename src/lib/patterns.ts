@@ -434,3 +434,30 @@ export function getPatternTemplatePoints(
 ): Point[] {
   return generateEdgePoints(pattern.vertices, pattern.edges, pointsPerEdge);
 }
+
+/* Preset patterns cache */
+let presetPatternsCache: MagicCirclePattern[] | null = null;
+
+/**
+ * Get all preset patterns
+ * @returns Array of MagicCirclePattern objects
+ */
+export function getPatterns(): MagicCirclePattern[] {
+  if (!presetPatternsCache) {
+    // Initialize with default canvas size (will be adjusted by caller if needed)
+    presetPatternsCache = createPresetPattern(800); // 800px canvas size for patterns
+  }
+  return [...presetPatternsCache]; // Return copy to prevent mutation
+}
+
+/**
+ * Get a pattern by its name
+ * @param name - Name of the pattern to find
+ * @returns The pattern if found, undefined otherwise
+ */
+export function getPatternByName(name: string): MagicCirclePattern | undefined {
+  if (!presetPatternsCache) {
+    presetPatternsCache = createPresetPattern(800);
+  }
+  return presetPatternsCache.find(pattern => pattern.name === name);
+}
