@@ -1,17 +1,17 @@
-# 🎣 Hooks
+# 🎣 フック
 
-## Overview
-This document covers the custom React hooks used in the Arcane Tracer application to encapsulate reusable logic and state management.
+## 概要
+このドキュメントでは、Arcane Tracerアプリケーションで使用されているカスタムReactフックについて説明します。これらのフックは、再利用可能なロジックと状態管理をカプセル化します。
 
-## Custom Hooks
+## カスタムフック
 
 ### useMagicCircle (`src/hooks/useMagicCircle.ts`)
-The main hook that encapsulates all the core logic for the magic circle drawing canvas.
+魔法陣描画キャンバスのコアロジック全体をカプセル化するメインフック。
 
-#### Returns
+#### 戻り値
 ```typescript
 interface UseMagicCircleReturn {
-  // Canvas references and state
+  // キャンバス参照と状態
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   canvasSize: number;
   isDrawing: boolean;
@@ -23,7 +23,7 @@ interface UseMagicCircleReturn {
   debugMsg: string;
   setDebugMsg: (msg: string) => void;
   
-  // Pattern information
+  // パターン情報
   startPoint: { x: number; y: number };
   patternName: string;
   currentIndex: number;
@@ -31,7 +31,7 @@ interface UseMagicCircleReturn {
   difficulty: Difficulty;
   difficultyLabel: string;
   
-  // Event handlers
+  // イベントハンドラー
   handleEvaluate: () => void;
   handleReset: () => void;
   handleNext: () => void;
@@ -42,7 +42,7 @@ interface UseMagicCircleReturn {
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: () => void;
   
-  // Replay functionality
+  // リプレイ機能
   drawLogs: DrawStroke[];
   savedMagicData: MagicCircleData | null;
   isReplaying: boolean;
@@ -50,10 +50,10 @@ interface UseMagicCircleReturn {
   handleSaveData: () => MagicCircleData | null;
   handleLoadData: (data: MagicCircleData) => void;
   
-  // Progress tracking
+  // 進捗追跡
   completionStatus: { completed: number; total: number } | null;
   
-  // Voice activation
+  // 音声アクティベーション
   voiceActivation: {
     isMicAccessible: boolean;
     isListening: boolean;
@@ -69,48 +69,48 @@ interface UseMagicCircleReturn {
 }
 ```
 
-#### Parameters
-- `onScore`: Callback when a drawing is evaluated
-- `onReset`: Callback when drawing is reset
-- `onCompletionUpdate`: Optional callback when completion status changes
+#### パラメータ
+- `onScore`: 描画が評価されたときのコールバック
+- `onReset`: 描画がリセットされたときのコールバック
+- `onCompletionUpdate`: 完了状況が変更されたときのオプションのコールバック
 
-#### Features Encapsulated
-1. **Drawing State Management**:
-   - Tracking drawing status (`isDrawing`, `isActive`, `showResult`)
-   - Managing user path points
-   - Handling canvas pointer events
+#### カプセル化された機能
+1. **描画状態管理**:
+   - 描画ステータスの追跡（`isDrawing`、`isActive`、`showResult`）
+   - ユーザーパスポイントの管理
+   - キャンバスポインターエベントの処理
 
-2. **Timer System**:
-   - Countdown based on difficulty
-   - Automatic timeout handling
-   - Timer reset on difficulty/pattern changes
+2. **タイマーシステム**:
+   - 難易度に基づくカウントダウン
+   - 自動タイムアウト処理
+   - 難易度/パターン変更時のタイマー reset
 
-3. **Pattern Management**:
-   - Loading preset patterns
-   - Generating random patterns
-   - Navigating between patterns (next/previous)
-   - Changing difficulty levels
+3. **パターン管理**:
+   - プリセットパターンのロード
+   - ランダムパターンの生成
+   - パターン間のナビゲーション（次へ/前へ）
+   - 難易度レベルの変更
 
-4. **Scoring Integration**:
-   - Evaluating drawings using scoring system
-   - Managing score results and rankings
-   - Updating completion status
+4. **スコアリング統合**:
+   - スコアリングシステムを使用した描画の評価
+   - スコア結果とランクの管理
+   - 完了ステータスの更新
 
-5. **Replay System**:
-   - Recording drawing strokes
-   - Saving/loading drawing data
-   - Replay functionality with history saving
-   - URL sharing integration
+5. **リプレイシステム**:
+   - 描画ストロークの記録
+   - 描画データの保存/読み込み
+   - ヒストリ保存を伴うリプレイ機能
+   - URL共有統合
 
-6. **Completion Tracking**:
-   - Monitoring which patterns have been mastered
-   - Synchronizing completion status with parent component
+6. **完了追跡**:
+   - マスターされたパターンの監視
+   - 親コンポーネントとの完了ステータスの同期
 
-7. **Voice Activation**:
-   - Integrating voice control for hands-free evaluation
-   - Managing microphone access and listening state
+7. **音声アクティベーション**:
+   - ハンズフリー評価のための音声制御の統合
+   - マイクアクセスとリスニング状態の管理
 
-#### Usage
+#### 使用方法
 ```typescript
 import { useMagicCircle } from '@/hooks/useMagicCircle';
 
@@ -119,14 +119,14 @@ function MagicCircleCanvas({ /* props */ }) {
     canvasRef,
     isDrawing,
     userPath,
-    // ... all other returned properties
+    // ... すべてのその他の戻り値プロパティ
   } = useMagicCircle(onScore, onReset, onCompletionUpdate);
   
-  // Use returned properties and handlers in JSX
+  // 戻り値のプロパティとハンドラーをJSXで使用
   return (
     <canvas 
       ref={canvasRef}
-      // ... other props
+      // ... その他のプロップス
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -136,90 +136,90 @@ function MagicCircleCanvas({ /* props */ }) {
 ```
 
 ### useVoiceActivation (`src/hooks/useVoiceActivation.ts`)
-A hook for voice activity detection using the Web Audio API.
+Web Audio APIを使用した音声アクティビティ検出のためのフック。
 
-#### Returns
+#### 戻り値
 ```typescript
 {
-  isMicAccessible: boolean;   // Whether microphone permission granted
-  isListening: boolean;       // Currently detecting voice
-  startListening: () => Promise<void>;  // Start voice detection
-  stopListening: () => void;  // Stop voice detection
+  isMicAccessible: boolean;   // マイクアクセス許可が付与されたかどうか
+  isListening: boolean;       // 現在音声を検出しているかどうか
+  startListening: () => Promise<void>;  // 音声検出を開始
+  stopListening: () => void;  // 音声検出を停止
 }
 ```
 
-#### Parameters
-- `onVoiceDetected`: Callback when voice is detected
-- `options`: Configuration object with:
-  - `threshold`: Voice detection sensitivity (0-1, default: 0.1)
-  - `silentTime`: Milliseconds of silence to end detection (default: 500)
-  - `checkInterval`: Not used (checking via requestAnimationFrame)
+#### パラメータ
+- `onVoiceDetected`: 音声が検出されたときのコールバック
+- `options`: 以下を含む設定オブジェクト:
+  - `threshold`: 音声検知の感度 (0-1、デフォルト: 0.1)
+  - `silentTime`: 音声終了と判定する無音時間（ミリ秒、デフォルト: 500）
+  - `checkInterval`: 使用されていない（requestAnimationFrameによるチェックが発生）
 
-#### Features
-- Microphone access management
-- Audio context creation and cleanup
-- Real-time audio level analysis
-- Voice activity detection with configurable sensitivity
-- Silence detection to end listening state
-- Proper resource cleanup on unmount
-- Error handling for missing browser APIs
+#### 機能
+- マイクアクセス管理
+- オーディオコンテキストの作成とクリーンアップ
+- リアルタイムオーディオレベル分析
+- 設定可能な感度による音声アクティビティ検出
+- サイレンス検出によるリスニング状態の終了
+- アンマウント時の適切なリソースクリーンアップ
+- ブラウザAPIが利用できない場合のエラーハンドリング
 
-#### Usage
+#### 使用方法
 ```typescript
 import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 
 function SomeComponent() {
   const { isMicAccessible, isListening, startListening, stopListening } = 
     useVoiceActivation(() => {
-      // Voice detected - trigger action
-      console.log('Voice detected!');
+      // 音声が検出されたとき - アクションをトリガー
+      console.log('音声が検出されました！');
     }, {
-      threshold: 0.15, // More sensitive
-      silentTime: 800  // Longer silence tolerance
+      threshold: 0.15, // より敏感に設定
+      silentTime: 800  // 長いサイレンス許容時間
     });
     
   return (
     <button onClick={isListening ? stopListening : startListening}>
-      {isListening ? '🔇 Listening' : '🔊 Activate Voice'}
+      {isListening ? '🔇 リスニング中' : '🔊 音声アクティベート'}
     </button>
   );
 }
 ```
 
-## Hook Design Patterns
+## フックデザインパターン
 
-### State Encapsulation
-Both hooks encapsulate complex state logic that would otherwise clutter component code:
-- Multiple related state variables managed together
-- Complex initialization and cleanup logic
-- Event handler creation with proper callbacks
+### 状態のカプセル化
+両方のフックは、コンポーネントコードをごちゃごちゃにさせずに複雑な状態ロジックをカプセル化します:
+- 複数の関連する状態変数を一緒に管理
+- 複雑な初期化とクリーンアップロジック
+- 適切なコールバックを伴うイベントハンドラーの作成
 
-### Separation of Concerns
-- `useMagicCircle`: Handles drawing, scoring, timing, replay
-- `useVoiceActivation`: Handles audio input and voice detection
-- Components remain focused on UI rendering and user interaction
+### 関心の分離
+- `useMagicCircle`: 描画、スコアリング、タイミング、リプレイを処理
+- `useVoiceActivation`: オーディオ入力と音声検出を処理
+- コンポーネントはUIレンダリングとユーザーインタラクションに焦点を当てたままにする
 
-### Performance Considerations
-- Proper use of `useCallback` to prevent unnecessary re-renders
-- Cleanup functions in `useEffect` to prevent memory leaks
-- Expensive calculations deferred or memoized where appropriate
-- Animation frames properly cancelled
+### パフォーマンス考慮事項
+- 必要のない再レンダーを防ぐために`useCallback`を適切に使用
+- メモリリークを防ぐために`useEffect`のクリーンアップ関数を使用
+- 適切な場所で高価な計算を延期またはメモ化
+- アニメーションフレームを適切にキャンセル
 
-### Error Handling
-- Graceful degradation when browser APIs unavailable
-- Clear error states and debugging messages
-- Resource cleanup even when errors occur
-- User-friendly feedback for common issues (mic denied, etc.)
+### エラーハンドリング
+- ブラウザAPIが利用できない場合のグレースフルデグラデーション
+- 明確なエラー状態とデバッグメッセージ
+- エラーが発生してもリソースのクリーンアップ
+- 一般的な問題（マイク拒否など）に対するユーザーフレンドリーなフィードバック
 
-## Dependencies
-- `useMagicCircle` depends on:
-  - `useVoiceActivation` (nested hook)
-  - Various lib functions (scoring, patterns, history, etc.)
-  - Next.js router for navigation in replay feature
-- `useVoiceActivation` depends only on browser Web APIs
+## 依存関係
+- `useMagicCircle` は以下に依存:
+  - `useVoiceActivation` (ネストされたフック)
+  - 各種ライブラリ関数（スコアリング、パターン、ヒストリなど）
+  - リプレイ機能でのナビゲーションのためのNext.jsルーター
+- `useVoiceActivation` はブラウザのWeb APIのみに依存
 
-## Testing Considerations
-- Hooks are designed to be testable with React Hooks Testing Library
-- External dependencies can be mocked (lib functions, router)
-- Browser API mocking needed for voice activation tests
-- Focus on testing the returned state and functions rather than internal implementation
+## テストに関する考慮事項
+- フックはReact Hooks Testing Libraryを使用してテスト可能に設計
+- 外部依存関係はモック可能（ライブラリ関数、ルーターなど）
+- ボイスアクティベーションのテストにはブラウザAPIのモックが必要
+- 内部実装よりも戻り値の状態と関数のテストに焦点を当てる

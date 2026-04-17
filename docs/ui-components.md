@@ -1,158 +1,158 @@
-# 🧩 UI Components
+# 🧩 UIコンポーネント
 
-## Overview
-This document covers the reusable UI components used throughout the Arcane Tracer application, including modals, panels, and interactive elements.
+## 概要
+このドキュメントでは、Arcane Tracerアプリケーション全体で使用されている再利用可能なUIコンポーネントについて説明します。モーダル、パネル、およびインタラクティブな要素を含みます。
 
-## Components
+## コンポーネント
 
 ### HelpModal (`src/components/HelpModal.tsx`)
-A modal dialog that displays instructions and scoring information.
+操作説明とスコア情報を表示するモーダルダイアログ。
 
-#### Props
+#### プロップス
 ```typescript
 interface HelpModalProps {
-  onClose: () => void; // Callback when user closes the modal
+  onClose: () => void; // ユーザーがモーダルを閉じたときのコールバック
 }
 ```
 
-#### Features
-- Full-screen dark backdrop with click-to-close
-- Centered card with rounded borders and gradient accents
-- Step-by-step instructions with numbered indicators
-- Score breakdown showing rank thresholds and damage multipliers
-- Consistent styling with tutorial overlay
-- Touch-friendly close button
+#### 特徴
+- クリックで閉じるフルスクリーンのダークバックドロップ
+- 丸みを帯びた境界とグラデーションアクセントを持つ中央のカード
+- 番号インディケーター付きのステップバイステップの説明
+- ランクのしきい値とダメージ倍率を表示するスコアの内訳
+- チュートリアルオーバーレイと一貫したスタイリング
+- タッチフレンドリーな閉じるボタン
 
-#### Usage
+#### 使用方法
 ```typescript
 import HelpModal from '@/components/HelpModal';
 import { useState } from 'react';
 
 const [showHelp, setShowHelp] = useState(false);
 
-// In JSX:
+// JSX内:
 {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-// Trigger with:
+// トリガー方法:
 <button onClick={() => setShowHelp(true)}>?</button>
 ```
 
 ### HistoryPanel (`src/components/HistoryPanel.tsx`)
-A bottom sheet panel that displays the user's drawing history with sharing capabilities.
+共有機能を備えたユーザーの描画ヒストリを表示するボトムシートパネル。
 
-#### Props
+#### プロップス
 ```typescript
 interface HistoryPanelProps {
-  isOpen: boolean;        // Whether panel is visible
-  onClose: () => void;    // Callback when panel is closed
-  onSelect: (history: MagicCircleHistory) => void; // Callback when item is selected
+  isOpen: boolean;        // パネルが表示されているかどうか
+  onClose: () => void;    // パネルが閉じられたときのコールバック
+  onSelect: (history: MagicCircleHistory) => void; // アイテムが選択されたときのコールバック
 }
 ```
 
-#### Features
-- Grid layout showing drawing thumbnails
-- Rank badges on thumbnails (S/A/B/C color-coded)
-- Timestamp display (relative time like "5分前")
-- Share button with Web Share API fallback to clipboard
-- Delete button for removing history items
-- Loading states and empty state handling
-- Responsive grid (2-4 columns based on screen size)
-- Smooth animations and hover effects
+#### 特徴
+- サムネイルを表示するグリッドレイアウト
+- サムネイルのランクバッジ（S/A/B/Cで色分け）
+- タイムスタンプ表示（相対時間のように「5分前」）
+- Web Share APIフォールバックをクリップボードコピーに備えたシェアボタン
+- ヒストリアイテムを削除するための削除ボタン
+- ローディング状態と空の状態の処理
+- レスポンシブグリッド（画面サイズに基づいて2-4列）
+- スムーズなアニメーションとホバーエフェクト
 
-#### Data Displayed
-- Pattern name (truncated if too long)
-- Creation timestamp
-- Rank indicator (colored badge)
-- Thumbnail preview or magic circle emoji
-- Share and delete controls
+#### 表示されるデータ
+- パターン名（長すぎる場合は切り捨て）
+- 作成タイムスタンプ
+- ランクインディケーター（色分けされたバッジ）
+- サムネイルプレビューまたはマジックサークル絵文字
+- シェアと削除コントロール
 
-#### Usage
+#### 使用方法
 ```typescript
 import HistoryPanel from '@/components/HistoryPanel';
 import { useState } from 'react';
 
 const [showHistory, setShowHistory] = useState(false);
 
-// In JSX:
+// JSX内:
 <HistoryPanel
   isOpen={showHistory}
   onClose={() => setShowHistory(false)}
   onSelect={handleHistorySelect}
 />
-// Trigger with:
+// トリガー方法:
 <button onClick={() => setShowHistory(true)}>📜</button>
 ```
 
 ### HistoryDetail (`src/components/HistoryDetail.tsx`)
-A modal dialog that displays detailed information about a specific drawing and provides replay functionality.
+特定の描画の詳細情報を表示し、リプレイ機能を提供するモーダルダイアログ。
 
-#### Props
+#### プロップス
 ```typescript
 interface HistoryDetailProps {
-  history: MagicCircleHistory | null; // The history item to display
-  onClose: () => void;                // Callback when modal is closed
-  onReEdit: (data: MagicCircleData) => void; // Callback when user wants to redraw
+  history: MagicCircleHistory | null; // 表示するヒストリアイテム
+  onClose: () => void;                // モーダルが閉じられたときのコールバック
+  onReEdit: (data: MagicCircleData) => void; // ユーザーが再描画したいときのコールバック
 }
 ```
 
-#### Features
-- Full-screen dark backdrop
-- Detailed drawing information:
-  - Pattern name
-  - Score and rank
-  - Difficulty level
-  - Damage multiplier
-  - Timestamp
-  - Thumbnail preview (if available)
-- Replay button to watch drawing recreation
-- Re-edit button to reload drawing into main canvas
-- Close button to dismiss modal
-- Error handling for missing data
+#### 特徴
+- フルスクリーンのダークバックドロップ
+- 詳細な描画情報:
+  - パターン名
+  - スコアとランク
+  - 難易度レベル
+  - ダメージ倍率
+  - タイムスタンプ
+  - サムネイルプレビュー（利用可能な場合）
+- 描画の再生を視聴するリプレイボタン
+- 描画をメインキャンバスに再ロードする再編集ボタン
+- モーダルを閉じる閉じるボタン
+- 欠落しているデータのエラーハンドリング
 
-#### Usage
+#### 使用方法
 ```typescript
 import HistoryDetail from '@/components/HistoryDetail';
 import { useState } from 'react';
 
 const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
 
-// In JSX:
+// JSX内:
 <HistoryDetail
   history={selectedHistory}
   onClose={() => setSelectedHistory(null)}
   onReEdit={handleReEdit}
 />
-// Trigger with:
+// トリガー方法:
 <HistoryPanel onSelect={(history) => setSelectedHistory(history)} />
 ```
 
-## Styling Consistency
-All UI components share common styling themes:
-- Dark background (`#0d0d1a` or `#0a0a14` for elevated elements)
-- Accent colors from the magic cyan (`#00e5ff`) and purple (`#7c4dff`) palette
-- Gradient buttons using `linear-gradient(135deg, #00e5ff, #7c4dff)`
-- Rounded corners (`rounded-lg`, `rounded-xl`, `rounded-full`)
-- Subtle borders and shadows for depth
-- Consistent typography and spacing
-- Touch-friendly minimum target sizes
+## スタイリングの一貫性
+すべてのUIコンポーネントは共通のスタイリングテーマを共有しています:
+- ダークバックグラウンド（高度な要素については`#0d0d1a`または`#0a0a14`）
+- マジックシアン（`#00e5ff`）とパープル（`#7c4dff`）パレットからのアクセントカラー
+- `linear-gradient(135deg, #00e5ff, #7c4dff)`を使用したグラデーションボタン
+- 丸みを帯びた角（`rounded-lg`、`rounded-xl`、`rounded-full`）
+- 奥行きを出すための控えめな境界とシャドウ
+- 一貫したタイポグラフィとスペーシング
+- タッチフレンドリーな最小ターゲットサイズ
 
-## Animation & Interaction
-- Smooth transitions for opening/closing (using CSS transforms and opacity)
-- Hover states on buttons and interactive elements
-- Press feedback with scale transitions
-- Loading spinners and skeleton states where appropriate
-- Visual feedback for success/error states (temporary color changes)
+## アニメーションとインタラクション
+- CSS変換と不透明度を使用したオープン/クローズのスムーズなトランジション
+- ボタンとインタラクティブな要素のホバー状態
+- スケール遷移によるプレスフィードバック
+- 必要に応じたローディングスピナーとスケルトン状態
+- 一時的な色変更による成功/エラー状態の視覚フィードバック
 
-## Accessibility Considerations
-- Proper contrast ratios for text and icons
-- Touch target sizes ≥ 48x48dp
-- Clear visual indication of interactive elements
-- Semantic HTML structure where applicable
-- Focus management in modals (could be enhanced)
-- ARIA labels for icon-only buttons
+## アクセシビリティに関する考慮事項
+- テキストとアイコントの適切なコントラスト比
+- タッチターゲットサイズ ≥ 48x48dp
+- インタラクティブな要素の明確な視覚的指示
+- 該当する場合は意味のあるHTML構造
+- モーダルでのフォーカス管理（強化の余地あり）
+- アイコン専用ボタンのARIAラベル
 
-## Performance Notes
-- Components are designed to be lightweight
-- HistoryPanel uses efficient rendering for large lists
-- Images use next/image or appropriate sizing to prevent layout shifts
-- Event propagation is handled correctly (stopPropagation where needed)
-- Cleanup of subscriptions and timers in useEffect return functions
+## パフォーマンスに関する注意点
+- コンポーネントは軽量に設計されている
+- HistoryPanelは大きなリストに対して効率的なレンダリングを使用
+- 画像はレイアウトシフトを防ぐためにnext/imageまたは適切なサイズを使用
+- イベント伝播は正しく処理されている（必要に応じてstopPropagationを使用）
+- useEffectの戻り値関数でのサブスクリプションとタイマーのクリーンアップ

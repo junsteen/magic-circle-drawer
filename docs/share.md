@@ -1,41 +1,41 @@
-# 📤 Share/Export Functionality (shareUtils.ts)
+# 📤 シェア/エクスポート機能 (shareUtils.ts)
 
-## Overview
-The share utilities enable users to save, share, and reload their magic circle drawings through URL compression and web sharing APIs. This feature allows players to preserve their achievements and share them with others.
+## 概要
+シェアユーティリティは、URL圧縮とウェブ共有APIを介してユーザーが魔法陣の描画を保存、共有、および再読み込みできるようにします。この機能により、プレイヤーは実績を保存し、他人と共有することができます。
 
-## Core Functions
+## コア機能
 
-### URL Compression System
-The system uses LZString library to compress drawing data into URL-safe strings, allowing sharing via web links.
+### URL圧縮システム
+このシステムは、LZStringライブラリを使用して描画データをURL安全な文字列に圧縮し、ウェブリンク経由での共有を可能にします。
 
 #### compressForUrl(data)
-- General purpose compression for any JSON-serializable data
-- Converts object to JSON string, then compresses for URL use
-- Returns URL-safe compressed string
+- 任意のJSONシリアライズ可能なデータの一般的な圧縮
+- オブジェクトをJSON文字列に変換し、URL用に圧縮
+- URL安全な圧縮文字列を返す
 
 #### decompressFromUrl<T>(compressed)
-- Decompresses URL-safe string back to original object
-- Generic type parameter for type safety
-- Returns null if decompression fails
+- URL安全な文字列を元のオブジェクトに戻す解凍
+- 型安全のためのジェネリックタイプパラメータ
+- 解凍に失敗した場合はnullを返す
 
-### Optimized Magic Circle Compression
-Specialized functions for compressing magic circle drawing data with size optimizations.
+### 魔法陣描画データの最適化圧縮
+サイズ最適化のための魔法陣描画データを圧縮する専門関数。
 
 #### compressForUrlOptimized(data)
-Compresses magic circle data with these optimizations:
-1. **Shorter field names**: Single-letter keys in JSON (p, d, s, r, etc.)
-2. **Reduced precision**: 
-   - Vertex coordinates: 2 decimal places
-   - Circle centers: 3 decimal places (0-1 range)
-   - Circle radii: 1 decimal place
-   - Difficulty multipliers: 1 decimal place
-3. **Event type mapping**: 
+魔法陣の描画データを次の最適化で圧縮:
+1. **フィールド名の短縮**: JSON内の単一文字キー（p, d, s, r, など）
+2. **精度の削減**: 
+   - 頂点座標: 2桁の小数点
+   - 円の中心: 3桁の小数点（0-1範囲）
+   - 円の半径: 1桁の小数点
+   - 難易度倍率: 1桁の小数点
+3. **イベントタイプのマッピング**: 
    - 'start' → 's'
    - 'move' → 'm' 
    - 'end' → 'e'
-4. **Timestamp preservation**: Keeps draw event timestamps as integers
+4. **タイムスタンプの保持**: 描画イベントのタイムスタンプを整数として保持
 
-Input format:
+入力フォーマット:
 ```typescript
 {
   pattern: {
@@ -54,42 +54,42 @@ Input format:
 ```
 
 #### decompressFromUrlOptimized<T>(compressed)
-- Automatically detects optimized vs legacy format
-- Converts optimized format back to full structure
-- Handles backward compatibility with older compressed data
-- Returns null if decompression fails
+- 最適化フォーマットとレガシーフォーマットを自動検出
+- 最適化フォーマットを完全な構造に戻す
+- 古い圧縮データとの後方互換性を処理
+- 解凍に失敗した場合はnullを返す
 
-## Data Structures
+## データ構造
 
 ### DrawStroke & DrawEvent
 ```typescript
 type DrawStroke = DrawEvent[];
 
 interface DrawEvent {
-  x: number;      // X coordinate
-  y: number;      // Y coordinate
-  t: number;      // Timestamp (milliseconds)
-  type: 'start' | 'move' | 'end'; // Pointer event type
+  x: number;      // X座標
+  y: number;      // Y座標
+  t: number;      // タイムスタンプ（ミリ秒）
+  type: 'start' | 'move' | 'end'; // ポインターエベントタイプ
 }
 ```
 
 ### MagicCircleData
 ```typescript
 interface MagicCircleData {
-  seed: number;                           // Random seed for pattern regeneration
-  pattern: {                              // The pattern being drawn
+  seed: number;                           // パターン再生用のランダムシード
+  pattern: {                              // 描画されているパターン
     name: string;
     vertices: Point[];
     edges: Edge[];
     circles: CircleDef[];
   };
-  drawLogs: DrawStroke[];                 // Recording of user's drawing
-  timestamp: number;                      // When drawing was made
+  drawLogs: DrawStroke[];                 // ユーザーの描画記録
+  timestamp: number;                      // 描画が行われた時間
 }
 ```
 
-### MagicCircleHistory (for sharing)
-Includes all MagicCircleData plus:
+### MagicCircleHistory (共有用)
+MagicCircleDataに以下を含む:
 - score: number (0-100)
 - rank: string ('S'|'A'|'B'|'C')
 - difficulty: string ('EASY'|'NORMAL'|'HARD'|'EXPERT')
@@ -98,13 +98,13 @@ Includes all MagicCircleData plus:
 - thumbnail?: string (Data URL)
 - createdAt: number
 
-## Usage Examples
+## 使用例
 
-### Saving a Drawing for Sharing
+### 共有のために描画を保存
 ```typescript
 import { compressForUrlOptimized } from '@/lib/shareUtils';
 
-// Prepare data from drawing session
+// 描画セッションからデータを準備
 const dataToShare = {
   pattern: currentPatternData,
   drawLogs: userDrawingStrokes,
@@ -115,34 +115,34 @@ const dataToShare = {
   damageMultiplier: damageMultStr
 };
 
-// Compress for URL
+// URL用に圧縮
 const compressed = compressForUrlOptimized(dataToShare);
 if (compressed) {
   const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-  // Use Web Share API or copy to clipboard
+  // Web Share APIまたはクリップボードにコピーを使用
 }
 ```
 
-### Loading Shared Data
+### 共有データのロード
 ```typescript
 import { decompressFromUrlOptimized } from '@/lib/shareUtils';
 import { useRouter } from 'next/navigation';
 
-// In replay page
+// リプレイページ内
 const router = useRouter();
 const { data } = router.query;
 
 if (typeof data === 'string') {
   const drawingData = decompressFromUrlOptimized(data);
   if (drawingData) {
-    // Load into canvas via handleLoadData()
+    // handleLoadData()を介してキャンバスにロード
   }
 }
 ```
 
-### Web Share API Integration
+### Web Share APIの統合
 ```typescript
-import { share } from '@/lib/shareUtils'; // Assuming wrapper exists
+import { share } from '@/lib/shareUtils'; // ラッパーが存在すると仮定
 
 async function handleShare() {
   const compressed = compressForUrlOptimized(drawingData);
@@ -158,7 +158,7 @@ async function handleShare() {
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
-      // Fallback: copy to clipboard
+      // フォールバック: クリップボードにコピー
       await navigator.clipboard.writeText(shareData.url);
     }
   } catch (err) {
@@ -167,49 +167,49 @@ async function handleShare() {
 }
 ```
 
-## Size Optimization Results
-Typical compression ratios:
-- Raw JSON: ~3-5KB for complex drawing
-- Standard LZString compression: ~1-2KB
-- Optimized compression: ~0.5-1.5KB
-- Final URL parameter: ~0.7-2KB (after URL encoding)
+## サイズ最適化結果
+典型的な圧縮比:
+- 生JSON: 複雑な描画で~3-5KB
+- 標準のLZString圧縮: ~1-2KB
+- 最適化圧縮: ~0.5-1.5KB
+- 最終URLパラメータ: ~0.7-2KB（URLエンコード後）
 
-This allows sharing even complex drawings within reasonable URL length limits (< 8KB recommended for browser compatibility).
+これにより、ブラウザ互換性のために推奨されるURL長制限（< 8KB）以内でも複雑な描画を共有することが可能になります。
 
-## Browser Compatibility
-- Requires LZString library (included as dependency)
-- Works in all modern browsers that support:
-  - LocalStorage/IndexedDB (for fallback)
-  - URL encoding/decoding
-  - Basic JSON parsing
-- Web Share API requires HTTPS and is mobile-focused
-- Fallback to clipboard copying works universally
+## ブラウザ互換性
+- LZStringライブラリを必要とする（依存関係として含まれる）
+- 次をサポートするすべてのモダンブラウザで動作:
+  - LocalStorage/IndexedDB（フォールバック用）
+  - URLエンコード/デコード
+  - 基本的なJSONパース
+- Web Share APIはHTTPSが必要でモバイルに焦点を当てている
+- クリップボードへのコピーへのフォールバックは普遍的に機能する
 
-## Error Handling
-- Invalid or corrupted compressed data returns null
-- Graceful degradation when compression fails
-- Input validation prevents crashes from malformed data
-- Console logging for debugging compression issues
+## エラーハンドリング
+- 無効または破損した圧縮データはnullを返す
+- 圧縮が失敗したときのグレースフルデグラデーション
+- 間違ったデータからのクラッシュを防ぐ入力検証
+- 圧縮問題のデバッグのためのコンソールロギング
 
-## Security Considerations
-- Only shares data explicitly provided by user
-- No personal information included in drawings
-- Thumbnails are canvas snapshots, not camera images
-- URL-based sharing puts data client-side (no server storage)
-- Users control what they share and when
+## セキュリティ考慮事項
+- ユーザーが明示的に提供したデータのみを共有
+- 描画には個人情報が含まれない
+- サムネイルはキャンバススナップショットで、カメラ画像ではない
+- URLベースの共有はデータをクライアントサイドに置く（サーバーストレージなし）
+- ユーザーは何を共有し、いつ共有するかをコントロールする
 
-## Integration Points
+## 統合ポイント
 1. **MagicCircleCanvas**:
-   - `handleReplay()`: Compresses and shares when saving replay
-   - `handleSaveData()`: Saves drawing locally
-   - `handleLoadData()`: Loads drawing from shared data
-   - URL sync: Reads `?data=` parameter on page load
+   - `handleReplay()`: リプレイを保存するときに圧縮および共有
+   - `handleSaveData()`: 描画をローカルに保存
+   - `handleLoadData()`: 共有データから描画をロード
+   - URL同期: ページロード時に`?data=`パラメータを読み取り
 
-2. **Replay Page** (`/app/replay/page.tsx`):
-   - Parses URL parameter
-   - Decompresses and displays shared drawings
-   - Allows replaying others' performances
+2. **リプレイページ** (`/app/replay/page.tsx`):
+   - URLパラメータをパース
+   - 共有された描画を解凍して表示
+   - 他のユーザーのパフォーマンスをリプレイ可能
 
-3. **UI Components**:
-   - Share button in score overlay
-   - Import/export functionality in history panels
+3. **UIコンポーネント**:
+   - スコアオーバーレイのシェアボタン
+   - ヒストリーパネルのインポート/エクスポート機能

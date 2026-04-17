@@ -1,97 +1,97 @@
-# 📜 History/Completion System
+# 📜 ヒストリ/完了システム
 
-## Overview
-The history and completion system tracks user progress, saves drawing attempts, and manages achievement data for the Arcane Tracer application.
+## 概要
+ヒストリと完了システムは、ユーザーの進行状況を追跡し、描画の試行を保存し、Arcane Tracerアプリケーションの達成データを管理します。
 
-## Modules
+## モジュール
 
 ### historyDB.ts
-Handles saving and retrieving drawing history records using IndexedDB.
+IndexedDBを使用して描画ヒストリーレコードの保存と取得を処理します。
 
-#### Data Structures
+#### データ構造
 
 ##### MagicCircleData
 ```typescript
 interface MagicCircleData {
-  seed: number;                           // Random seed used for pattern generation
-  pattern: {                              // The pattern that was attempted
+  seed: number;                           // パターン生成に使用されるランダムシード
+  pattern: {                              // 試行されたパターン
     name: string;
     vertices: Point[];
     edges: Edge[];
     circles: CircleDef[];
   };
-  drawLogs: DrawStroke[];                 // Recording of user's drawing strokes
-  timestamp: number;                      // When the drawing was made
+  drawLogs: DrawStroke[];                 // ユーザーの描画ストロークの記録
+  timestamp: number;                      // 描画が行われた時間
 }
 ```
 
-##### MagicCircleHistory (stored record)
+##### MagicCircleHistory (保存されるレコード)
 ```typescript
 interface MagicCircleHistory extends MagicCircleData {
-  id: string;                             // Unique identifier
-  score: number;                          // 0-100 score
-  rank: string;                           // S/A/B/C rank
-  difficulty: string;                     // EASY/NORMAL/HARD/EXPERT label
-  difficultyMultiplier: number;           // From DIFFICULTY_MULTIPLIER
-  damageMultiplier: number;               // Numeric damage multiplier
-  thumbnail?: string;                     // Data URL of canvas snapshot
-  createdAt: number;                      // When record was created
+  id: string;                             // 一意の識別子
+  score: number;                          // 0-100スコア
+  rank: string;                           // S/A/B/Cランク
+  difficulty: string;                     // EASY/NORMAL/HARD/EXPERTラベル
+  difficultyMultiplier: number;           // DIFFICULTY_MULTIPLIERから
+  damageMultiplier: number;               // 数値ダメージ倍率
+  thumbnail?: string;                     // キャンバススナップショットのデータURL
+  createdAt: number;                      // レコードが作成された時間
 }
 ```
 
-#### Functions
-- `addHistory(historyItem: MagicCircleHistory): Promise<void>` - Save a drawing attempt
-- `getHistory(limit?: number): Promise<MagicCircleHistory[]>` - Retrieve recent history
-- `deleteHistory(id: string): Promise<void>` - Remove a specific history item
-- `clearHistory(): Promise<void>` - Delete all history records
+#### 関数
+- `addHistory(historyItem: MagicCircleHistory): Promise<void>` - 描画の試行を保存
+- `getHistory(limit?: number): Promise<MagicCircleHistory[]>` - 最近のヒストリを取得
+- `deleteHistory(id: string): Promise<void>` - 特定のヒストリ項目を削除
+- `clearHistory(): Promise<void>` - すべてのヒストリレコードを削除
 
 ### completionDB.ts
-Tracks which patterns users have successfully completed and at what skill level.
+ユーザーがどの程度のスキルレベルでパターンを正常に完了したかを追跡します。
 
-#### Functions
-- `updateCompletion(patternName: string, score: number, rank: string): Promise<void>` - Mark pattern as completed if score meets threshold
-- `isPatternCompleted(patternName: string): Promise<boolean>` - Check if pattern is completed
-- `getCompletedCount(): Promise<number>` - Get count of completed patterns
-- `getTotalPatternsCount(): Promise<number>` - Get total number of unique patterns attempted
-- `resetCompletion(): Promise<void>` - Clear all completion data
+#### 関数
+- `updateCompletion(patternName: string, score: number, rank: string): Promise<void>` - スコアがしきい値を満たす場合、パターンを完了としてマーク
+- `isPatternCompleted(patternName: string): Promise<boolean>` - パターンが完了しているかチェック
+- `getCompletedCount(): Promise<number>` - 完了したパターンの数を取得
+- `getTotalPatternsCount(): Promise<number>` - 試行されたユニークパターンの総数を取得
+- `resetCompletion(): Promise<void>` - すべての完了データをクリア
 
-## Completion Logic
-A pattern is considered "completed" when:
-- User achieves a score of 70 or higher (Rank A or better)
-- This threshold ensures users demonstrate reasonable proficiency before marking a pattern as mastered
+## 完了ロジック
+パターンは以下の条件を満たすとき「完了」とみなされます:
+- ユーザーが70以上のスコアを達成（ランクA以上）
+- このしきい値により、ユーザーがパターンをマスターとしてマークする前に十分な熟練度を示すことが保証されます
 
-## Usage in Application
+## アプリケーションでの使用方法
 
-### In useMagicCircle Hook
-1. On initialization: Load completion status and update UI
-2. After successful drawing (score ≥ 70): 
-   - Call `updateCompletion()` to record achievement
-   - Refresh completion status
-   - Notify parent component via `onCompletionUpdate` callback
-3. UI displays progress: "魔法陣修得: X / Y" with celebration when complete
+### useMagicCircle フック内
+1. 初期化時に: 完了状況をロードし、UIを更新
+2. 成功した描画後（スコア ≥ 70）: 
+   - `updateCompletion()`を呼び出して達成を記録
+   - 完了状況を更新
+   - `onCompletionUpdate`コールバックを介して親コンポーネントに通知
+3. UIは進行状況を表示: "魔法陣修得: X / Y" および完了時に祝福を表示
 
-### History Features
-- **Replay**: Save drawing strokes to replay later
-- **Sharing**: Compress history data for URL sharing
-- **Editing**: Reload previous attempts to try again
-- **Persistence**: Data survives browser sessions via IndexedDB
+### ヒストリ機能
+- **リプレイ**: 後で再生するために描画ストロークを保存
+- **共有**: URL共有のためにヒストリデータを圧縮
+- **編集**: 以前の試行を再度読み込んでやり直し
+- **永続性**: IndexedDBを介してブラウザセッション間でデータが生存
 
-## Storage Details
-- Uses IndexedDB via `idb` wrapper library
-- Database name: `magicCircleDB`
-- Object stores: 
-  - `history`: Stores MagicCircleHistory records
-  - `completion`: Stores completed pattern names with best scores
-- Automatic versioning and schema management
+## ストレージ詳細
+- `idb`ラッパーライブラリを使用したIndexedDB
+- データベース名: `magicCircleDB`
+- オブジェクトストア: 
+  - `history`: MagicCircleHistoryレコードを保存
+  - `completion`: 最良スコアとともに完了したパターン名を保存
+- 自動バージョニングとスキーマ管理
 
-## Example Usage
+## 使用例
 ```typescript
-// Saving a drawing
+// 描画を保存する
 import { addHistory } from '@/lib/historyDB';
 import { updateCompletion, isPatternCompleted } from '@/lib/completionDB';
 
 const historyItem: MagicCircleHistory = {
-  // ... populated from drawing session
+  // ... 描画セッションから入力されたデータ
 };
 
 await addHistory(historyItem);
@@ -100,13 +100,13 @@ if (historyItem.score >= 70) {
   await updateCompletion(historyItem.pattern.name, historyItem.score, historyItem.rank);
 }
 
-// Loading history
+// ヒストリをロードする
 import { getHistory } from '@/lib/historyDB';
 
-const recentDrawings = await getHistory(10); // Get 10 most recent
+const recentDrawings = await getHistory(10); // 最新の10件を取得
 ```
 
-## Backup and Migration
-- History data is browser-specific (not synced across devices)
-- Users can export/import via sharing functionality
-- Clearing website data will delete all history and progress
+## バックアップと移行
+- ヒストリデータはブラウザ固有（デバイス間で同期されない）
+- ユーザーは共有機能を介してエクスポート/インポート可能
+- ウェブサイトデータをクリアすると、すべてのヒストリと進行状況が削除される

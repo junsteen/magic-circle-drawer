@@ -1,112 +1,112 @@
-# 🔊 Voice Activation System (useVoiceActivation)
+# 🔊 音声アクティベーションシステム (useVoiceActivation)
 
-## Overview
-The voice activation system allows users to trigger the "詠唱完了!" (chant completion) action using voice input instead of tapping the button. This provides an accessible, hands-free way to evaluate drawings.
+## 概要
+音声アクティベーションシステムは、ボタンをタップする代わりに音声入力を使用して「詠唱完了！」(chant completion)アクションをトリガーすることをユーザーに許可します。これにより、アクセシブルでハンズフリーの描画評価方法が提供されます。
 
-## Core Features
-- Real-time audio level monitoring using Web Audio API
-- Configurable sensitivity and silence detection
-- Automatic microphone access management
-- Visual feedback for listening state
-- Integration with the main drawing canvas via callback
+## コア機能
+- Web Audio APIを使用したリアルタイムオーディオレベルモニタリング
+- 設定可能な感度とサイレンス検出
+- 自動マイクアクセス管理
+- リスニング状態の視覚フィードバック
+- コールバックを介したメインドローイングキャンバスとの統合
 
-## Implementation Details
+## 実装詳細
 
-### Audio Processing Pipeline
-1. **Microphone Access**: Uses `navigator.mediaDevices.getUserMedia({ audio: true })`
-2. **Audio Context**: Creates `AudioContext` (with webkit fallback) for audio processing
-3. **Analyser Node**: Connects microphone input to `AnalyserNode` for frequency analysis
-4. **Volume Calculation**: Computes RMS-like volume from frequency data (0-1 range)
-5. **Voice Detection**: Compares volume against threshold to detect speech/sound
-6. **Silence Detection**: Tracks time since last voice to determine when speech ends
+### オーディオ処理パイプライン
+1. **マイクアクセス**: `navigator.mediaDevices.getUserMedia({ audio: true })` を使用
+2. **オーディオコンテキスト**: オーディオ処理のために `AudioContext` を作成（webkitフォールバックあり）
+3. **アナライザーノード**: マイク入力を `AnalyserNode` に接続して周波数分析を実行
+4. **ボリューム計算**: 周波数データからRMSに類似したボリュームを計算（0-1の範囲）
+5. **ボイス検知**: 音声/音を検出するためにボリュームをしきい値と比較
+6. **サイレンス検出**: 最後の音声からの時間を追跡して音声が終了したときを判定
 
-### Configuration Options
+### 設定オプション
 ```typescript
 {
-  threshold?: number;   // Volume threshold for voice detection (0-1, default: 0.1)
-  silentTime?: number;  // Milliseconds of silence to consider speech ended (default: 500)
-  checkInterval?: number; // Not currently used - checking happens via requestAnimationFrame
+  threshold?: number;   // ボイス検知のボリュームしきい値 (0-1、デフォルト: 0.1)
+  silentTime?: number;  // 音声を終了とみなす無音時間（ミリ秒、デフォルト: 500）
+  checkInterval?: number; // 現在使用されていない - requestAnimationFrameによるチェックが発生
 }
 ```
 
-### State Management
-- `isMicAccessible`: Whether microphone permission has been granted
-- `isListening`: Whether voice is currently being detected (above threshold)
-- Internal refs track actual state to prevent redundant state updates
+### 状態管理
+- `isMicAccessible`: マイクアクセス許可が付与されたかどうか
+- `isListening`: 音声が現在検出されているかどうか（しきい値以上）
+- 内部refsが実際の状態を追跡して冗長な状態更新を防止
 
-## Usage in MagicCircleCanvas
+## MagicCircleCanvasでの使用方法
 
-The voice activation hook is used in `useMagicCircle` to:
-1. Initialize voice detection with callback to auto-trigger evaluation
-2. Provide microphone control button in UI
-3. Show visual indicators for listening state
-4. Handle microphone permission errors gracefully
+音声アクティベーションフックは `useMagicCircle` で以下のように使用されます:
+1. 自動評価をトリガーするコールバックで音声検出を初期化
+2. UIにマイクコントロールボタンを提供
+3. リスニング状態の視覚インジケーターを表示
+4. マイクアクセス権限エラーをグレースフルに処理
 
-### Integration Points
-- Auto-calls `handleEvaluate()` when voice is detected during active drawing
-- Button in UI toggles listening state (microphone icon)
-- Visual feedback: 
-  - Red dot/mic disabled when no mic access
-  - Gray mic when available but not listening
-  - Green mic when actively listening
-  - Tooltip text changes based on state
+### 統合ポイント
+- アクティブな描画中に音声が検出されたときに `handleEvaluate()` を自動呼び出し
+- UIのボタンがリスニング状態を切り替える（マイクアイコン）
+- 視覚フィードバック:
+  - マイクアクセスがないときは赤い点/マイクが無効
+  - 利用可能だがリスニングしていないときはグレーのマイク
+  - アクティブにリスニングしているときは緑のマイク
+  - ツールチップテキストが状態に基づいて変化
 
-## Flowchart
+## フローチャート
 ```
-User Clicks Mic Button
+マイクボタンをユーザーがクリック
         ↓
 requestMicAccess() → getUserMedia()
         ↓
-initAudioContext() → Create AudioContext + Analyser
+initAudioContext() → AudioContext + Analyser を作成
         ↓
-startListening() → Begin render loop
+startListening() → レンダーループを開始
         ↓
-checkAudioLevel() (via requestAnimationFrame)
+checkAudioLevel() (requestAnimationFrame経由)
         ↓
-Analyse frequency data → Calculate volume
+周波数データを分析 → ボリュームを計算
         ↓
-Volume > threshold? 
-        ↓ Yes → Set isListening = true, call onVoiceDetected()
-        ↓ No  → Check silent duration
-        ↓ Silent > silentTime? → Set isListening = false
+ボリューム > しきい値?
+        ↓ はい → isListening = true を設定し、onVoiceDetected() を呼び出し
+        ↓ いいえ → サイレンス期間をチェック
+        ↓ サイレンス > silentTime? → isListening = false を設定
 ```
 
-## Browser Support
-- Requires Web Audio API and getUserMedia
-- Supported in modern browsers:
-  - Chrome/Firefox/Safari/Edge (desktop)
-  - Chrome/Firefox/Safari (mobile)
-  - Some limitations in embedded webviews
-- Graceful degradation: Shows error if APIs unavailable
+## ブラウザサポート
+- Web Audio APIとgetUserMediaが必要
+- 現代のブラウザでサポート:
+  - Chrome/Firefox/Safari/Edge（デスクトップ）
+  - Chrome/Firefox/Safari（モバイル）
+  - 一部の組み込みウェブビューには制限あり
+- グレースフルデグラデーション: APIが利用できない場合はエラーを表示
 
-## Error Handling
-- Microphone permission denied: Shows error, sets `isMicAccessible = false`
-- AudioContext creation fails: Shows error, stops listening
-- Runtime audio errors: Caught and logged, resets listening state
-- Component cleanup: Properly closes AudioContext and stops media tracks
+## エラーハンドリング
+- マイクアクセス許可拒否: エラーを表示し、`isMicAccessible = false` を設定
+- AudioContext作成失敗: エラーを表示し、リスニングを停止
+- ランタイムオーディオエラー: 捕捉してログに記録し、リスニング状態をリセット
+- コンポーネントクリーンアップ: AudioContextを適切に閉じ、メディアトラックを停止
 
-## Accessibility Considerations
-- Provides alternative input method for motor impairments
-- Visual indicators convey audio state clearly
-- Does not require precise timing like button tapping
-- Can be used in conjunction with touch controls
+## アクセシビリティ考慮事項
+- モーターインペアメントのユーザーのための代替入力方法を提供
+- 視覚インジケーターがオーディオ状態を明確に伝達
+- ボタンタップのように正確なタイミングが不要
+- タッチコントロールと併用可能
 
-## Performance
-- Uses requestAnimationFrame for efficient checking
-- Audio processing happens on audio thread, not blocking UI
-- Proper cleanup prevents memory leaks
-- Minimal garbage creation in audio callback
+## パフォーマンス
+- 効率的なチェックのためにrequestAnimationFrameを使用
+- オーディオ処理はオーディオスレッドで発生し、UIをブロックしない
+- 適切なクリーンアップによりメモリリークを防止
+- オーディオコールバックでのガベージ生成を最小限に抑制
 
-## Customization
-The sensitivity can be adjusted via options:
-- Lower threshold (e.g., 0.05) = more sensitive (may trigger on background noise)
-- Higher threshold (e.g., 0.2) = less sensitive (may miss quiet speech)
-- Shorter silentTime (e.g., 300ms) = faster response but may cut off speech
-- Longer silentTime (e.g., 800ms) = more tolerant of pauses in speech
+## カスタマイズ
+オプションを介して感度を調整可能:
+- 下限しきい値 (例: 0.05) = より敏感（バックグラウンドノイズでトリガーされる可能性あり）
+- 上限しきい値 (例: 0.2) = より不感（静かな話し声を聞き逃す可能性あり）
+- 短いサイレンス時間 (例: 300ms) = より速い応答だが話し声を切る可能性あり
+- 長いサイレンス時間 (例: 800ms) = 話しの中断の停止により寛容
 
-## Security & Privacy
-- Only accesses microphone when explicitly activated by user
-- No audio data is recorded or transmitted
-- Audio processing happens entirely in-browser
-- Microphone access released when component unmounts or listening stops
-- Clear visual indication when microphone is active
+## セキュリティとプライバシー
+- ユーザーが明示的にアクティベートしたときのみマイクにアクセス
+- オーディオデータは記録または送信されない
+- オーディオ処理はブラウザ内で完全に発生
+- コンポーネントのアンマウントまたはリスニング停止時にマイクアクセスが解放される
+- マイクがアクティブであることを明確に視覚的に示す

@@ -1,112 +1,112 @@
-# 🎓 Tutorial System
+# 🎓 チュートリアルシステム
 
-## Overview
-The tutorial system provides an interactive onboarding experience for new users, teaching them how to play Arcane Tracer through a series of steps that include explanations, visual demonstrations, and animated examples.
+## 概要
+チュートリアルシステムは、説明、視覚デモンストレーション、およびアニメーション例を含む一連のステップを通じて、新しいユーザーにArcane Tracerの遊び方を教えるインタラクティブなオンボーディング体験を提供します。
 
-## Components
+## コンポーネント
 
 ### TutorialOverlay.tsx
-The main tutorial container that manages step-by-step presentation of tutorial content.
+チュートリアルコンテンツのステップバイステッププレゼンテーションを管理するメインのチュートリアルコンテナ。
 
-#### Props
+#### プロップス
 ```typescript
 interface TutorialOverlayProps {
-  onStart: () => void; // Called when tutorial completes
+  onStart: () => void; // チュートリアル完了時に呼び出される
 }
 ```
 
-#### Steps
-The tutorial consists of 4 steps:
-1. **Welcome**: Introduction to the app concept
-2. **Instructions**: Basic tracing mechanics and time limits
-3. **Demo Animation**: Visual demonstration of how to trace patterns
-4. **Completion**: Explanation of scoring and encouragement to play
+#### ステップ
+チュートリアルは4つのステップで構成されます:
+1. **ウェルカム**: アプリケーションのコンセプトの紹介
+2. **インストラクション**: 基本的ななぞりメカニクスと時間制限
+3. **デモアニメーション**: パターンをなぞる方法の視覚的デモンストレーション
+4. **完了**: スコアリングの説明とプレイを促す励まし
 
-#### Features
-- Step progression with visual indicators (dots)
-- Conditional rendering of canvas animation in step 3
-- Start button that transitions to main app
-- Semi-transparent dark overlay focusing attention on tutorial content
-- Responsive design for mobile and desktop
+#### 特徴
+- 視覚インディケーター（ドット）によるステップ進行
+- ステップ3でのキャンバスアニメーションの条件付きレンダリング
+- メインアプリへの遷移を開始するスタートボタン
+- チュートリアルコンテンツに焦点を合わせる半透明のダークオーバーレイ
+- モバイルおよびデスクトップ向けのレスポンシブデザイン
 
 ### TutorialCanvasAnimation.tsx
-An animated canvas that demonstrates how to trace a magic triangle pattern.
+魔法の三角形パターンをなぞる方法を示すアニメーションキャンバス。
 
-#### Animation Details
-- **Canvas Size**: 180x180 pixels (smaller than main canvas for overlay)
-- **Pattern**: Equilateral triangle (same as first preset pattern)
-- **Edge Drawing**: Each side draws sequentially with glow effect
-- **Timing**: 
-  - 800ms per edge to draw
-  - 1500ms pause between loops
-  - Total loop duration: 3900ms (3*800 + 1500)
-- **Visual Elements**:
-  - Template circles (outer and inner) as reference
-  - Dashed template edges for guidance
-  - Pulsating red start marker
-  - Numbered edges (1→2→3) indicating drawing order
-  - "START" label at starting vertex
-  - Glowing edge effect with trailing light point
-  - Subtle shadow effects for depth
+#### アニメーションの詳細
+- **キャンバスサイズ**: 180x180ピクセル（オーバーレイ用にメインキャンバスより小さい）
+- **パターン**: 等边三角形（最初のプリセットパターンと同じ）
+- **エッジ描画**: 各辺が順番にグロー効果で描画される
+- **タイミング**: 
+  - 1辺を描画するのに800ms
+  - ループ間のポーズが1500ms
+  - 合計ループ時間: 3900ms (3*800 + 1500)
+- **ビジュアル要素**:
+  - テンプレート円（外側と内側）を参照として表示
+  - ガイダンス用の点線テンプレートエッジ
+  - パルサテイング赤いスタートマーカー
+  - 描画順序を示す番号付きエッジ（1→2→3）
+  - 開始頂点の"START"ラベル
+  - 後光を伴う軌跡点を持つグローエッジ効果
+  - 深度を出すための繊細なシャドウ効果
 
-#### Technical Implementation
-- Uses `requestAnimationFrame` for smooth animation
-- Time-based progression using modulo arithmetic
-- Canvas clearing and redrawing each frame
-- Glow effect achieved with `shadowBlur` and `shadowColor`
-- Proper cleanup of animation frame on unmount
+#### 技術的実装
+- スムーズなアニメーションのために`requestAnimationFrame`を使用
+- 剰余算を使用した時間ベースの進行
+- 各フレームでキャンバスをクリアして再描画
+- `shadowBlur`と`shadowColor`でグローエフェクトを実現
+- アンマウント時にアニメーションフレームを適切にクリーンアップ
 
-## Usage
-The tutorial system is automatically shown to new users or can be triggered via the help system.
+## 使用方法
+チュートリアルシステムは新しいユーザーに対して自動的に表示されるか、ヘルプシステムを介してトリガーすることができます。
 
-### In Main Application
+### メインアプリケーションでの使用方法
 ```typescript
-// In MagicCircleCanvas component
+// MagicCircleCanvas コンポーネント内
 const [showTutorial, setShowTutorial] = useState(false);
-// Set to true to show tutorial (e.g., first visit or user request)
-// onStart callback sets showTutorial to false
+// trueに設定してチュートリアルを表示（例: 初回訪問またはユーザーリクエスト時）
+// onStart コールバックが showTutorial を false に設定
 
 <TutorialOverlay onStart={() => setShowTutorial(false)} />
 ```
 
-### Trigger Conditions
-1. **First Visit**: Shown automatically on initial load (could be extended with localStorage flag)
-2. **Help System**: Accessible from help modal for review
-3. **Manual Trigger**: Could be added to settings or profile
+### トリガー条件
+1. **初回訪問**: 初回ロード時に自動的に表示（localStorageフラグで拡張可能性あり）
+2. **ヘルプシステム**: ヘルプモーダルからアクセス可能で復習に使用
+3. **手動トリガー**: 設定またはプロフィールに追加可能
 
-## Customization
-### Modifying Tutorial Content
-Edit the `steps` array in `TutorialOverlay.tsx`:
-- Change title/body text for localization
-- Adjust `showCanvas` flag to show/hide animation per step
-- Add/remove steps as needed
-- Modify button text
+## カスタマイズ
+### チュートリアルコンテンツの変更
+`TutorialOverlay.tsx`の`steps`配列を編集:
+- ローカライズのためにタイトル/本文テキストを変更
+- `showCanvas`フラグを調整してステップごとにアニメーションの表示/非表示を制御
+- ステップの追加/削除が可能
+- ボタンテキストの変更
 
-### Adjusting Animation
-Modify constants in `TutorialCanvasAnimation.tsx`:
-- `CANVAS_SIZE`: Overall size of demonstration
-- `EDGE_DURATION`: Speed of drawing each edge (ms)
-- `LOOP_PAUSE`: Pause between animation loops (ms)
-- Animation colors and effects in drawing functions
+### アニメーションの調整
+`TutorialCanvasAnimation.tsx`の定数を修正:
+- `CANVAS_SIZE`: デモンストレーションの全体サイズ
+- `EDGE_DURATION`: 各エッジを描画する速度（ミリ秒）
+- `LOOP_PAUSE`: アニメーションループ間のポーズ（ミリ秒）
+- 描画関数でのアニメーションの色とエフェクト
 
-## Accessibility Considerations
-- High contrast colors for visibility
-- Text labels for all visual elements
-- Non-essential animation (can be considered decorative)
-- Touch-friendly button sizes
-- Clear visual progression indicators
+## アクセシビリティに関する考慮事項
+- 高コントラストカラーによる視認性の確保
+- すべての視覚要素にテキストラベル
+- 非必須アニメーション（装飾として扱うことが可能）
+- タッチフレンドリーなボタンサイズ
+- 明確な視覚的進行インディケーター
 
-## Integration
-- Overlay uses fixed positioning to cover entire viewport
-- Z-index ensures it appears above all other content
-- Semi-transparent background allows slight visibility of background
-- Centered content box with responsive padding
-- Touch events pass through to underlying elements when not interacted with
+## 統合
+- オーバーレイは固定ポジションを使用してビューポート全体をカバー
+- Z-indexにより他のすべてのコンテンツの上に表示されることを確保
+- セミトランスペアレントな背景により背景のわずかな視認性を許可
+- レスポンシブパディングを持つセンタリングされたコンテンツボックス
+- インタラクトしていない場合、タッチイベントは下位の要素に渡される
 
-## Future Enhancements
-1. **Progress Tracking**: Store completion status to skip on subsequent visits
-2. **Multiple Patterns**: Show different patterns in tutorial (triangle, circle, star)
-3. **Interactive Practice**: Allow tracing attempt during tutorial
-4. **Voice Demo**: Demonstrate voice activation feature
-5. **Settings Access**: Allow reviewing tutorial from options menu
-6. **Accessibility Options**: Reduce motion preference, screen reader support
+## 今後の拡張
+1. **進行状況トラッキング**: 完了状況を保存して以降の訪問時にスキップ
+2. **複数パターン**: チュートリアルで異なるパターンを表示（三角形、円、星など）
+3. **インタラクティブな練習**: チュートリアル中になぞり試行を許可
+4. **ボイスデモ**: 音声アクティベーション機能のデモンストレーション
+5. **設定アクセス**: オプションメニューからチュートリアルの復習を許可
+6. **アクセシビリティオプション**: 動きを減らす優先度、スクリーンリーダーサポート

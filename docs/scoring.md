@@ -1,107 +1,107 @@
-# 🎯 Scoring System (scoring.ts)
+# 🎯 スコアリングシステム (scoring.ts)
 
-## Overview
-The scoring system evaluates how accurately a user traces a magic circle pattern. It combines multiple metrics to produce a score (0-100), a rank (S/A/B/C), and a damage multiplier.
+## 概要
+スコアリングシステムは、ユーザーが魔法陣パターンをなぞる精度を評価します。複数のメトリクスを組み合わせて、スコア（0-100）、ランク（S/A/B/C）、およびダメージ倍率を生成します。
 
-## Core Data Structure
+## コアデータ構造
 
 ### ScoringResult
 ```typescript
 interface ScoringResult {
-  score: number;      // 0-100 integer score
-  rank: string;       // 'S', 'A', 'B', or 'C'
-  damageMultiplier: string; // e.g., '120%', '100%', '70%', '0%'
-  difficultyMultiplier?: number; // Applied separately in UI (from patterns.ts)
+  score: number;      // 0-100の整数スコア
+  rank: string;       // 'S', 'A', 'B', または 'C'
+  damageMultiplier: string; // 例: '120%', '100%', '70%', '0%'
+  difficultyMultiplier?: number; // UIで別途適用（patterns.tsより）
 }
 ```
 
-## Scoring Algorithm
+## スコアリングアルゴリズム
 
-The final score is a weighted combination of three factors:
-1. **Accuracy (50%)**: How close the user's path is to the ideal template
-2. **Checkpoints (30%)**: Whether the user passed near all required vertices
-3. **Path Length (20%)**: How well the user's path length matches the pattern's perimeter
+最終スコアは3つの要素の重み付き平均です:
+1. **精度 (50%)**: ユーザーのパスが理想のテンプレートにどれだけ近いか
+2. **チェックポイント (30%)**: ユーザーがすべて必要な頂点の近くを通ったかどうか
+3. **パス長 (20%)**: ユーザーのパス長がパターンの周囲長にどれだけ一致するか
 
-### Step-by-Step Process
+### 手順別プロセス
 
-#### 1. Accuracy Calculation
-- Generate template points by sampling along each edge of the pattern (default: 30 points per edge)
-- For each point in the user's path, find the minimum distance to any template point
-- Sum these distances, capping each at a maximum allowed error (based on difficulty tolerance)
-- Average the errors and convert to a percentage accuracy:
+#### 1. 精度計算
+- パターンの各エッジに沿ってテンプレートポイントを生成（デフォルト: エッジあたり30ポイント）
+- ユーザーのパスの各ポイントについて、どのテンプレートポイントにも最小距離を見つける
+- これらの距離を合計し、それぞれを最大許容誤差で上限に設定（難易度許容度に基づく）
+- 誤差を平均し、パーセンテージ精度に変換:
   ```
   accuracy = max(0, 100 - (averageError / maxAllowedError) * 100)
   ```
 
-#### 2. Checkpoint Calculation
-- For performance, limit vertex checking to a maximum of 20 vertices (sample evenly if more exist)
-- For each selected vertex, check if any user path point is within a threshold distance
-- Threshold = baseTolerance (25px) * difficultyTolerance
-- Checkpoint ratio = (vertices visited) / (vertices checked)
+#### 2. チェックポイント計算
+- パフォーマンスのため、頂点チェックを最大20頂点に制限（存在する場合は均等にサンプリング）
+- 各選択された頂点について、ユーザーのパスのいずれかの点が閾値距離以内にあるかチェック
+- 閾値 = baseTolerance (25px) * difficultyTolerance
+- チェックポイント比率 = (訪問された頂点) / (チェックされた頂点)
 
-#### 3. Path Length Calculation
-- Calculate total length of user's path by summing distances between consecutive points
-- Calculate estimated perimeter of pattern by summing lengths of all edges
-- Length ratio = min(pathLength / perimeter, 1.5) / 1.5
-  (Caps at 1.5 to avoid over-rewarding excessively long paths)
+#### 3. パス長計算
+- ユーザーのパスの総長を計算するために、連続するポイント間の距離を合計
+- パターンの推定周囲長を計算するために、すべてのエッジの長さを合計
+- 長さ比率 = min(pathLength / perimeter, 1.5) / 1.5
+  (1.5で上限を設けて、過度に長いパスへの過剰報酬を避ける)
 
-#### 4. Final Score
+#### 4. 最終スコア
 ```
 score = (accuracy * 0.5) + (checkpointRatio * 100 * 0.3) + (lengthRatio * 100 * 0.2)
 score = clamp(score, 0, 100)
 roundedScore = Math.round(score)
 ```
 
-#### 5. Rank and Damage Multiplier
-| Rank | Score Range | Damage Multiplier | Description       |
-|------|-------------|-------------------|-------------------|
-| S    | 90-100      | 120%              | Perfect chant     |
-| A    | 70-89       | 100%              | Precise chant     |
-| B    | 50-69       | 70%               | Pass line         |
-| C    | 0-49        | 0%                | Needs practice    |
+#### 5. ランクとダメージ倍率
+| ランク | スコア範囲 | ダメージ倍率 | 説明       |
+|--------|------------|--------------|------------|
+| S      | 90-100     | 120%         | 完璧な詠唱 |
+| A      | 70-89      | 100%         | 正確な詠唱 |
+| B      | 50-69      | 70%          | 合格ライン |
+| C      | 0-49       | 0%           | 練習必要   |
 
-## Difficulty Integration
-- The scoring function receives a `difficultyTolerance` parameter (from DIFFICULTY_TOLERANCE in patterns.ts)
-- This tolerance affects:
-  - Vertex check threshold (higher = easier to hit vertices)
-  - Maximum allowed error in accuracy calculation (higher = more lenient path accuracy)
-- Note: Difficulty also affects scoring via `difficultyMultiplier` (applied separately in UI) and time limits
+## 難易度の統合
+- スコアリング関数は`difficultyTolerance`パラメータを受け取ります（patterns.tsのDIFFICULTY_TOLERANCEから）
+- この許容度は以下に影響します:
+  - 頂点チェック閾値（高いほど頂点に当たりやすい）
+  - 精度計算での最大許容誤差（高いほどパス精度が寛容になる）
+- 注意: 難易度はUIでの`difficultyMultiplier`を通じてもスコアリングに影響します（および時間制限も）
 
-## Performance Considerations
-- For patterns with many vertices (e.g., circle with 60 points), vertex checking is sampled to max 20 points
-- Template points are generated on-demand but could be cached for static patterns
-- Distance calculations are optimized by early termination when possible
+## パフォーマンス考慮事項
+- 多くの頂点を持つパターン（例えば、60ポイントの円）については、頂点チェックを最大20ポイントにサンプリング
+- テンプレートポイントはオンデマンドで生成されるが、静的パターンについてはキャッシュ可能
+- 距離計算は早期終了によって最適化可能
 
-## Usage Example
+## 使用例
 ```typescript
 import { calculateScore } from '@/lib/scoring';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import { DIFFICULTY_TOLERANCE } from '@/lib/patterns';
 
 const result = calculateScore(
-  userPath,           // Array of {x: number, y: number} points
-  currentPattern,     // MagicCirclePattern to trace against
-  DIFFICULTY_TOLERANCE[difficulty] // e.g., 1.0 for normal, 1.5 for easy
+  userPath,           // {x: number, y: number}点の配列
+  currentPattern,     // なぞるMagicCirclePattern
+  DIFFICULTY_TOLERANCE[difficulty] // 例: 通常であれば1.0、簡単であれば1.5
 );
 
 // result.score: 0-100
 // result.rank: 'S'|'A'|'B'|'C'
-// result.damageMultiplier: e.g., '120%'
+// result.damageMultiplier: 例: '120%'
 ```
 
-## Edge Cases
-- User path too short (< 10 points): Returns immediate failure (score: 0, rank: 'C', damageMultiplier: '0%')
-- No pattern provided: Relies on default values in function (should not happen in normal usage)
-- Perfect tracing: Can achieve score up to 100 (then rank S with 120% damage multiplier)
+## エッジケース
+- ユーザーパスが短すぎる(< 10ポイント): 即座に失敗を返す（スコア: 0、ランク: 'C', ダメージ倍率: '0%'）
+- パターンが提供されていない: 関数のデフォルト値に依存（通常の使用では発生しないはず）
+- 完全ななぞり: スコア100を達成可能（その後ランクSに120%ダメージ倍率）
 
-## Design Notes
-### Why This Algorithm?
-- Balances precision (accuracy) with completeness (checkpoints) and reasonable stroke length
-- Tolerance-based scaling allows same algorithm to work across difficulties
-- Rank thresholds provide clear feedback and progression
-- Damage multiplier ties directly to game mechanics (score → spell power)
+## 設計ノート
+### なぜこのアルゴリズムなのか?
+- 精度（精密さ）と完全性（チェックポイント）および適切なストローク長のバランスを取る
+- 許容度ベースのスケーリングにより、同じアルゴリズムを難易度全体で機能させることが可能
+- ランクの閾値により明確なフィードバックと進行状況を提供
+- ダメージ倍率が直接ゲームメカニズムに結びつく（スコア → 呪文の威力）
 
-### Possible Improvements
-- Consider stroke velocity or pressure sensitivity (if available)
-- Template matching with dynamic time warping for better shape matching
-- Historical data to personalize difficulty or provide hints
+### 改善の可能性
+- ストロークの速度または圧力感度を考慮する（利用可能な場合）
+- 動的タイムワーピングによるテンプレートマッチングでより良い形状マッチングを実現
+- 歴史的データを使用して難易度を個人別にカスタマイズしたり、ヒントを提供したりする

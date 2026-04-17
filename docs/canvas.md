@@ -1,17 +1,17 @@
-# 🎨 Canvas/Drawing Core (MagicCircleCanvas)
+# 🎨 キャンバス/描画コア (MagicCircleCanvas)
 
-## Overview
-The `MagicCircleCanvas` component is the heart of the Arcane Tracer application, responsible for rendering the drawing canvas, handling user input, managing the drawing state, and coordinating with the scoring system.
+## 概要
+`MagicCircleCanvas` コンポーネントは Arcane Tracer アプリケーションの中心であり、描画キャンバスのレンダリング、ユーザー入力の処理、描画状態の管理、スコアリングシステムとの調整を担当します。
 
-## Key Responsibilities
-- Render HTML5 canvas for drawing magic circles
-- Handle touch/pointer events for drawing
-- Manage drawing state (active, completed, showing results)
-- Coordinate with pattern system and scoring
-- Provide replay functionality
-- Manage UI overlays (help, tutorial, history)
+## 主な責任
+- HTML5キャンバスをレンダリングして魔法陣を描画
+- タッチ/ポインターエベントを処理して描画
+- 描画状態を管理（アクティブ、完了、結果表示）
+- パターンシステムとスコアリングシステムと調整
+- リプレイ機能を提供
+- UIオーバーレイを管理（ヘルプ、チュートリアル、履歴）
 
-## Interface
+## インターフェース
 ```typescript
 interface MagicCircleCanvasProps {
   onScore: (result: ScoringResult) => void;
@@ -22,47 +22,47 @@ interface MagicCircleCanvasProps {
 }
 ```
 
-## Features
-### Drawing Mechanics
-- Uses Pointer Events API for cross-device touch/mouse support
-- Real-time stroke rendering with visual feedback
-- Automatic path smoothing and optimization
+## 特徴
+### 描画メカニズム
+- ポインターエベントAPIを使用してクロスデバイスのタッチ/マウスサポートを実現
+- ビジュアルフィードバック付きのリアルタイムストロークレンダリング
+- 自動パススムージングと最適化
 
-### State Management
-- `isDrawing`: Tracks if user is currently drawing
-- `isActive`: Tracks if drawing session is timed and active
-- `showResult`: Controls result display visibility
-- `timeLeft`: Countdown timer based on difficulty
+### 状態管理
+- `isDrawing`: ユーザーが現在描画中かどうかを追跡
+- `isActive`: 描画セッションが時間制限ありでアクティブかどうかを追跡
+- `showResult`: 結果表示の可視性を制御
+- `timeLeft`: 難易度に基づくカウントダウンタイマー
 
-### Replay System
-- Captures drawing strokes for later playback
-- Generates thumbnail previews
-- Shares drawings via URL compression
+### リプレイシステム
+- 後で再生するために描画ストロークをキャプチャ
+- サムネイルプレビューを生成
+- URL圧縮を介して図面を共有
 
-### UI Components Integrated
-- HelpModal: Instructions and controls guide
-- HistoryPanel: Browse past drawings
-- HistoryDetail: Detailed view of specific drawings
-- TutorialOverlay: Animated tutorial for new users
-- TutorialCanvasAnimation: Demonstrates pattern drawing
+### 統合されたUIコンポーネント
+- HelpModal: 操作説明とコントロールガイド
+- HistoryPanel: 過去の図面を閲覧
+- HistoryDetail: 特定の図面の詳細ビュー
+- TutorialOverlay: 新規ユーザー向けのアニメーションチュートリアル
+- TutorialCanvasAnimation: パターン描画のデモンストレーション
 
-## Data Flow
-1. User touches canvas → `onPointerDown` starts drawing
-2. User moves finger → `onPointerMove` records path points
-3. User lifts finger → `onPointerUp` ends stroke
-4. User taps "詠唱完了!" → `handleEvaluate` triggers scoring
-5. Score calculated → `onScore` callback sends result to parent
-6. Result displayed → User can replay or get new pattern
+## データフロー
+1. ユーザーがキャンバスにタッチ → `onPointerDown` が描画を開始
+2. ユーザーが指を動かす → `onPointerMove` がパスポイントを記録
+3. ユーザーが指を離す → `onPointerUp` がストロークを終了
+4. ユーザーが "詠唱完了!" をタップ → `handleEvaluate` がスコアリングをトリガー
+5. スコアが計算され → `onScore` コールバックが親に結果を送信
+6. 結果が表示され → ユーザーはリプレイまたは新しいパターンを取得可能
 
-## Dependencies
-- `useMagicCircle` hook: Core drawing logic and state
-- Pattern system: Provides template patterns to trace
-- Scoring system: Evaluates drawing accuracy
-- History system: Saves and retrieves drawings
-- Voice activation: Optional voice-controlled evaluation
+## 依存関係
+- `useMagicCircle` フック: 描画ロジックと状態のコア
+- パターンシステム: なぞるためのテンプレートパターンを提供
+- スコアリングシステム: 描画の精度を評価
+- ヒストリシステム: 図面を保存および取得
+- ボイスアクティベーション: オプションの音声制御評価
 
-## Performance Considerations
-- Uses requestAnimationFrame for smooth replay
-- Limits vertex checking for complex patterns
-- Optimizes path storage for replay functionality
-- Efficient canvas clearing and redrawing
+## パフォーマンス考慮事項
+- スムーズなリプレイのために requestAnimationFrame を使用
+- 複雑なパターンの頂点チェックを制限
+- リプレイ機能のためにパスストレージを最適化
+- 効率的なキャンバスクリアと再描画

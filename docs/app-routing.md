@@ -1,136 +1,131 @@
-# 📱 App/Routing
+# 📱 アプリ/ルーティング
 
-## Overview
-This document covers the application structure, routing, and page components in the Arcane Tracer Next.js application using the App Router.
+## 概要
+このドキュメントでは、Arcane Tracer Next.jsアプリケーションのアプリ構造、ルーティング、ページコンポーネントについて説明します。App Routerを使用しています。
 
-## Application Structure
+## アプリケーション構造
 
-### `/src/app/` Directory
+### `/src/app/` ディレクトリ
 ```
 src/app/
-├── layout.tsx         # Root layout
-├── page.tsx           # Home page
-├── favicon.ico        # Application favicon
-├── globals.css        # Global CSS styles
-└── replay/            # Replay route segment
-    └── page.tsx       # Replay page
+├── layout.tsx         # ルートレイアウト
+├── page.tsx           # ホームページ
+├── favicon.ico        # アプリケーションファビコン
+├── globals.css        # グローバルCSSスタイル
+└── replay/            # リプレイルートセグメント
+    └── page.tsx       # リプレイページ
 ```
 
-### Routing System
-The application uses Next.js 16 App Router with file-system based routing:
-- `/` → `src/app/page.tsx` (Home page)
-- `/replay` → `src/app/replay/page.tsx` (Replay page)
+### ルーティングシステム
+アプリケーションはNext.js 16 App Routerを使用し、ファイルシステムベースのルーティングを行います:
+- `/` → `src/app/page.tsx` (ホームページ)
+- `/replay` → `src/app/replay/page.tsx` (リプレイページ)
 
-## Key Files
+## 主要ファイル
 
 ### `src/app/layout.tsx`
-The root layout that wraps all pages and provides shared UI elements.
+すべてのページをラップし、共有UI要素を提供するルートレイアウト。
 
-#### Features
-- Sets up basic HTML structure
-- Includes global CSS
-- Provides metadata and viewport settings
-- Could be extended for authentication, theme providers, etc.
+#### 特徴
+- 基本的なHTML構造を設定
+- グローバルCSSを含む
+- メタデータとビューポート設定を提供
+- 認証やテーマプロバイダーなどに拡張可能
 
-### `src/app/page.tsx` (Home Page)
-The main application page that contains:
-- Header with title and subtitle
-- Difficulty selector buttons
-- Main MagicCircleCanvas component
-- Score result display
-- Completion progress indicator
+### `src/app/page.tsx` (ホームページ)
+ヘッダー、難易度セレクター、メインキャンバスコンポーネント、スコア結果表示、完了状況インジケーターを含むメインアプリケーションページ。
 
-#### Props and State
-- Manages last score result
-- Tracks completion status
-- Handles difficulty selection
-- Passes callbacks to canvas component
+#### プロップスと状態
+- 最終スコア結果を管理
+- 完了状況を追跡
+- 難易度選択を処理
+- キャンバスコンポーネントにコールバックを渡す
 
-### `src/app/replay/page.tsx` (Replay Page)
-Handles displaying shared drawings from URL parameters.
+### `src/app/replay/page.tsx` (リプレイページ)
+URLパラメータから共有された図面を表示するページ。
 
-#### Features
-- Extracts `data` parameter from URL
-- Decompresses drawing data using shareUtils
-- Shows loading, error, and empty states
-- Renders HistoryDetail component for replay functionality
-- Handles navigation back to home
+#### 特徴
+- URLから`data`パラメータを抽出
+- shareUtilsを使用して図面データを解凍
+- ローディング、エラー、空の状態を表示
+- HistoryDetailコンポーネントをレンダリングしてリプレイ機能を提供
+- ホームへのナビゲーションを処理
 
-#### Implementation Details
-- Uses `useSearchParams` to get URL parameters
-- Uses `useRouter` for navigation
-- Implements Suspense for fallback loading UI
-- Separates data fetching logic into `ReplayContent` component
-- Validates decompressed data before display
+#### 実装詳細
+- `useSearchParams`を使用してURLパラメータを取得
+- `useRouter`を使用してナビゲーション
+- フォールバックローディングUIのためにSuspenseを実装
+- データフェッチロジックを`ReplayContent`コンポーネントに分離
+- 表示前に解凍されたデータを検証
 
-## Navigation Patterns
+## ナビゲーションパターン
 
-### Internal Navigation
-- Router.push() for programmatic navigation
-- Used in:
-  - Replay feature: navigating to `/replay?data=...`
-  - HistoryDetail: navigating home on close
-  - HistoryPanel: navigating home on re-edit (could be enhanced)
+### 内部ナビゲーション
+- プログラムによるナビゲーションにRouter.push()を使用
+- 使用例:
+  - リプレイ機能: `/replay?data=...` へナビゲート
+  - HistoryDetail: 閉じる際にホームへナビゲート
+  - HistoryPanel: 再編集時にホームへナビゲート（将来的に強化可能）
 
-### URL Structure
-- Home: `/`
-- Replay: `/replay?data={compressed_drawing_data}`
-- No other routes currently defined
+### URL構造
+- ホーム: `/`
+- リプレイ: `/replay?data={compressed_drawing_data}`
+- 他に現在定義されているルートはなし
 
-## Next.js Specific Features
+## Next.js固有の機能
 
-### App Router Benefits
-- Server Components by default (though this app uses mostly Client Components)
-- Streaming and Suspense support
-- Parallel Routes (not used)
-- Route Groups (not used)
-- Improved metadata handling
+### App Routerの利点
+- デフォルトでサーバーコンポーネント（ただしこのアプリは主にクライアントコンポーネントを使用）
+- ストリーミングとSuspenseサポート
+- パラレルルート（使用されていない）
+- ルートグループ（使用されていない）
+- 改善されたメタデータ処理
 
-### Client Components
-All components in this app are marked as `'use client'` because they:
-- Use React hooks (useState, useEffect, etc.)
-- Access browser APIs (canvas, localStorage, etc.)
-- Need event handlers and interactivity
-- Use Next.js router hooks (useRouter, useSearchParams)
+### クライアントコンポーネント
+このアプリのすべてのコンポーネントは`'use client'`とマークされています。なぜなら:
+- Reactフック（useState, useEffectなど）を使用する
+- ブラウザAPI（canvas, localStorageなど）にアクセスする
+- イベントハンドラーとインタラクティビティが必要
+- Next.jsルーターフック（useRouter, useSearchParams）を使用する
 
-### Static Export
-The application is configured for static export via `next.config.ts`:
-- `output: 'export'` generates static HTML
-- Enables deployment to Vercel, Cloudflare Pages, Netlify, etc.
-- No server-side dependencies required
+### 静的エクスポート
+アプリケーションは`next.config.ts`を介して静的エクスポートに設定されています:
+- `output: 'export'` が静的HTMLを生成
+- Vercel、Cloudflare Pages、Netlifyなどへのデプロイを可能にする
+- サーバーサイドの依存関係は必要ありません
 
-## SEO and Metadata
-Currently minimal - could be enhanced with:
-- Custom metadata in layout.tsx
-- Open Graph tags for sharing
-- JSON-LD structured data
-- Dynamic titles based on difficulty or progress
+## SEOとメタデータ
+現在最小限 - 以下のように強化可能:
+- layout.tsxでカスタムメタデータ
+- 共有用のOpen Graphタグ
+- JSON-LD構造化データ
+- 難易度や進行状況に基づく動的タイトル
 
-## Internationalization
-Not currently implemented but could be added:
-- Using next-i18next or similar
-- Locale-based routing
-- Message files for different languages
+## 国際化
+現在実装されていませんが、以下のように追加可能:
+- next-i18nextまたは類似のライブラリを使用
+- ロケールベースのルーティング
+- 異なる言語のメッセージファイル
 
-## Error Handling
-- Next.js built-in error boundaries
-- Custom error pages could be added:
-  - `src/app/error.tsx` for global errors
-  - `src/app/replay/error.tsx` for route-specific errors
-- Graceful degradation when features unavailable
+## エラーハンドリング
+- Next.js組み込みのエラーバウンダリー
+- カスタムエラーページを追加可能:
+  - `src/app/error.tsx` でグローバルエラー
+  - `src/app/replay/error.tsx` でルート固有のエラー
+- 機能が利用できない場合の graceful degradation
 
-## Performance Considerations
-- Client Components bundle JavaScript for interactivity
-- Static export means no server costs at runtime
-- Images and assets optimized via Next.js
-- Route-based code splitting (automatic)
-- Prefetching could be added for better navigation
+## パフォーマンス考慮事項
+- クライアントコンポーネントがインタラクティビティのためにJavaScriptをバンドル
+- 静的エクスポートにより実行時のサーバーコストがゼロ
+- Next.jsによる画像とアセットの最適化
+- ルートベースのコードスプリッティング（自動）
+- より良いナビゲーションのためのプリフェッチングを追加可能
 
-## Future Enhancements
-1. **Authentication**: Add user accounts for syncing progress across devices
-2. **Database Integration**: Replace IndexedDB with remote backend
-3. **Admin Routes**: Add `/admin` section for managing patterns or viewing analytics
-4. **API Routes**: Add `/api` endpoints for cloud features
-5. **Preview Routes**: Add `/preview` for sharing work-in-progress
-6. **Internationalization**: Add language support
-7. **Advanced Routing**: Use parallel routes for modals or parallel features
+## 今後の拡張
+1. **認証**: デバイス間で進行状況を同期するためのユーザーアカウントを追加
+2. **データベース統合**: IndexedDBをリモートバックエンドに置き換え
+3. **管理ルート**: パターンの管理やアナリティクス表示のための`/admin`セクションを追加
+4. **APIルート**: クラウド機能のための`/api`エンドポイントを追加
+5. **プレビュールート**: 作業中の共有のための`/preview`を追加
+6. **国際化**: 言語サポートを追加
+7. **高度なルーティング**: モーダルやパラレル機能のためにパラレルルートを使用
