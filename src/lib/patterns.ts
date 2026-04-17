@@ -1,8 +1,16 @@
+/**
+ * 2次元座標点
+ */
 export interface Point {
+  /** X座標 */
   x: number;
+  /** Y座標 */
   y: number;
 }
 
+/**
+ * 辺の定義（頂点インデックスによる接続関係）
+ */
 export interface Edge {
   /** 線の始点インデックス(頂点配列) */
   from: number;
@@ -10,6 +18,9 @@ export interface Edge {
   to: number;
 }
 
+/**
+ * 円の定義
+ */
 export interface CircleDef {
   /** 相対cx (0-1, 画面中心=0.5) */
   cx: number;
@@ -19,8 +30,12 @@ export interface CircleDef {
   radius: number;
 }
 
+/**
+ * 難易度レベル
+ */
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
 
+/** 難易度ラベルマッピング */
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: 'EASY',
   normal: 'NORMAL',
@@ -52,6 +67,9 @@ export const DIFFICULTY_TOLERANCE: Record<Difficulty, number> = {
   expert: 0.5,
 };
 
+/**
+ * 魔法陣パターンのデータ構造
+ */
 export interface MagicCirclePattern {
   /** パターン名 */
   name: string;
@@ -73,6 +91,14 @@ export interface MagicCirclePattern {
 /*  ヘルパー: 正多角形の頂点生成                                                 */
 /* =================================================================== */
 
+/**
+ * 正多角形の頂点座標を生成
+ * @param cx 中心X座標
+ * @param cy 中心Y座標
+ * @param radius 半径
+ * @param n 頂点数
+ * @returns 頂点座標の配列
+ */
 function regularPolygonVertices(
   cx: number,
   cy: number,
@@ -90,21 +116,36 @@ function regularPolygonVertices(
   return verts;
 }
 
-/*  外周を閉じるエッジ */
+/**
+ * 外周を閉じるエッジを生成（ポリゴンの閉じた形状）
+ * @param n 頂点数
+ * @returns エッジ定義の配列
+ */
 function polygonEdges(n: number): Edge[] {
   const edges: Edge[] = [];
   for (let i = 0; i < n; i++) edges.push({ from: i, to: (i + 1) % n });
   return edges;
 }
 
-/*  星型のエッジ (step=2 → 五芒星)  */
+/**
+ * 星型のエッジを生成（step=2 で五芒星、step=3 で八芒星など）
+ * @param n 頂点数
+ * @param step ステップサイズ（頂点間の間隔）
+ * @returns エッジ定義の配列
+ */
 function starEdges(n: number, step: number): Edge[] {
   const edges: Edge[] = [];
   for (let i = 0; i < n; i++) edges.push({ from: i, to: (i + step) % n });
   return edges;
 }
 
-/*  多角形の辺上のサンプル点を生成                                                */
+/**
+ * 多角形の辺上のサンプル点を生成（描画や判定に使用）
+ * @param vertices 頂点座標の配列
+ * @param edges エッジ定義の配列
+ * @param pointsPerEdge 1辺あたりのサンプル点数
+ * @returns 生成されたサンプル点の配列
+ */
 export function generateEdgePoints(
   vertices: Point[],
   edges: Edge[],
@@ -129,6 +170,11 @@ export function generateEdgePoints(
 /*  Preset パターン                                                                  */
 /* =================================================================== */
 
+/**
+ * プリセット魔法陣パターンを生成
+ * @param canvasSize キャンバスサイズ（ピクセル）
+ * @returns プリセット魔法陣パターンの配列
+ */
 export function createPresetPattern(
   canvasSize: number,
 ): MagicCirclePattern[] {
@@ -333,11 +379,21 @@ export function createPresetPattern(
 /*  ランダム生成                                                                           */
 /* =================================================================== */
 
+/**
+ * ランダムパターン生成の設定インターフェース
+ */
 export interface RandomPatternConfig {
+  /** 難易度レベル */
   difficulty: Difficulty;
+  /** キャンバスサイズ（ピクセル） */
   canvasSize: number;
 }
 
+/**
+ * 難易度とキャンバスサイズに基づいてランダム魔法陣パターンを生成
+ * @param config ランダムパターン生成設定
+ * @returns 生成されたランダム魔法陣パターン
+ */
 export function generateRandomPattern(
   config: RandomPatternConfig,
 ): MagicCirclePattern {
@@ -346,7 +402,7 @@ export function generateRandomPattern(
   const cy = canvasSize / 2;
   const baseR = canvasSize * 0.35;
 
-  // 難易度に応じた頂点数
+  // 難易度に応じた頂点数を決定
   let vertexCount: number;
   switch (difficulty) {
     case 'easy':
@@ -363,20 +419,23 @@ export function generateRandomPattern(
       break;
   }
 
-  const randomR = baseR * (0.85 + Math.random() * 0.3); // 多少ランダムな半径
+  // ランダムな半径を計算（基準半径の85-115%の間で変動）
+  const randomR = baseR * (0.85 + Math.random() * 0.3);
   const verts = regularPolygonVertices(cx, cy, randomR, vertexCount);
 
-  // エッジの種類を決定
+  // エッジの種類を決定（五芒星スタイルまたは通常のポリゴン）
   const isPentagramStyle = vertexCount >= 5 && Math.random() > 0.5;
   const edges = isPentagramStyle
     ? starEdges(vertexCount, 2)
     : polygonEdges(vertexCount);
-  // expertなら追加エッジ
+  
+  // エキスパート難易度では追加エッジをランダムに追加
   if (difficulty === 'expert' && Math.random() > 0.3) {
     const extraCount = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < extraCount; i++) {
       const a = Math.floor(Math.random() * vertexCount);
       let b = Math.floor(Math.random() * vertexCount);
+      // 自己ループや既存エッジを避ける
       while (b === a || edges.some((e) => e.from === a && e.to === b)) {
         b = Math.floor(Math.random() * vertexCount);
       }
@@ -384,14 +443,14 @@ export function generateRandomPattern(
     }
   }
 
-  // 円の数 (難易度に応じて増える)
+  // 円の数を難易度に応じて決定
   let circleCount: number;
   switch (difficulty) {
     case 'easy':
       circleCount = 1;
       break;
     case 'normal':
-      circleCount = 1 + (Math.random() > 0.5 ? 1 : 0);
+      circleCount = 1 + (Math.random() > 0.5 ? 1 : 0); // 1または2
       break;
     case 'hard':
     case 'expert':
@@ -399,12 +458,16 @@ export function generateRandomPattern(
       break;
   }
 
+  // 円の定義を生成
   const circles: CircleDef[] = [];
-  circles.push({ cx: 0.5, cy: 0.5, radius: randomR + 20 }); // 外側
+  // 外側の円（基準半径+20ピクセル）
+  circles.push({ cx: 0.5, cy: 0.5, radius: randomR + 20 });
+  // 内側の円をランダムに追加（基準半径の40-80%の間で変動）
   for (let i = 0; i < circleCount - 1; i++) {
     circles.push({ cx: 0.5, cy: 0.5, radius: randomR * (0.4 + Math.random() * 0.4) });
   }
 
+  // ランダムなパターン名を生成（難易度レベルと3桁の番号）
   const randomName = `Lv.${difficulty.toUpperCase()} #${Math.floor(Math.random() * 900 + 100)}`;
 
   return {
@@ -422,12 +485,23 @@ export function generateRandomPattern(
 /*  ユーティリティ                                                                          */
 /* =================================================================== */
 
+/**
+ * テンプレート表示用の頂点座標を取得
+ * @param pattern 魔法陣パターン
+ * @returns 頂点座標の配列
+ */
 export function getPatternVerticesForTemplate(
   pattern: MagicCirclePattern,
 ): Point[] {
   return pattern.vertices;
 }
 
+/**
+ * テンプレート表示用のサンプル点を生成
+ * @param pattern 魔法陣パターン
+ * @param pointsPerEdge 1辺あたりのサンプル点数（デフォルト: 20）
+ * @returns 生成されたテンプレートサンプル点の配列
+ */
 export function getPatternTemplatePoints(
   pattern: MagicCirclePattern,
   pointsPerEdge: number = 20,

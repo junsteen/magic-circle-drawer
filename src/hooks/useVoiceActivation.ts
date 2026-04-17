@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 /**
+ * 音声活動検知フックのオプション設定
+ */
+interface UseVoiceActivationOptions {
+  /** 音量閾値 (0-1の範囲、デフォルト: 0.1) */
+  threshold?: number;
+  /** 音声終了と判定する無音時間 (ミリ秒、デフォルト: 500) */
+  silentTime?: number;
+  /** チェック間隔 (ミリ秒、デフォルト: 100) */
+  checkInterval?: number;
+}
+
+/**
  * 音声活動検知フック
  * マイク入力を監視し、一定以上の音量が検知されたときにコールバックを実行
+ * @param onVoiceDetected - 音声が検知されたときに呼び出されるコールバック関数
+ * @param options - 音声検知の設定オプション
+ * @returns 音声検知の状態と制御関数を含むオブジェクト
  */
 export function useVoiceActivation(
   onVoiceDetected: () => void,
-  options: {
-    threshold?: number; // 音量閾値 (0-1)
-    silentTime?: number; // 音声終了と判定する無音時間 (ms)
-    checkInterval?: number; // チェック間隔 (ms)
-  } = {}
+  options: UseVoiceActivationOptions = {}
 ) {
   const {
     threshold = 0.1,

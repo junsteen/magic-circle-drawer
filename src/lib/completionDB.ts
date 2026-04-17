@@ -1,19 +1,35 @@
 import type { MagicCirclePattern } from '@/lib/patterns';
 import { createPresetPattern } from '@/lib/patterns';
 
+/** データベース名 */
 const DB_NAME = 'ArcaneTracerCompletion';
+/** データベースバージョン */
 const DB_VERSION = 1;
+/** オブジェクトストア名 */
 const STORE_NAME = 'completion';
 
+/**
+ * 完了記録のインターフェース
+ */
 interface CompletionRecord {
+  /** パターン名 */
   patternName: string;
+  /** 最高スコア */
   bestScore: number;
+  /** 最高ランク */
   bestRank: string;
-  completedAt: number; // timestamp when first completed (S rank achieved)
-  completionCount: number; // number of times S rank achieved
-  lastAttempted: number; // timestamp of last attempt
+  /** Sランク初めて達成した日時（タイムスタンプ） */
+  completedAt: number;
+  /** Sランクを達成した回数 */
+  completionCount: number;
+  /** 最後の挑戦日時（タイムスタンプ） */
+  lastAttempted: number;
 }
 
+/**
+ * IndexedDB接続を開く
+ * @returns IndexedDBデータベース接続のPromise
+ */
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -31,6 +47,11 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 /** パターンの完了状況を取得 */
+/**
+ * 指定されたパターンの完了状況をデータベースから取得
+ * @param patternName パターン名
+ * @returns 完了記録（存在しない場合はundefined）
+ */
 export async function getCompletion(patternName: string): Promise<CompletionRecord | undefined> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -43,6 +64,10 @@ export async function getCompletion(patternName: string): Promise<CompletionReco
 }
 
 /** 全パターンの完了状況を取得 */
+/**
+ * すべてのパターンの完了状況をデータベースから取得
+ * @returns すべての完了記録の配列
+ */
 export async function getAllCompletions(): Promise<CompletionRecord[]> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -55,6 +80,14 @@ export async function getAllCompletions(): Promise<CompletionRecord[]> {
 }
 
 /** パターンの完了状況を更新または追加 */
+/**
+ * 指定されたパターンの完了状況をスコアとランクに基づいて更新
+ * 新しい記録が存在しない場合は新規作成、存在する場合は更新
+ * @param patternName パターン名
+ * @param score 今回のスコア
+ * @param rank 今回のランク
+ * @returns 更新が完了したことを示すPromise
+ */
 export async function updateCompletion(
   patternName: string,
   score: number,
@@ -110,18 +143,33 @@ export async function updateCompletion(
 }
 
 /** パターンがSランクで完了済みかどうかをチェック */
+/**
+ * 指定されたパターンがSランクで完了済みかどうかをチェック
+ * @param patternName パターン名
+ * @returns Sランク以上を達成済みならtrue、そうでなければfalse
+ */
 export async function isPatternCompleted(patternName: string): Promise<boolean> {
   const completion = await getCompletion(patternName);
   return !!completion && completion.bestScore >= 90; // Sランク以上
 }
 
 /** 完了済みパターンの数を取得 */
+/**
+ * Sランク以上を達成したパターンの総数を取得
+ * @returns Sランク以上を達成したパターンの数
+ */
 export async function getCompletedCount(): Promise<number> {
   const completions = await getAllCompletions();
   return completions.filter(c => c.bestScore >= 90).length;
 }
 
 /** 全パターン数を取得 */
+/**
+ * プリセットパターンの総数を取得
+ * @returns プリセットパターンの総数
+ * @note 実際の使用ではuseMagicCircleからCanvasサイズを渡してもらう方が良いが、
+ *       DBレイヤーではわからないためデフォルトサイズ(350)を使用
+ */
 export async function getTotalPatternsCount(): Promise<number> {
   // 実際のパターン数を取得
   try {
@@ -136,6 +184,12 @@ export async function getTotalPatternsCount(): Promise<number> {
 }
 
 /** ベターなランクを返す（S > A > B > C） */
+/**
+ * 2つのランクのうち、より良いランク（S > A > B > C）を返す
+ * @param rank1 ランク1
+ * @param rank2 ランク2
+ * @returns より良いランク
+ */
 function getBetterRank(rank1: string, rank2: string): string {
   const rankValues: Record<string, number> = {
     'S': 4,
