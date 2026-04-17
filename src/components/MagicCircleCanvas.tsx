@@ -10,17 +10,31 @@ import HistoryPanel from './HistoryPanel';
 import HistoryDetail from './HistoryDetail';
 import TutorialOverlay from './TutorialOverlay';
 
+/**
+ * 魔法陣描画キャンバスコンポーネント
+ * マジックサークルの描画、スコア計算、UI制御を統合的に管理
+ */
 export default function MagicCircleCanvas({
+  /** スコア計算完了時のコールバック */
   onScore,
+  /** リセット時のコールバック */
   onReset,
+  /** 初期難易度設定 */
   initialDifficulty,
+  /** 外部からデータロード機能を提供するための参照コールバック（オプション） */
   onLoadDataRef,
+  /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate,
 }: {
+  /** スコア計算完了時のコールバック */
   onScore: (result: ScoringResult) => void;
+  /** リセット時のコールバック */
   onReset: () => void;
+  /** 初期難易度設定 */
   initialDifficulty: Difficulty;
+  /** 外部からデータロード機能を提供するための参照コールバック（オプション） */
   onLoadDataRef?: (loadFn: (data: MagicCircleData) => void) => void;
+  /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
 }) {
   const {

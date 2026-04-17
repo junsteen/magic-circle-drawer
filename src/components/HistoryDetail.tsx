@@ -6,14 +6,25 @@ import type { MagicCirclePattern } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
+/**
+ * 履歴詳細コンポーネントのプロパティ
+ */
 interface HistoryDetailProps {
+  /** 表示する履歴データ（nullの場合は何も表示しない） */
   history: MagicCircleHistory | null;
+  /** モーダルを閉じるコールバック関数 */
   onClose: () => void;
+  /** 再編集を開始するコールバック関数 */
   onReEdit: (data: Pick<MagicCircleHistory, 'data'>) => void;
 }
 
 const CANVAS_SIZE = 350;
 
+/**
+ * 描画ストロークをリプレイ用に変換（相対タイムスタンプに変換）
+ * @param strokes 履歴データの描画ログ
+ * @returns 相対タイムスタンプに変換された描画イベントの配列
+ */
 function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs']): DrawEvent[][] {
   return strokes.map((stroke) => {
     if (stroke.length === 0) return [];
@@ -22,6 +33,14 @@ function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs']): 
   });
 }
 
+/**
+ * 履歴詳細モーダルコンポーネント
+ * 選択された履歴の詳細情報を表示し、リプレイ再生、共有、再編集機能を提供
+ * @param history - 表示する履歴データ
+ * @param onClose - モーダルを閉じるコールバック関数
+ * @param onReEdit - 再編集を開始するコールバック関数
+ * @returns 履歴詳細モーダルのJSX要素
+ */
 export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDetailProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const replayAnimRef = useRef<number | null>(null);

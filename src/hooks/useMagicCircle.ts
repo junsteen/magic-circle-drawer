@@ -22,6 +22,11 @@ import { compressForUrlOptimized } from '@/lib/shareUtils';
 
 const CANVAS_SIZE = 350;
 
+/**
+ * 描画ストロークをリプレイ用に変換（相対タイムスタンプに変換）
+ * @param strokes 描画ストロークの配列
+ * @returns 相対タイムスタンプに変換された描画イベントの配列
+ */
 function createReplayDrawLogs(strokes: DrawStroke[]): DrawEvent[][] {
   return strokes.map((stroke) => {
     if (stroke.length === 0) return [];
@@ -30,48 +35,89 @@ function createReplayDrawLogs(strokes: DrawStroke[]): DrawEvent[][] {
   });
 }
 
+/**
+ * useMagicCircleフックの戻り値の型定義
+ */
 export interface UseMagicCircleReturn {
+  /** キャンバス要素への参照 */
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** キャンバスサイズ（ピクセル） */
   canvasSize: number;
+  /** 描画中かどうかのフラグ */
   isDrawing: boolean;
+  /** ユーザーの描画軌跡点群 */
   userPath: { x: number; y: number }[];
+  /** 残り時間（秒） */
   timeLeft: number;
+  /** アクティブ状態（タイマー動作中）フラグ */
   isActive: boolean;
+  /** 結果表示フラグ */
   showResult: boolean;
+  /** スコアリング結果 */
   scoreResult: ScoringResult | null;
+  /** デバッグメッセージ */
   debugMsg: string;
+  /** デバッグメッセージを設定する関数 */
   setDebugMsg: (msg: string) => void;
+  /** 描画開始点の座標 */
   startPoint: { x: number; y: number };
+  /** 現在のパターン名 */
   patternName: string;
+  /** 現在のパターンインデックス */
   currentIndex: number;
+  /** 総パターン数 */
   totalPatterns: number;
+  /** 現在の難易度 */
   difficulty: Difficulty;
+  /** 現在の難易度ラベル */
   difficultyLabel: string;
+  /** 評価を実行する関数 */
   handleEvaluate: () => void;
+  /** リセットを実行する関数 */
   handleReset: () => void;
+  /** 次のパターンに進む関数 */
   handleNext: () => void;
+  /** 前のパターンに戻る関数 */
   handlePrevious: () => void;
+  /** 難易度を変更する関数 */
   changeDifficulty: (d: Difficulty) => void;
+  /** ランクに対応する色を取得する関数 */
   getRankColor: (rank: string) => string;
+  /** ポインターダウンイベントハンドラー */
   onPointerDown: (e: React.PointerEvent) => void;
+  /** ポインタームーブイベントハンドラー */
   onPointerMove: (e: React.PointerEvent) => void;
+  /** ポインタアップイベントハンドラー */
   onPointerUp: () => void;
   // リプレイ関連
+  /** 描画ログ（リプレイ用） */
   drawLogs: DrawStroke[];
+  /** 保存された魔法陣データ */
   savedMagicData: MagicCircleData | null;
+  /** リプレイ中フラグ */
   isReplaying: boolean;
+  /** リプレイを実行する関数 */
   handleReplay: () => void;
+  /** 魔法陣データを保存する関数 */
   handleSaveData: () => MagicCircleData | null;
+  /** 魔法陣データを読み込む関数 */
   handleLoadData: (data: MagicCircleData) => void;
   // 完了追跡
+  /** 完了状況（完了数/総数） */
   completionStatus: { completed: number; total: number } | null;
   // 音声検知
+  /** 音声検知の状態 */
   voiceActivation: {
+    /** マイクアクセス可能かどうか */
     isMicAccessible: boolean;
+    /** 現在リスニング中かどうか */
     isListening: boolean;
+    /** リスニング開始関数 */
     startListening: () => Promise<void>;
+    /** リスニング停止関数 */
     stopListening: () => void;
   } | null;
+  /** 音声検知状態を設定する関数 */
   setVoiceActivation: (activation: {
     isMicAccessible: boolean;
     isListening: boolean;
@@ -80,7 +126,14 @@ export interface UseMagicCircleReturn {
   } | null) => void;
 }
 
-/** 魔法陣Canvasの全ロジック（描画・タッチ・タイマー・スコア） */
+/**
+ * 魔法陣Canvasの全ロジックを管理するカスタムフック
+ * 描画処理、タッチイベント、タイマー制御、スコア計算、リプレイ機能などを統合
+ * @param onScore - スコア計算完了時のコールバック関数
+ * @param onReset - リセット時のコールバック関数
+ * @param onCompletionUpdate - 完了状況更新時のコールバック関数（オプション）
+ * @returns 魔法陣Canvasの状態と制御関数を含むオブジェクト
+ */
 export function useMagicCircle(
   onScore: (result: ScoringResult) => void,
   onReset: () => void,
@@ -98,16 +151,18 @@ export function useMagicCircle(
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── 描画ログ記録 ───
+  /** 描画ログの状態管理 */
   const [drawLogs, setDrawLogs] = useState<DrawStroke[]>([]);
   const drawLogRef = useRef<DrawEvent[]>([]);
   const strokeStartTimeRef = useRef<number>(0);
 
   // ─── リプレイ状態 ───
+  /** リプレイ状態の管理 */
   const [isReplaying, setIsReplaying] = useState(false);
   const replayAnimRef = useRef<number | null>(null);
   const [savedMagicData, setSavedMagicData] = useState<MagicCircleData | null>(null);
 
-  // use a ref to sync replay state so userPath effect won't clear canvas during animation
+  // リプレイ状態を同期するためのref（userPathエフェクトがアニメーション中にキャンバスクリアしないように）
   const isReplayingRef = useRef(false);
 
   // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
@@ -126,9 +181,13 @@ export function useMagicCircle(
 
   // 音声検知の状態を管理
   const [voiceActivation, setVoiceActivation] = useState<{
+    /** マイクアクセス可能かどうか */
     isMicAccessible: boolean;
+    /** 現在リスニング中かどうか */
     isListening: boolean;
+    /** リスニング開始関数 */
     startListening: () => Promise<void>;
+    /** リスニング停止関数 */
     stopListening: () => void;
   } | null>(null);
 
@@ -145,8 +204,11 @@ export function useMagicCircle(
   }, [voiceHook?.isMicAccessible, voiceHook?.isListening]);
 
   // ─── パターン・難易度管理 ───
+  /** 現在の難易度設定 */
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
+  /** 魔法陣パターンのリスト */
   const [patterns, setPatterns] = useState<MagicCirclePattern[]>([]);
+  /** 現在のパターンインデックス */
   const [currentIdx, setCurrentIdx] = useState(0);
 
   // Initialize patterns
@@ -192,6 +254,7 @@ export function useMagicCircle(
   }, [completionStatus, onCompletionUpdate]);
 
   const currentPattern = patterns[currentIdx];
+  /** 残り時間（実際のタイマー値） */
   const [actualTimeLeft, setActualTimeLeft] = useState(DIFFICULTY_TIME.normal);
 
   const patternName = currentPattern?.name ?? '';
@@ -226,6 +289,11 @@ export function useMagicCircle(
     setActualTimeLeft(DIFFICULTY_TIME[difficulty]);
   }, [difficulty, currentIdx]);
 
+  /**
+   * テンプレート（お手本の魔法陣）をキャンバスに描画
+   * @param pattern 描画する魔法陣パターン（nullの場合はクリアのみ）
+   * @param highlight ハイライト表示するかどうか（デフォルト: false）
+   */
   const drawTemplate = useCallback((pattern: MagicCirclePattern | null, highlight = false) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -233,7 +301,7 @@ export function useMagicCircle(
     if (!ctx) return;
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    // Draw circles
+    // Draw circles (補助円)
     if (pattern) {
       for (const circle of pattern.circles) {
         ctx.strokeStyle = 'rgba(100, 100, 150, 0.3)';
@@ -244,11 +312,11 @@ export function useMagicCircle(
       }
     }
 
-    // Draw edges
+    // Draw edges (辺・線分)
     if (pattern) {
       ctx.strokeStyle = highlight ? 'rgba(0, 229, 255, 0.7)' : 'rgba(100, 100, 150, 0.5)';
       ctx.lineWidth = 3;
-      ctx.setLineDash(highlight ? [] : [5, 5]);
+      ctx.setLineDash(highlight ? [] : [5, 5]); // ハイライト時は実線、通常時は点線
       for (const edge of pattern.edges) {
         const a = pattern.vertices[edge.from];
         const b = pattern.vertices[edge.to];
@@ -257,7 +325,7 @@ export function useMagicCircle(
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
       }
-      ctx.setLineDash([]);
+      ctx.setLineDash([]); // ダッシュパターンをリセット
     }
   }, [CANVAS_SIZE]);
 
@@ -368,20 +436,26 @@ export function useMagicCircle(
   }, [isDrawing]);
 
   const handleEvaluate = useCallback(() => {
+    // タイマー停止とアクティブ状態リセット
     if (timerRef.current) clearInterval(timerRef.current);
     setIsActive(false);
     if (!currentPattern) return;
+    
+    // 難易度に応じた許容誤差を取得
     const tolerance = DIFFICULTY_TOLERANCE[difficulty];
+    // スコア計算を実行
     const result = calculateScore(userPath, currentPattern, tolerance);
 
-    // Apply difficulty multiplier
+    // 難易度倍率を結果に適用
     result.difficultyMultiplier = DIFFICULTY_MULTIPLIER[difficulty];
 
     setScoreResult(result);
     setShowResult(true);
+    // ハプティックフィードバック（対応デバイスのみ）
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(100);
     }
+    // 親コンポーネントにスコア結果を通知
     onScore(result);
 
     // ─── 作成後自動保存 (履歴に保存) ───
@@ -397,7 +471,7 @@ export function useMagicCircle(
       timestamp: Date.now(),
     };
 
-    // Generate thumbnail from canvas
+    // キャンバスからサムネイルを生成
     let thumbnail: string | undefined;
     try {
       const canvas = canvasRef.current;
@@ -405,7 +479,7 @@ export function useMagicCircle(
         thumbnail = canvas.toDataURL('image/png');
       }
     } catch {
-      // Thumbnail generation failed, continue without it
+      // サムネイル生成に失敗した場合は続行
     }
 
     const historyItem: MagicCircleHistory = {
@@ -420,9 +494,11 @@ export function useMagicCircle(
       createdAt: Date.now(),
     };
 
+    // 履歴データベースに保存
     addHistory(historyItem).catch((e) => console.error('Failed to save history:', e));
     
     // ─── 完了状況を更新 ───
+    // パターン完了状況をデータベースに記録
     updateCompletion(currentPattern.name, result.score, result.rank).catch((e) => 
       console.error('Failed to update completion:', e));
   }, [userPath, currentPattern, difficulty, onScore, drawLogs, canvasRef]);
@@ -506,31 +582,37 @@ export function useMagicCircle(
   };
 
   // ─── リプレイ機能 ───
+  /**
+   * 描画ログのリプレイを実行
+   * 評価が済んでいない場合は先に評価を行い、履歴に保存してからリプレイページに遷移
+   */
   const handleReplay = useCallback(async () => {
+    // リプレイ可能かチェック（描画ログがあり、リプレイ中でないこと）
     if (drawLogs.length === 0 || isReplayingRef.current) return;
     
-    // If we haven't evaluated yet, evaluate first to get score data
+    // 評価がまだ行われていない場合は先に評価を実行してスコアデータを取得
     let result: ScoringResult | null = scoreResult;
     if (!result && !showResult && isDrawing && userPath.length >= 10) {
-      // Trigger evaluation to get score
+      // 評価を実行してスコアを取得
       handleEvaluate();
-      // Wait a bit for evaluation to complete
+      // 評価完了を待つ（少し遅延させて状態更新を待機）
       await new Promise(resolve => setTimeout(resolve, 100));
       result = scoreResult;
     }
     
-    // If we still don't have a result, we can't create a proper history item
+    // スコア結果がない場合はリプレイ用の履歴アイテムを作成できない
     if (!result) {
       setDebugMsg('スコアが計算されていないため、リプレイを保存できません');
       return;
     }
     
+    // リプレイ状態を設定
     setIsReplaying(true);
     isReplayingRef.current = true;
     setIsActive(false);
     setShowResult(false);
 
-    // Generate thumbnail from canvas
+    // サムネイル画像をキャンバスから生成
     let thumbnail: string | undefined;
     try {
       const canvas = canvasRef.current;
@@ -538,9 +620,10 @@ export function useMagicCircle(
         thumbnail = canvas.toDataURL('image/png');
       }
     } catch {
-      // Thumbnail generation failed, continue without it
+      // サムネイル生成に失敗した場合はサムネイルなしで続行
     }
 
+    // 履歴アイテムを作成
     const historyItem: MagicCircleHistory = {
       id: `history_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       data: {
@@ -563,11 +646,11 @@ export function useMagicCircle(
       createdAt: Date.now(),
     };
 
-    // Save to history
+    // 履歴をデータベースに保存
     try {
       await addHistory(historyItem);
       
-      // Extract data portion for compression (excluding metadata like id, createdAt)
+      // URL圧縮用にデータを抽出（メタデータを除いた本体部分のみ）
       const dataForCompression = {
         pattern: historyItem.data.pattern,
         drawLogs: historyItem.data.drawLogs,
@@ -578,28 +661,33 @@ export function useMagicCircle(
         damageMultiplier: historyItem.damageMultiplier
       };
       
-      // Compress history data for URL
+      // 履歴データをURL用に圧縮
       const compressed = compressForUrlOptimized(dataForCompression);
       if (!compressed) {
         throw new Error('Failed to compress history data');
       }
       
-      // Navigate to replay page
+      // リプレイページに遷移
       const replayUrl = `/replay?data=${compressed}`;
       router.push(replayUrl);
     } catch (err) {
       console.error('Failed to save history for replay:', err);
       setDebugMsg('履歴の保存に失敗しました');
-      // Fallback to local replay if history saving fails
+      // 履歴保存に失敗した場合はリプレイ状態をリセット
       isReplayingRef.current = false;
       setIsReplaying(false);
-      // Original local replay logic would go here, but for simplicity we'll just return
+      // 元のローカルリプレイロジックについては簡略化のためここで終了
       return;
     }
   }, [drawLogs, isReplaying, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate]);
 
   // ─── 魔法陣データの保存 ───
+  /**
+   * 現在の描画データをローカル状態に保存
+   * @returns 保存された魔法陣データ（保存できない場合はnull）
+   */
   const handleSaveData = useCallback((): MagicCircleData | null => {
+    // 現在のパターンまたは描画ログがない場合は保存不可
     if (!currentPattern || drawLogs.length === 0) {
       setDebugMsg('⚠️ 保存する描画データがありません');
       return null;
@@ -622,6 +710,10 @@ export function useMagicCircle(
   }, [currentPattern, drawLogs]);
 
   // ─── 魔法陣データの読み込み ───
+  /**
+   * 魔法陣データを読み込んでキャンバスに表示
+   * @param data 読み込む魔法陣データ
+   */
   const handleLoadData = useCallback((data: MagicCircleData) => {
     setSavedMagicData(data);
     drawTemplate(currentPattern);

@@ -5,17 +5,32 @@ import type { MagicCircleHistory } from '@/lib/types';
 import { getAllHistories, deleteHistory } from '@/lib/historyDB';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
+/**
+ * 履歴パネルコンポーネントのプロパティ
+ */
 interface HistoryPanelProps {
+  /** パネルを開くかどうかのフラグ */
   isOpen: boolean;
+  /** パネルを閉じるコールバック関数 */
   onClose: () => void;
+  /** 履歴アイテムが選択されたときのコールバック関数 */
   onSelect: (history: MagicCircleHistory) => void;
 }
 
+/**
+ * 履歴パネルコンポーネント
+ * 保存された魔法陣の履歴一覧を表示し、選択、共有、削除機能を提供
+ * @param isOpen - パネルを開くかどうかのフラグ
+ * @param onClose - パネルを閉じるコールバック関数
+ * @param onSelect - 履歴アイテムが選択されたときのコールバック関数
+ * @returns 履歴パネルのJSX要素（閉じている場合はnull）
+ */
 export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanelProps) {
   const [histories, setHistories] = useState<MagicCircleHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadHistories = useCallback(async () => {
+    /** 履歴データの読み込み状態を設定 */
     setIsLoading(true);
     try {
       const data = await getAllHistories();
@@ -28,10 +43,12 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   }, []);
 
   useEffect(() => {
+    /** パネルが開かれたときに履歴データを読み込み */
     if (isOpen) loadHistories();
   }, [isOpen, loadHistories]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
+    /** 履歴アイテムの削除処理 */
     e.stopPropagation();
     try {
       await deleteHistory(id);
@@ -41,6 +58,11 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     }
   };
 
+  /**
+   * タイムスタンプから相対時間文字列を生成
+   * @param timestamp ミリ秒単位のタイムスタンプ
+   * @returns 「たった今」「5分前」などの相対時間文字列
+   */
   const formatTime = (timestamp: number): string => {
     const d = new Date(timestamp);
     const now = new Date();
@@ -57,6 +79,11 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     return d.toLocaleDateString('ja-JP');
   };
 
+  /**
+   * ランクに対応する色を取得
+   * @param rank ランク文字列（S/A/B/C）
+   * @returns ランクに対応するHEXカラーコード
+   */
   const getRankColor = (rank: string): string => {
     switch (rank) {
       case 'S': return '#ffd700';

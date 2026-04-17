@@ -2,11 +2,18 @@
 
 import React, { useState } from 'react';
 
+/**
+ * ヘルプモーダルのプロパティ
+ */
 interface HelpModalProps {
+  /** モーダルを閉じるコールバック関数 */
   onClose: () => void;
 }
 
-/** ヘルプモーダル */
+/**
+ * ヘルプモーダルコンポーネント
+ * ゲームの操作方法とスコアリングシステムを説明するモーダルウィンドウを表示
+ */
 export default function HelpModal({ onClose }: HelpModalProps) {
   return (
     <div

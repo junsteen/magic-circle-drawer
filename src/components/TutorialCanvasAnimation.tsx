@@ -3,13 +3,13 @@
 import React, { useRef, useEffect } from 'react';
 
 const CANVAS_SIZE = 180;
-const EDGE_DURATION = 800; // ms per edge
-const LOOP_PAUSE = 1500; // ms between loops
+const EDGE_DURATION = 800; // 1辺あたりのアニメーション時間（ミリ秒）
+const LOOP_PAUSE = 1500; // ループ間の待機時間（ミリ秒）
 
 /**
- * チュートリアル用キャンバスアニメーション.
- * 三角形の各辺が順番に光りながら描画され、ループする。
- * 赤いスタートマーカーが点滅する。
+ * チュートリアル用キャンバスアニメーションコンポーネント
+ * 三角形の各辺が順番に光りながら描画され、ループするアニメーションを表示
+ * 赤いスタートマーカーが点滅して開始位置を示す
  */
 export default function TutorialCanvasAnimation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,7 +162,12 @@ export default function TutorialCanvasAnimation() {
   );
 }
 
-/** 光るエッジを描画 */
+/**
+ * 光りながら描画されるエッジを描画
+ * @param ctx Canvas 2Dレンダリングコンテキスト
+ * @param from 開始座標
+ * @param to 終了座標
+ */
 function drawGlowEdge(
   ctx: CanvasRenderingContext2D,
   from: { x: number; y: number },
