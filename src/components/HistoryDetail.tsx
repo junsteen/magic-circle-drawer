@@ -25,7 +25,8 @@ const CANVAS_SIZE = 350;
  * @param strokes 履歴データの描画ログ
  * @returns 相対タイムスタンプに変換された描画イベントの配列
  */
-function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs']): DrawEvent[][] {
+function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs'] | null | undefined): DrawEvent[][] {
+  if (!strokes) return [];
   return strokes.map((stroke) => {
     if (stroke.length === 0) return [];
     const t0 = stroke[0].t;
@@ -88,6 +89,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const ctx = canvas.getContext('2d');
     if (!ctx || !history) return;
     if (!history.data) return;
+    if (!history.data.drawLogs) return;
     drawTemplate(history.data.pattern);
 
     const allPoints: { x: number; y: number }[] = [];
@@ -127,6 +129,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       canvasReadyRef.current = true;
       // Draw template + final state immediately
       if (!history.data) return;
+      if (!history.data.drawLogs) return;
       drawTemplate(history.data.pattern);
       const allPoints: { x: number; y: number }[] = [];
       for (const stroke of history.data.drawLogs) {
@@ -187,6 +190,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (!ctx) return;
 
     if (!history.data) return;
+    if (!history.data.drawLogs) return;
 
     const drawLogs = history.data.drawLogs;
     const normalizedLogs = createReplayDrawLogs(drawLogs);
@@ -317,6 +321,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       
       if (!history) return;
       if (!history.data) return;
+      if (!history.data.drawLogs) return;
       drawTemplate(history.data.pattern);
       
       const startTime = performance.now() - clampedTime;
@@ -515,7 +520,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
               {/* Share Button */}
               <button
                 onClick={async () => {
-                  if (history && history.data) {
+                  if (history && history.data && history.data.drawLogs) {
                     try {
                       // Compress the data for URL sharing (only essential data to keep URL short)
                       const shareData = {
@@ -597,7 +602,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                 {history.data.pattern.name}
               </div>
               <div className="text-xs text-gray-600">
-                {history.data.drawLogs.length}ストローク
+                {history.data.drawLogs ? history.data.drawLogs.length : 0}ストローク
               </div>
             </div>
 

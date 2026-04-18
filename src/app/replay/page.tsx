@@ -35,6 +35,13 @@ function ReplayContent() {
       setLoading(false);
       return;
     }
+    
+    // Validate that drawLogs exists and is an array
+    if (!Array.isArray(decompressedData.data.drawLogs)) {
+      setError('描画データが見つかりません。');
+      setLoading(false);
+      return;
+    }
 
     setHistory(decompressedData);
     setLoading(false);
