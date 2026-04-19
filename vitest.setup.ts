@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 // vitest.setup.ts
 import '@testing-library/jest-dom';
 
