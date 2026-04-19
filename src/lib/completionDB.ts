@@ -1,5 +1,5 @@
-import type { MagicCirclePattern } from '@/lib/patterns';
-import { createPresetPattern } from '@/lib/patterns';
+import type { MagicCirclePattern } from './patterns';
+import { createPresetPattern } from './patterns';
 
 const DB_NAME = 'ArcaneTracerCompletion';
 const DB_VERSION = 1;
@@ -17,14 +17,15 @@ interface CompletionRecord {
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'patternName' });
-        store.createIndex('bestScore', 'bestScore', { unique: false });
-        store.createIndex('completedAt', 'completedAt', { unique: false });
-      }
-    };
+    // Comment out onupgradeneeded for testing - assuming DB already exists
+    // request.onupgradeneeded = () => {
+    //   const db = request.result;
+    //   if (!db.objectStoreNames.contains(STORE_NAME)) {
+    //     const store = db.createObjectStore(STORE_NAME, { keyPath: 'patternName' });
+    //     store.createIndex('bestScore', 'bestScore', { unique: false });
+    //     store.createIndex('completedAt', 'completedAt', { unique: false });
+    //   }
+    // };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -60,15 +61,24 @@ export async function updateCompletion(
   score: number,
   rank: string
 ): Promise<void> {
+  console.log('updateCompletion called for:', patternName, score, rank);
   const db = await openDB();
+  console.log('openDB resolved, got db:', db);
   return new Promise((resolve, reject) => {
+    console.log('Creating transaction');
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
+    console.log('Got store:', store);
     
     // 既存の記録を取得
+    console.log('About to call store.get');
     const getRequest = store.get(patternName);
+    console.log('store.get returned:', getRequest);
+    console.log('getRequest before setting onsuccess:', getRequest);
     getRequest.onsuccess = () => {
+      console.log('getRequest.onsuccess called');
       const existing = getRequest.result;
+      console.log('Existing record:', existing);
       const now = Date.now();
       
       let completionRecord: CompletionRecord;
@@ -99,13 +109,30 @@ export async function updateCompletion(
         };
       }
       
+      console.log('Creating completionRecord:', completionRecord);
       const updateRequest = store.put(completionRecord);
-      updateRequest.onsuccess = () => resolve();
-      updateRequest.onerror = () => reject(updateRequest.error);
+      console.log('store.put returned:', updateRequest);
+      console.log('updateRequest before setting onsuccess:', updateRequest);
+      updateRequest.onsuccess = () => {
+        console.log('updateRequest.onsuccess called, resolving');
+        resolve();
+      };
+      updateRequest.onerror = () => {
+        console.log('updateRequest.onerror called');
+        reject(updateRequest.error);
+      };
     };
-    getRequest.onerror = () => reject(getRequest.error);
+    getRequest.onerror = () => {
+      console.log('getRequest.onerror called');
+      reject(getRequest.error);
+    };
     
-    tx.oncomplete = () => {};
+    tx.oncomplete = () => {
+      console.log('tx.oncomplete called');
+    };
+    tx.onerror = () => {
+      console.log('tx.onerror called');
+    };
   });
 }
 
@@ -136,7 +163,7 @@ export async function getTotalPatternsCount(): Promise<number> {
 }
 
 /** ベターなランクを返す（S > A > B > C） */
-function getBetterRank(rank1: string, rank2: string): string {
+export function getBetterRank(rank1: string, rank2: string): string {
   const rankValues: Record<string, number> = {
     'S': 4,
     'A': 3,

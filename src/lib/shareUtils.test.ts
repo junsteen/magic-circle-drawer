@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { compressForUrl, decompressFromUrl, compressForUrlOptimized, decompressFromUrlOptimized } from './shareUtils';
 
 // Test data simulating what gets shared
@@ -43,30 +44,29 @@ const testData = {
   damageMultiplier: '2.0x'
 };
 
-console.log('Testing share data compression...');
-const originalJson = JSON.stringify(testData);
-console.log('Original JSON size:', originalJson.length);
-
-// Test original compression
-const compressedOriginal = compressForUrl(testData);
-console.log('Original compressed size:', compressedOriginal.length);
-console.log('Original compression ratio:', (1 - compressedOriginal.length / originalJson.length) * 100 + '%');
-
-// Test optimized compression
-const compressedOptimized = compressForUrlOptimized(testData);
-console.log('Optimized compressed size:', compressedOptimized.length);
-console.log('Optimized compression ratio:', (1 - compressedOptimized.length / originalJson.length) * 100 + '');
-console.log('Improvement:', ((compressedOriginal.length - compressedOptimized.length) / compressedOriginal.length * 100).toFixed(2) + '% smaller');
-
-// Test decompression for both
-const decompressedOriginal = decompressFromUrl<typeof testData>(compressedOriginal);
-console.log('Original decompression successful:', !!decompressedOriginal);
-if (decompressedOriginal) {
-  console.log('Original data integrity check:', JSON.stringify(decompressedOriginal) === JSON.stringify(testData));
-}
-
-const decompressedOptimized = decompressFromUrlOptimized<typeof testData>(compressedOptimized);
-console.log('Optimized decompression successful:', !!decompressedOptimized);
-if (decompressedOptimized) {
-  console.log('Optimized data integrity check:', JSON.stringify(decompressedOptimized) === JSON.stringify(testData));
-}
+describe('shareUtils.ts', () => {
+  test('should compress and decompress data correctly', () => {
+    const originalJson = JSON.stringify(testData);
+    
+    // Test original compression
+    const compressedOriginal = compressForUrl(testData);
+    expect(compressedOriginal.length).toBeLessThan(originalJson.length);
+    
+    // Test optimized compression
+    const compressedOptimized = compressForUrlOptimized(testData);
+    expect(compressedOptimized.length).toBeLessThan(compressedOriginal.length);
+    
+    // Test decompression for both
+    const decompressedOriginal = decompressFromUrl<typeof testData>(compressedOriginal);
+    expect(decompressedOriginal).not.toBeNull();
+    if (decompressedOriginal) {
+      expect(JSON.stringify(decompressedOriginal)).toBe(JSON.stringify(testData));
+    }
+    
+    const decompressedOptimized = decompressFromUrlOptimized<typeof testData>(compressedOptimized);
+    expect(decompressedOptimized).not.toBeNull();
+    if (decompressedOptimized) {
+      expect(JSON.stringify(decompressedOptimized)).toBe(JSON.stringify(testData));
+    }
+  });
+});
