@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
+import { DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
 import { useMagicCircle } from '@/hooks/useMagicCircle';
 import type { MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import HelpModal from './HelpModal';
@@ -20,7 +21,7 @@ export default function MagicCircleCanvas({
   /** リセット時のコールバック */
   onReset,
   /** 初期難易度設定 */
-  initialDifficulty,
+  initialDifficulty = 'normal',
   /** 外部からデータロード機能を提供するための参照コールバック（オプション） */
   onLoadDataRef,
   /** 完了状況更新時のコールバック（オプション） */
@@ -30,8 +31,8 @@ export default function MagicCircleCanvas({
   onScore: (result: ScoringResult) => void;
   /** リセット時のコールバック */
   onReset: () => void;
-  /** 初期難易度設定 */
-  initialDifficulty: Difficulty;
+  /** 初期難易度設定（省略時は 'normal'） */
+  initialDifficulty?: Difficulty;
   /** 外部からデータロード機能を提供するための参照コールバック（オプション） */
   onLoadDataRef?: (loadFn: (data: MagicCircleData) => void) => void;
   /** 完了状況更新時のコールバック（オプション） */
@@ -55,6 +56,7 @@ export default function MagicCircleCanvas({
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
 
   // 初回訪問時にチュートリアルを自動表示
@@ -110,82 +112,110 @@ export default function MagicCircleCanvas({
       )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
+      {/* メニューボタン */}
       <button
-        onClick={() => setShowHelp(true)}
-        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
+        onClick={() => setShowMenu(v => !v)}
+        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-xl font-bold"
         style={{ borderColor: 'rgba(0,229,255,0.5)', color: '#00e5ff', background: 'rgba(10,10,20,0.8)' }}
-        aria-label="ヘルプ"
+        aria-label="メニュー"
       >
-        ?
+        ☰
       </button>
 
-      {/* 履歴ボタン */}
-      <button
-        onClick={() => setShowHistory(true)}
-        className="absolute left-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
-        style={{ borderColor: 'rgba(124,77,255,0.5)', color: '#7c4dff', background: 'rgba(10,10,20,0.8)' }}
-        aria-label="履歴"
-      >
-        📜
-      </button>
+      {/* メニューパネル */}
+      {showMenu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+          <div
+            className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
+            style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
+          >
+            {/* 作成履歴 */}
+            <button
+              onClick={() => { setShowHistory(true); setShowMenu(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{ color: '#7c4dff' }}
+            >
+              📜 作成履歴
+            </button>
 
-      {/* 音声検知ボタン - プレイ中は非表示にしてUIを簡素化 */}
-      {!isActive && (
-        <button
-          onClick={async () => {
-            if (voiceActivation) {
-              if (voiceActivation.isListening) {
-                // 現在リスニング中なら停止
-                try {
-                  await voiceActivation.stopListening();
-                  setDebugMsg('🔇 音声検知を停止しました');
-                } catch (err) {
-                  console.error('音声検知停止エラー:', err);
-                  setDebugMsg('⚠️ 音声検知停止エラー');
+            {/* レベル変更 */}
+            <div className="px-3 py-2">
+              <div className="mb-2 text-xs font-bold text-gray-500">🎯 レベル変更</div>
+              <div className="flex flex-wrap gap-1">
+                {(['easy', 'normal', 'hard', 'expert'] as Difficulty[]).map((d) => {
+                  const colorMap: Record<Difficulty, string> = {
+                    easy: '#76ff03', normal: '#00e5ff', hard: '#ff9100', expert: '#ff4081',
+                  };
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => { changeDifficulty(d); setShowMenu(false); }}
+                      className={`rounded-md px-2 py-1 text-xs font-bold transition-all ${
+                        difficulty === d ? 'scale-105' : 'opacity-50 hover:opacity-75'
+                      }`}
+                      style={{
+                        borderColor: colorMap[d], borderWidth: 2, borderStyle: 'solid',
+                        color: difficulty === d ? colorMap[d] : '#999',
+                        background: difficulty === d ? `${colorMap[d]}18` : 'transparent',
+                      }}
+                    >
+                      {d.toUpperCase()}
+                      <span className="ml-1 opacity-75">(×{DIFFICULTY_MULTIPLIER[d]})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 音声入力 */}
+            <button
+              onClick={async () => {
+                if (voiceActivation) {
+                  if (voiceActivation.isListening) {
+                    try {
+                      await voiceActivation.stopListening();
+                      setDebugMsg('🔇 音声検知を停止しました');
+                    } catch (err) {
+                      console.error('音声検知停止エラー:', err);
+                      setDebugMsg('⚠️ 音声検知停止エラー');
+                    }
+                  } else {
+                    try {
+                      await voiceActivation.startListening();
+                      setDebugMsg('🎤 音声検知を開始しました');
+                    } catch (err) {
+                      console.error('音声検知開始エラー:', err);
+                      setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
+                      setVoiceActivation(null);
+                    }
+                  }
+                } else {
+                  setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
                 }
-              } else {
-                // マイクアクセスを要求してリスニング開始
-                try {
-                  await voiceActivation.startListening();
-                  setDebugMsg('🎤 音声検知を開始しました');
-                } catch (err) {
-                  console.error('音声検知開始エラー:', err);
-                  setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
-                  // エラー状態を反映 - マイクアクセス失敗時は音声検知を無効化
-                  setVoiceActivation(null);
-                }
-              }
-            } else {
-              setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
-            }
-          }}
-          className="absolute left-14 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-lg font-bold"
-          style={{
-            borderColor: voiceActivation?.isListening 
-              ? 'rgba(76,255,0,0.5)' 
-              : voiceActivation?.isMicAccessible === false
-                ? 'rgba(255,0,0,0.5)' 
-                : 'rgba(0,229,255,0.5)',
-            color: voiceActivation?.isListening 
-              ? '#76ff03' 
-              : voiceActivation?.isMicAccessible === false
-                ? '#ff0000' 
-                : '#00e5ff',
-            background: 'rgba(10,10,20,0.8)'
-          }}
-          aria-label="音声検知"
-          title={voiceActivation?.isListening 
-            ? '音声検知中 - クリックで一時停止' 
-            : voiceActivation?.isMicAccessible === false
-              ? 'マイクアクセスが必要 - クリックで再試行'
-              : '音声検知準備完了 - クリックで開始'}
-        >
-          {voiceActivation?.isListening 
-            ? '🎤' 
-            : voiceActivation?.isMicAccessible === false
-              ? '🔇' 
-              : '🔊'}
-        </button>
+                setShowMenu(false);
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{
+                color: voiceActivation?.isListening ? '#76ff03'
+                  : voiceActivation?.isMicAccessible === false ? '#ff4444'
+                  : '#00e5ff',
+              }}
+            >
+              {voiceActivation?.isListening ? '🎤' : voiceActivation?.isMicAccessible === false ? '🔇' : '🔊'}
+              {' '}音声入力{voiceActivation?.isListening ? '（ON）' : '（OFF）'}
+            </button>
+
+            {/* ヘルプ */}
+            <button
+              onClick={() => { setShowHelp(true); setShowMenu(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{ color: '#00e5ff' }}
+            >
+              ❓ ヘルプ
+            </button>
+          </div>
+        </>
       )}
 
       {/* パターン名とページネーション - プレイ中は簡素化 */}

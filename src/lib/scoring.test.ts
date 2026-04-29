@@ -16,6 +16,9 @@ const trianglePattern: MagicCirclePattern = {
     { from: 2, to: 0 },
   ],
   circles: [],
+  vertexCount: 3,
+  edgeCount: 3,
+  circleCount: 0,
 };
 
 // 辺上の補間点を生成
@@ -181,6 +184,9 @@ describe('calculateScore', () => {
         vertices: [{ x: 100, y: 100 }, { x: 200, y: 100 }],
         edges: [{ from: 0, to: 1 }],
         circles: [],
+        vertexCount: 2,
+        edgeCount: 1,
+        circleCount: 0,
       };
       const path = interpolate({ x: 100, y: 100 }, { x: 200, y: 100 }, 30);
       const result = calculateScore(path, linePattern);
