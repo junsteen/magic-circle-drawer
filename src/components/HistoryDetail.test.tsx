@@ -273,3 +273,59 @@ describe('HistoryDetail — ボタン・インタラクション', () => {
     expect(screen.getByRole('button', { name: /共有/ })).toBeInTheDocument();
   });
 });
+
+// ─── 自動再生テスト ────────────────────────────────────────────────────────────
+
+describe('HistoryDetail — 自動再生', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rafCallbacks.length = 0;
+    vi.useFakeTimers();
+    vi.stubGlobal('requestAnimationFrame', mockRaf);
+    vi.stubGlobal('cancelAnimationFrame', mockCancelRaf);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLCanvasElement.prototype as any).getContext = () => mockCtx;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLCanvasElement.prototype as any).getContext = () => null;
+  });
+
+  it('drawLogs があるとき history が開くと自動再生が始まる', () => {
+    renderDetail(makeHistory(2));
+    act(() => { vi.runAllTimers(); });
+    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+  });
+
+  it('drawLogs が空のとき自動再生は起動しない', () => {
+    renderDetail(makeHistory(0));
+    act(() => { vi.runAllTimers(); });
+    expect(screen.getByRole('button', { name: /▶️ 再生/ })).toBeTruthy();
+  });
+
+  it('別の history に切り替えると再自動再生が起動する', () => {
+    const { rerender } = renderDetail(makeHistory(2, 'history-a'));
+    act(() => { vi.runAllTimers(); });
+    // 一時停止して確認
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /⏸️ 一時停止/ })); });
+    expect(screen.getByRole('button', { name: /▶️ 再生/ })).toBeTruthy();
+
+    // 別履歴に切り替え
+    act(() => {
+      rerender(
+        <HistoryDetail
+          history={makeHistory(2, 'history-b')}
+          onClose={vi.fn()}
+          onReEdit={vi.fn()}
+        />
+      );
+    });
+    act(() => { vi.runAllTimers(); });
+
+    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+  });
+});
