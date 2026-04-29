@@ -335,7 +335,7 @@ export function useMagicCircle(
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 2;
     ctx.shadowColor = '#00e5ff';
     ctx.strokeStyle = '#00e5ff';
     ctx.lineWidth = 4;

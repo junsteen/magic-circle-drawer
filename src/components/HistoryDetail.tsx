@@ -99,7 +99,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
     }
     if (allPoints.length > 1) {
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 2;
       ctx.shadowColor = '#00e5ff';
       ctx.strokeStyle = '#00e5ff';
       ctx.lineWidth = 4;
@@ -140,7 +140,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       if (allPoints.length > 1) {
         const ctx = node.getContext('2d');
         if (ctx) {
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.strokeStyle = '#00e5ff';
           ctx.lineWidth = 4;
@@ -233,7 +233,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
 
       if (pts.length > 1) {
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 2;
         ctx.shadowColor = '#00e5ff';
         ctx.strokeStyle = '#00e5ff';
         ctx.lineWidth = 4;
@@ -249,13 +249,13 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
         // Leading glow
         const last = pts[pts.length - 1];
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 2;
         ctx.shadowColor = '#00e5ff';
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 1;
         ctx.fillStyle = '#00e5ff';
         ctx.beginPath();
         ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
@@ -267,7 +267,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         if (!history.data) return;
         drawTemplate(history.data.pattern);
         if (pts.length > 1) {
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.strokeStyle = '#00e5ff';
           ctx.lineWidth = 4;
@@ -358,7 +358,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         }
         
         if (pts.length > 1) {
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.strokeStyle = '#00e5ff';
           ctx.lineWidth = 4;
@@ -374,13 +374,13 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
           
           // Leading glow
           const last = pts[pts.length - 1];
-          ctx.shadowBlur = 20;
+          ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
           ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
           ctx.fill();
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 1;
           ctx.fillStyle = '#00e5ff';
           ctx.beginPath();
           ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
@@ -392,7 +392,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
           if (!history.data) return;
           drawTemplate(history.data.pattern);
           if (pts.length > 1) {
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 2;
             ctx.shadowColor = '#00e5ff';
             ctx.strokeStyle = '#00e5ff';
             ctx.lineWidth = 4;

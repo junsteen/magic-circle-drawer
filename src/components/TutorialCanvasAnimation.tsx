@@ -98,13 +98,13 @@ export default function TutorialCanvasAnimation() {
           drawGlowEdge(ctx, edge.from, { x: currentX, y: currentY });
 
           // 先端の光点
-          ctx.shadowBlur = 20;
+          ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
           ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
           ctx.fill();
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 1;
           ctx.fillStyle = '#00e5ff';
           ctx.beginPath();
           ctx.arc(currentX, currentY, 10, 0, Math.PI * 2);
@@ -173,7 +173,7 @@ function drawGlowEdge(
   from: { x: number; y: number },
   to: { x: number; y: number },
 ) {
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 1;
   ctx.shadowColor = '#00e5ff';
   ctx.strokeStyle = '#00e5ff';
   ctx.lineWidth = 3;
