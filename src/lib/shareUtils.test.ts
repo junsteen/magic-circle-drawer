@@ -80,4 +80,49 @@ describe('shareUtils — 圧縮・解凍', () => {
       expect(compressedOptimized.length).toBeLessThanOrEqual(compressedOriginal.length);
     });
   });
+
+  // ─── 異常入力 ─────────────────────────────────────────────────────────────
+
+  describe('異常入力', () => {
+    it('decompressFromUrl: 空文字列は null を返す', () => {
+      expect(decompressFromUrl('')).toBeNull();
+    });
+
+    it('decompressFromUrl: 不正な文字列は null を返す', () => {
+      expect(decompressFromUrl('!!!invalid!!!')).toBeNull();
+    });
+
+    it('decompressFromUrlOptimized: 空文字列は null を返す', () => {
+      expect(decompressFromUrlOptimized('')).toBeNull();
+    });
+
+    it('decompressFromUrlOptimized: 不正な文字列は null を返す', () => {
+      expect(decompressFromUrlOptimized('!!!invalid!!!')).toBeNull();
+    });
+
+    it('compressForUrl: 空オブジェクトは空文字列以外を返す', () => {
+      const compressed = compressForUrl({});
+      expect(compressed.length).toBeGreaterThan(0);
+    });
+
+    it('compressForUrl → decompressFromUrl: 空オブジェクトのラウンドトリップが成功する', () => {
+      const compressed = compressForUrl({});
+      const decompressed = decompressFromUrl<Record<string, never>>(compressed);
+      expect(decompressed).toEqual({});
+    });
+  });
+
+  // ─── URL安全性 ────────────────────────────────────────────────────────────
+
+  describe('URL安全性', () => {
+    it('compressForUrl の出力は URL に危険な文字を含まない', () => {
+      const compressed = compressForUrl(testData);
+      expect(compressed).not.toMatch(/[+/=]/);
+    });
+
+    it('compressForUrlOptimized の出力は URL に危険な文字を含まない', () => {
+      const compressed = compressForUrlOptimized(testData);
+      expect(compressed).not.toMatch(/[+/=]/);
+    });
+  });
 });
