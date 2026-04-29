@@ -147,6 +147,17 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     }
   }, [history]);
 
+  // Auto-play ref: always points to the latest handlePlay to avoid stale closure
+  const handlePlayRef = useRef<() => void>(() => {});
+
+  // Auto-play when a history item is opened
+  useEffect(() => {
+    if (!history?.data?.drawLogs?.length) return;
+    // setTimeout(0) defers until after the reset effect and re-render settle
+    const id = setTimeout(() => { handlePlayRef.current(); }, 0);
+    return () => clearTimeout(id);
+  }, [history]);
+
   const handlePlay = useCallback(() => {
     if (!history || !canvasRef.current) return;
 
@@ -261,6 +272,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
     replayAnimRef.current = requestAnimationFrame(animate);
   }, [history, currentTime, totalDuration, drawTemplate]);
+
+  // Keep ref in sync with latest handlePlay every render
+  handlePlayRef.current = handlePlay;
 
   const handlePause = useCallback(() => {
     if (replayAnimRef.current !== null) {
