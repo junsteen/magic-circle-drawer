@@ -650,15 +650,16 @@ export function useMagicCircle(
     try {
       await addHistory(historyItem);
       
-      // URL圧縮用にデータを抽出（メタデータを除いた本体部分のみ）
-      const dataForCompression = {
-        pattern: historyItem.data.pattern,
-        drawLogs: historyItem.data.drawLogs,
+      // URL圧縮用にデータを抽出（thumbnail のみ除外してURLサイズを抑える）
+      const dataForCompression: Omit<MagicCircleHistory, 'thumbnail'> = {
+        id: historyItem.id,
+        data: historyItem.data,
         score: historyItem.score,
         rank: historyItem.rank,
         difficulty: historyItem.difficulty,
         difficultyMultiplier: historyItem.difficultyMultiplier,
-        damageMultiplier: historyItem.damageMultiplier
+        damageMultiplier: historyItem.damageMultiplier,
+        createdAt: historyItem.createdAt,
       };
       
       // 履歴データをURL用に圧縮
