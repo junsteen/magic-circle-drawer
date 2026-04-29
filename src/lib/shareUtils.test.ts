@@ -1,6 +1,6 @@
+import { describe, it, expect } from 'vitest';
 import { compressForUrl, decompressFromUrl, compressForUrlOptimized, decompressFromUrlOptimized } from './shareUtils';
 
-// Test data simulating what gets shared
 const testData = {
   pattern: {
     name: '五芒星',
@@ -43,30 +43,41 @@ const testData = {
   damageMultiplier: '2.0x'
 };
 
-console.log('Testing share data compression...');
-const originalJson = JSON.stringify(testData);
-console.log('Original JSON size:', originalJson.length);
+describe('shareUtils — 圧縮・解凍', () => {
 
-// Test original compression
-const compressedOriginal = compressForUrl(testData);
-console.log('Original compressed size:', compressedOriginal.length);
-console.log('Original compression ratio:', (1 - compressedOriginal.length / originalJson.length) * 100 + '%');
+  describe('compressForUrl / decompressFromUrl（標準）', () => {
+    it('圧縮後に解凍するとデータが一致する', () => {
+      const compressed = compressForUrl(testData);
+      const decompressed = decompressFromUrl<typeof testData>(compressed);
+      expect(decompressed).not.toBeNull();
+      expect(JSON.stringify(decompressed)).toBe(JSON.stringify(testData));
+    });
 
-// Test optimized compression
-const compressedOptimized = compressForUrlOptimized(testData);
-console.log('Optimized compressed size:', compressedOptimized.length);
-console.log('Optimized compression ratio:', (1 - compressedOptimized.length / originalJson.length) * 100 + '');
-console.log('Improvement:', ((compressedOriginal.length - compressedOptimized.length) / compressedOriginal.length * 100).toFixed(2) + '% smaller');
+    it('圧縮によりデータサイズが削減される', () => {
+      const originalSize = JSON.stringify(testData).length;
+      const compressed = compressForUrl(testData);
+      expect(compressed.length).toBeLessThan(originalSize);
+    });
+  });
 
-// Test decompression for both
-const decompressedOriginal = decompressFromUrl<typeof testData>(compressedOriginal);
-console.log('Original decompression successful:', !!decompressedOriginal);
-if (decompressedOriginal) {
-  console.log('Original data integrity check:', JSON.stringify(decompressedOriginal) === JSON.stringify(testData));
-}
+  describe('compressForUrlOptimized / decompressFromUrlOptimized（最適化）', () => {
+    it('圧縮後に解凍するとデータが一致する', () => {
+      const compressed = compressForUrlOptimized(testData);
+      const decompressed = decompressFromUrlOptimized<typeof testData>(compressed);
+      expect(decompressed).not.toBeNull();
+      expect(JSON.stringify(decompressed)).toBe(JSON.stringify(testData));
+    });
 
-const decompressedOptimized = decompressFromUrlOptimized<typeof testData>(compressedOptimized);
-console.log('Optimized decompression successful:', !!decompressedOptimized);
-if (decompressedOptimized) {
-  console.log('Optimized data integrity check:', JSON.stringify(decompressedOptimized) === JSON.stringify(testData));
-}
+    it('圧縮によりデータサイズが削減される', () => {
+      const originalSize = JSON.stringify(testData).length;
+      const compressed = compressForUrlOptimized(testData);
+      expect(compressed.length).toBeLessThan(originalSize);
+    });
+
+    it('最適化圧縮は標準圧縮より小さいまたは同等', () => {
+      const compressedOriginal = compressForUrl(testData);
+      const compressedOptimized = compressForUrlOptimized(testData);
+      expect(compressedOptimized.length).toBeLessThanOrEqual(compressedOriginal.length);
+    });
+  });
+});
