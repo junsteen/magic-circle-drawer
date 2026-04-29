@@ -168,17 +168,15 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     };
   }, []);
 
-  // Reset playback state when history changes
+  // history が変わるたびに再生状態をリセット（null → 別アイテムも含む）
   useEffect(() => {
-    if (!history) {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setTotalDuration(0);
-      setStartTime(null);
-      if (replayAnimRef.current !== null) {
-        cancelAnimationFrame(replayAnimRef.current);
-        replayAnimRef.current = null;
-      }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setTotalDuration(0);
+    setStartTime(null);
+    if (replayAnimRef.current !== null) {
+      cancelAnimationFrame(replayAnimRef.current);
+      replayAnimRef.current = null;
     }
   }, [history]);
 
@@ -213,7 +211,10 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
     drawTemplate(history.data.pattern);
 
-    const startTime = performance.now() - currentTime;
+    // 再生完了後に再度押した場合は最初から再生する
+    const startFrom = currentTime >= totalDuration ? 0 : currentTime;
+    if (startFrom === 0) setCurrentTime(0);
+    const startTime = performance.now() - startFrom;
     setStartTime(startTime);
     setIsPlaying(true);
     setDebugMsg('🔄 再生中...');
