@@ -190,7 +190,7 @@ export async function getTotalPatternsCount(): Promise<number> {
  * @param rank2 ランク2
  * @returns より良いランク
  */
-function getBetterRank(rank1: string, rank2: string): string {
+export function getBetterRank(rank1: string, rank2: string): string {
   const rankValues: Record<string, number> = {
     'S': 4,
     'A': 3,
