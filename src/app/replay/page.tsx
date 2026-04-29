@@ -22,26 +22,50 @@ function ReplayContent() {
       return;
     }
 
-    const decompressedData = decompressFromUrl<MagicCircleHistory>(dataParam);
-    if (!decompressedData) {
+    // decompressFromUrlOptimized はフラット構造 { pattern, drawLogs, score, ... } を返す
+    const flat = decompressFromUrl<{
+      pattern: MagicCircleHistory['data']['pattern'];
+      drawLogs: MagicCircleHistory['data']['drawLogs'];
+      score: number;
+      rank: string;
+      difficulty: string;
+      difficultyMultiplier: number;
+      damageMultiplier: string;
+    }>(dataParam);
+
+    if (!flat) {
       setError('データの復元に失敗しました。共有リンクが無効または破損している可能性があります。');
       setLoading(false);
       return;
     }
 
-    // Validate that we have the minimum required data structure
-    if (!decompressedData.data || !decompressedData.data.pattern) {
+    if (!flat.pattern) {
       setError('データ形式が不正です。');
       setLoading(false);
       return;
     }
-    
-    // Validate that drawLogs exists and is an array
-    if (!Array.isArray(decompressedData.data.drawLogs)) {
+
+    if (!Array.isArray(flat.drawLogs)) {
       setError('描画データが見つかりません。');
       setLoading(false);
       return;
     }
+
+    // フラット構造から MagicCircleHistory を再構築
+    const decompressedData: MagicCircleHistory = {
+      id: `replay_${Date.now()}`,
+      data: {
+        pattern: flat.pattern,
+        drawLogs: flat.drawLogs,
+        timestamp: Date.now(),
+      },
+      score: flat.score,
+      rank: flat.rank,
+      difficulty: flat.difficulty,
+      difficultyMultiplier: flat.difficultyMultiplier,
+      damageMultiplier: flat.damageMultiplier,
+      createdAt: Date.now(),
+    };
 
     setHistory(decompressedData);
     setLoading(false);
