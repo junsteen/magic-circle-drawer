@@ -240,4 +240,101 @@ describe('useMagicCircle', () => {
       expect(result.current.drawLogs).toEqual([]);
     });
   });
+
+  // ─── 1. 画面状態: changeDifficulty — 全難易度 ────────────────────────────
+
+  describe('changeDifficulty() — 全難易度', () => {
+    it('easy に変更されると timeLeft が DIFFICULTY_TIME.easy になる', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.changeDifficulty('easy'); });
+      expect(result.current.timeLeft).toBe(DIFFICULTY_TIME.easy);
+    });
+
+    it('normal に変更されると timeLeft が DIFFICULTY_TIME.normal になる', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.changeDifficulty('hard'); });
+      act(() => { result.current.changeDifficulty('normal'); });
+      expect(result.current.timeLeft).toBe(DIFFICULTY_TIME.normal);
+    });
+
+    it('hard に変更されると timeLeft が DIFFICULTY_TIME.hard になる', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.changeDifficulty('hard'); });
+      expect(result.current.timeLeft).toBe(DIFFICULTY_TIME.hard);
+    });
+
+    it('難易度変更後に handleReset すると timeLeft が新難易度の値のまま', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.changeDifficulty('easy'); });
+      act(() => { result.current.handleReset(); });
+      expect(result.current.timeLeft).toBe(DIFFICULTY_TIME.easy);
+    });
+  });
+
+  // ─── 2. Canvas状態管理: 描画操作（追加） ──────────────────────────────────
+
+  describe('onPointerMove — 非描画中', () => {
+    const makePointerEvent = (x: number, y: number) =>
+      ({
+        clientX: x,
+        clientY: y,
+        pointerId: 1,
+        stopPropagation: vi.fn(),
+      } as unknown as React.PointerEvent);
+
+    it('isDrawing=false のとき onPointerMove を呼んでも userPath は空のまま', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.onPointerMove(makePointerEvent(100, 100)); });
+      expect(result.current.userPath).toEqual([]);
+    });
+
+    it('複数回 onPointerMove すると userPath が複数点に増加する', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.onPointerDown(makePointerEvent(100, 100)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(110, 110)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(120, 120)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(130, 130)); });
+      expect(result.current.userPath.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('onPointerUp 後に onPointerMove を呼んでも userPath は空のまま', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.onPointerDown(makePointerEvent(100, 100)); });
+      act(() => { result.current.onPointerUp(); });
+      act(() => { result.current.onPointerMove(makePointerEvent(150, 150)); });
+      expect(result.current.userPath).toEqual([]);
+    });
+  });
+
+  describe('複数ストローク', () => {
+    const makePointerEvent = (x: number, y: number) =>
+      ({
+        clientX: x,
+        clientY: y,
+        pointerId: 1,
+        stopPropagation: vi.fn(),
+      } as unknown as React.PointerEvent);
+
+    it('2 回ストロークすると drawLogs.length が 2 になる', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      // 1 ストローク目
+      act(() => { result.current.onPointerDown(makePointerEvent(100, 100)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(110, 110)); });
+      act(() => { result.current.onPointerUp(); });
+      // 2 ストローク目
+      act(() => { result.current.onPointerDown(makePointerEvent(150, 150)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(160, 160)); });
+      act(() => { result.current.onPointerUp(); });
+      expect(result.current.drawLogs.length).toBe(2);
+    });
+
+    it('handleReset 後に drawLogs は空配列にリセットされる（複数ストローク後）', () => {
+      const { result } = renderHook(() => useMagicCircle(onScore, onReset));
+      act(() => { result.current.onPointerDown(makePointerEvent(100, 100)); });
+      act(() => { result.current.onPointerMove(makePointerEvent(110, 110)); });
+      act(() => { result.current.onPointerUp(); });
+      act(() => { result.current.handleReset(); });
+      expect(result.current.drawLogs).toEqual([]);
+    });
+  });
 });

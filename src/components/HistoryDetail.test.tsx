@@ -193,3 +193,83 @@ describe('HistoryDetail — 再生ボタン動作', () => {
     expect(screen.queryByRole('button', { name: /再生|一時停止/ })).toBeNull();
   });
 });
+
+describe('HistoryDetail — 表示内容', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('history のスコアが表示される', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByText('80点')).toBeInTheDocument();
+  });
+
+  it('history のランクが表示される', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByText('A')).toBeInTheDocument();
+  });
+
+  it('history のパターン名が表示される', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByText('テストパターン')).toBeInTheDocument();
+  });
+
+  it('難易度が表示される', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByText(/ノーマル/)).toBeInTheDocument();
+  });
+
+  it('作成日時ラベルが表示される', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByText('作成日時')).toBeInTheDocument();
+  });
+});
+
+describe('HistoryDetail — ボタン・インタラクション', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('閉じるボタン（✕）が存在する', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByRole('button', { name: '✕' })).toBeInTheDocument();
+  });
+
+  it('閉じるボタンをクリックすると onClose が呼ばれる', () => {
+    const onClose = vi.fn();
+    render(
+      <HistoryDetail
+        history={makeHistory(1)}
+        onClose={onClose}
+        onReEdit={vi.fn()}
+      />
+    );
+    screen.getByRole('button', { name: '✕' }).click();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('再編集ボタンが存在する', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByRole('button', { name: /再編集/ })).toBeInTheDocument();
+  });
+
+  it('再編集ボタンをクリックすると onReEdit が呼ばれる', () => {
+    const onReEdit = vi.fn();
+    render(
+      <HistoryDetail
+        history={makeHistory(1)}
+        onClose={vi.fn()}
+        onReEdit={onReEdit}
+      />
+    );
+    screen.getByRole('button', { name: /再編集/ }).click();
+    expect(onReEdit).toHaveBeenCalledOnce();
+  });
+
+  it('共有ボタンが存在する', () => {
+    renderDetail(makeHistory(1));
+    expect(screen.getByRole('button', { name: /共有/ })).toBeInTheDocument();
+  });
+});

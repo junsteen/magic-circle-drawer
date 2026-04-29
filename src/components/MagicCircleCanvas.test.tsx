@@ -161,4 +161,61 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
       expect(screen.getByRole('button', { name: '再生中...' })).toBeDisabled();
     });
   });
+
+  // ─── 表示内容 ─────────────────────────────────────────────────────────────
+
+  describe('表示内容', () => {
+    it('patternName が表示される', () => {
+      renderCanvas({ patternName: 'テストパターン' });
+      expect(screen.getByText('テストパターン')).toBeInTheDocument();
+    });
+
+    it('patternName が空のとき「準備中...」が表示される', () => {
+      renderCanvas({ patternName: '' });
+      expect(screen.getByText('準備中...')).toBeInTheDocument();
+    });
+
+    it('showResult=true のとき scoreResult のランクが表示される', () => {
+      renderCanvas({
+        showResult: true,
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+      });
+      expect(screen.getByText('A')).toBeInTheDocument();
+    });
+
+    it('showResult=true のとき scoreResult のスコアが表示される', () => {
+      renderCanvas({
+        showResult: true,
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+      });
+      expect(screen.getByText('85点')).toBeInTheDocument();
+    });
+
+    it('showResult=true のとき damageMultiplier が表示される', () => {
+      renderCanvas({
+        showResult: true,
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+      });
+      expect(screen.getByText(/100%/)).toBeInTheDocument();
+    });
+
+    it('isActive=true のとき timeLeft が表示される', () => {
+      renderCanvas({ isActive: true, timeLeft: 42 });
+      expect(screen.getByText('42s')).toBeInTheDocument();
+    });
+
+    it('isActive=false のとき残り時間テキストが表示されない', () => {
+      renderCanvas({ isActive: false, timeLeft: 42 });
+      expect(screen.queryByText('42s')).toBeNull();
+    });
+  });
+
+  // ─── currentIndex / totalPatterns 表示 ───────────────────────────────────
+
+  describe('currentIndex / totalPatterns 表示', () => {
+    it('現在のパターン番号と総数が表示される', () => {
+      renderCanvas({ currentIndex: 1, totalPatterns: 5 });
+      expect(screen.getByText(/#2\s*\/\s*5/)).toBeInTheDocument();
+    });
+  });
 });
