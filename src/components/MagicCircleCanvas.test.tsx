@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { UseMagicCircleReturn } from '@/hooks/useMagicCircle';
 
 // useMagicCircle フックをモック
@@ -9,7 +9,14 @@ vi.mock('@/hooks/useMagicCircle');
 vi.mock('./HelpModal', () => ({ default: () => null }));
 vi.mock('./HistoryPanel', () => ({ default: () => null }));
 vi.mock('./HistoryDetail', () => ({ default: () => null }));
-vi.mock('./TutorialOverlay', () => ({ default: () => null }));
+// TutorialOverlay は存在検出のため data-testid を返すモック
+vi.mock('./TutorialOverlay', () => ({
+  default: ({ onStart }: { onStart: () => void }) => (
+    <div data-testid="tutorial-overlay">
+      <button onClick={onStart}>tutorial-start</button>
+    </div>
+  ),
+}));
 
 import { useMagicCircle } from '@/hooks/useMagicCircle';
 import MagicCircleCanvas from './MagicCircleCanvas';
@@ -217,5 +224,51 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
       renderCanvas({ currentIndex: 1, totalPatterns: 5 });
       expect(screen.getByText(/#2\s*\/\s*5/)).toBeInTheDocument();
     });
+  });
+});
+
+// ─── チュートリアル自動表示テスト ────────────────────────────────────────────
+
+describe('MagicCircleCanvas — チュートリアル自動表示', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockUseMagicCircle.mockReturnValue(defaultMockReturn);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('localStorage に tutorialCompleted がない場合にチュートリアルが表示される', () => {
+    render(
+      <MagicCircleCanvas onScore={vi.fn()} onReset={vi.fn()} initialDifficulty="normal" />
+    );
+    expect(screen.getByTestId('tutorial-overlay')).toBeTruthy();
+  });
+
+  it('localStorage に tutorialCompleted がある場合はチュートリアルが表示されない', () => {
+    localStorage.setItem('tutorialCompleted', '1');
+    render(
+      <MagicCircleCanvas onScore={vi.fn()} onReset={vi.fn()} initialDifficulty="normal" />
+    );
+    expect(screen.queryByTestId('tutorial-overlay')).toBeNull();
+  });
+
+  it('チュートリアル完了後に localStorage に tutorialCompleted が保存される', () => {
+    render(
+      <MagicCircleCanvas onScore={vi.fn()} onReset={vi.fn()} initialDifficulty="normal" />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'tutorial-start' }));
+    expect(localStorage.getItem('tutorialCompleted')).toBe('1');
+  });
+
+  it('チュートリアル完了後にオーバーレイが消える', () => {
+    render(
+      <MagicCircleCanvas onScore={vi.fn()} onReset={vi.fn()} initialDifficulty="normal" />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'tutorial-start' }));
+    expect(screen.queryByTestId('tutorial-overlay')).toBeNull();
   });
 });
