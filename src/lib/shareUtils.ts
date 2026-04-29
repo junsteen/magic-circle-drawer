@@ -8,7 +8,8 @@ import LZString from 'lz-string';
 export function compressForUrl(data: unknown): string {
   try {
     const jsonStr = JSON.stringify(data);
-    return LZString.compressToEncodedURIComponent(jsonStr);
+    // encodeURIComponent で + や $ を %2B / %24 に変換しURLセーフにする
+    return encodeURIComponent(LZString.compressToEncodedURIComponent(jsonStr));
   } catch (error) {
     console.error('URL用データ圧縮に失敗:', error);
     return '';
@@ -23,7 +24,10 @@ export function compressForUrl(data: unknown): string {
 export function decompressFromUrl<T>(compressed: string): T | null {
   try {
     if (!compressed) return null;
-    const jsonStr = LZString.decompressFromEncodedURIComponent(compressed);
+    // compressForUrl が encodeURIComponent で二重エンコードした場合に対応
+    // URLSearchParams.get() 経由の場合は既に一度デコード済みのため no-op になる
+    const decoded = compressed.includes('%') ? decodeURIComponent(compressed) : compressed;
+    const jsonStr = LZString.decompressFromEncodedURIComponent(decoded);
     if (!jsonStr) return null;
     return JSON.parse(jsonStr) as T;
   } catch (error) {
@@ -83,7 +87,8 @@ export function compressForUrlOptimized(data: {
     };
 
     const jsonStr = JSON.stringify(optimized);
-    return LZString.compressToEncodedURIComponent(jsonStr);
+    // encodeURIComponent で + や $ を %2B / %24 に変換しURLセーフにする
+    return encodeURIComponent(LZString.compressToEncodedURIComponent(jsonStr));
   } catch (error) {
     console.error('URL用データ圧縮に失敗:', error);
     return '';
@@ -99,9 +104,11 @@ export function compressForUrlOptimized(data: {
 export function decompressFromUrlOptimized<T>(compressed: string): T | null {
   try {
     if (!compressed) return null;
-    const jsonStr = LZString.decompressFromEncodedURIComponent(compressed);
+    // compressForUrlOptimized が encodeURIComponent で二重エンコードした場合に対応
+    const decoded = compressed.includes('%') ? decodeURIComponent(compressed) : compressed;
+    const jsonStr = LZString.decompressFromEncodedURIComponent(decoded);
     if (!jsonStr) return null;
-    
+
     const parsed = JSON.parse(jsonStr);
     
     // フォーマットを検出: 最適化形式は単一文字キー(p, d, s, rなど)
