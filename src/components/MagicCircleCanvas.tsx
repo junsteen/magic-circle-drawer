@@ -57,6 +57,21 @@ export default function MagicCircleCanvas({
   const [showHistory, setShowHistory] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
 
+  // 初回訪問時にチュートリアルを自動表示
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('tutorialCompleted')) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  // チュートリアル完了時に localStorage にフラグを保存
+  const handleTutorialComplete = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tutorialCompleted', '1');
+    }
+    setShowTutorial(false);
+  }, []);
+
   // Sync external difficulty prop
   useEffect(() => { changeDifficulty(initialDifficulty); }, [initialDifficulty, changeDifficulty]);
 
@@ -91,7 +106,7 @@ export default function MagicCircleCanvas({
   return (
     <div className="flex flex-col items-center gap-4 p-4">
       {showTutorial && (
-        <TutorialOverlay onStart={() => setShowTutorial(false)} />
+        <TutorialOverlay onStart={handleTutorialComplete} />
       )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
