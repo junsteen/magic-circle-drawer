@@ -83,39 +83,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     ctx.setLineDash([]);
   }, []);
 
-  const drawAllStroke = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !history) return;
-    if (!history.data) return;
-    if (!history.data.drawLogs) return;
-    drawTemplate(history.data.pattern);
-
-    const allPoints: { x: number; y: number }[] = [];
-    for (const stroke of history.data.drawLogs) {
-      for (const ev of stroke) {
-        allPoints.push({ x: ev.x, y: ev.y });
-      }
-    }
-    if (allPoints.length > 1) {
-      ctx.shadowBlur = 2;
-      ctx.shadowColor = '#00e5ff';
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(allPoints[0].x, allPoints[0].y);
-      for (let i = 1; i < allPoints.length; i++) {
-        ctx.lineTo(allPoints[i].x, allPoints[i].y);
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-    setDebugMsg('');
-  }, [history, drawTemplate]);
-
   // Draw template AND stroke when history changes or canvas becomes available
   useLayoutEffect(() => {
     if (!history) return;
@@ -510,13 +477,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                 </div>
               )}
               
-              <button
-                onClick={drawAllStroke}
-                className="cursor-pointer rounded-md border-2 border-gray-600 px-4 py-2 text-sm font-bold transition-colors hover:bg-gray-800"
-                style={{ borderColor: 'rgba(0,229,255,0.3)', color: '#00e5ff' }}
-              >
-                👁️ 最終描画
-              </button>
               {/* Share Button */}
               <button
                 onClick={async () => {
