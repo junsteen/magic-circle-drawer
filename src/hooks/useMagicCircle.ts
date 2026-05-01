@@ -646,39 +646,34 @@ export function useMagicCircle(
       createdAt: Date.now(),
     };
 
-    // 履歴をデータベースに保存
-    try {
-      await addHistory(historyItem);
-      
-      // URL圧縮用にデータを抽出（compressForUrlOptimized の期待するフラット構造）
-      const dataForCompression = {
-        pattern: historyItem.data.pattern,
-        drawLogs: historyItem.data.drawLogs,
-        score: historyItem.score,
-        rank: historyItem.rank,
-        difficulty: historyItem.difficulty,
-        difficultyMultiplier: historyItem.difficultyMultiplier,
-        damageMultiplier: historyItem.damageMultiplier,
-      };
-      
-      // 履歴データをURL用に圧縮
-      const compressed = compressForUrlOptimized(dataForCompression);
-      if (!compressed) {
-        throw new Error('Failed to compress history data');
-      }
-      
-      // リプレイページに遷移
-      const replayUrl = `/replay?data=${compressed}`;
-      router.push(replayUrl);
-    } catch (err) {
-      console.error('Failed to save history for replay:', err);
-      setDebugMsg('履歴の保存に失敗しました');
-      // 履歴保存に失敗した場合はリプレイ状態をリセット
+    // URL圧縮用にデータを抽出（compressForUrlOptimized の期待するフラット構造）
+    const dataForCompression = {
+      pattern: historyItem.data.pattern,
+      drawLogs: historyItem.data.drawLogs,
+      score: historyItem.score,
+      rank: historyItem.rank,
+      difficulty: historyItem.difficulty,
+      difficultyMultiplier: historyItem.difficultyMultiplier,
+      damageMultiplier: historyItem.damageMultiplier,
+    };
+
+    // 履歴データをURL用に圧縮
+    const compressed = compressForUrlOptimized(dataForCompression);
+    if (!compressed) {
+      setDebugMsg('データの圧縮に失敗しました');
       isReplayingRef.current = false;
       setIsReplaying(false);
-      // 元のローカルリプレイロジックについては簡略化のためここで終了
       return;
     }
+
+    // IndexedDB保存はナビゲーションをブロックしない（失敗しても遷移は続行）
+    addHistory(historyItem).catch(err => {
+      console.error('Failed to save history:', err);
+    });
+
+    // リプレイページに遷移
+    const replayUrl = `/replay?data=${compressed}`;
+    router.push(replayUrl);
   }, [drawLogs, isReplaying, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate]);
 
   // ─── 魔法陣データの保存 ───
