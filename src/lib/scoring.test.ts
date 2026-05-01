@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateScore } from './scoring';
-import type { MagicCirclePattern } from './patterns';
+import { createPresetPattern, generateEdgePoints } from './patterns';
+import type { MagicCirclePattern, Point } from './patterns';
 
 // テスト用の三角形パターン
 const trianglePattern: MagicCirclePattern = {
@@ -192,6 +193,115 @@ describe('calculateScore', () => {
       const result = calculateScore(path, linePattern);
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.score).toBeLessThanOrEqual(100);
+    });
+  });
+});
+
+// ─── プリセットパターンを使った座標描画テスト ──────────────────────────────────
+
+const CANVAS_SIZE = 300;
+const presetPatterns = createPresetPattern(CANVAS_SIZE);
+
+/**
+ * パターンの全エッジ上を正確になぞるパスを生成
+ */
+function perfectPathForPattern(pattern: MagicCirclePattern, pointsPerEdge = 30): Point[] {
+  return generateEdgePoints(pattern.vertices, pattern.edges, pointsPerEdge);
+}
+
+describe('calculateScore — プリセットパターン別座標描画', () => {
+
+  describe('五芒星パターン', () => {
+    const pentagram = presetPatterns.find(p => p.name === '五芒星')!;
+
+    it('完璧なパスでスコア >= 90（S ランク）', () => {
+      const result = calculateScore(perfectPathForPattern(pentagram), pentagram);
+      expect(result.score).toBeGreaterThanOrEqual(90);
+      expect(result.rank).toBe('S');
+    });
+
+    it('大きくずれたパスは C ランク', () => {
+      const farPath = Array.from({ length: 30 }, () => ({ x: 0, y: 0 }));
+      const result = calculateScore(farPath, pentagram);
+      expect(result.rank).toBe('C');
+    });
+
+    it('スコアは 0-100 の整数', () => {
+      const result = calculateScore(perfectPathForPattern(pentagram), pentagram);
+      expect(result.score).toBeGreaterThanOrEqual(0);
+      expect(result.score).toBeLessThanOrEqual(100);
+      expect(Number.isInteger(result.score)).toBe(true);
+    });
+  });
+
+  describe('六芒星パターン', () => {
+    const hexagram = presetPatterns.find(p => p.name === '六芒星')!;
+
+    it('完璧なパスでスコア >= 90', () => {
+      const result = calculateScore(perfectPathForPattern(hexagram), hexagram);
+      expect(result.score).toBeGreaterThanOrEqual(90);
+    });
+
+    it('パス長がパターン周長より大幅に短いと低スコア', () => {
+      // 辺の一部だけをなぞる（最初の辺のみ）
+      const partialPath = generateEdgePoints(
+        hexagram.vertices,
+        [hexagram.edges[0]],
+        30,
+      );
+      const result = calculateScore(partialPath, hexagram);
+      const fullResult = calculateScore(perfectPathForPattern(hexagram), hexagram);
+      expect(result.score).toBeLessThan(fullResult.score);
+    });
+  });
+
+  describe('複数パターン共通プロパティ', () => {
+    it('全プリセットパターンで完璧なパスのスコアが 0-100 の範囲内', () => {
+      for (const pattern of presetPatterns) {
+        const result = calculateScore(perfectPathForPattern(pattern), pattern);
+        expect(result.score).toBeGreaterThanOrEqual(0);
+        expect(result.score).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it('全プリセットパターンで完璧なパスのランクが S/A/B/C のいずれか', () => {
+      for (const pattern of presetPatterns) {
+        const result = calculateScore(perfectPathForPattern(pattern), pattern);
+        expect(['S', 'A', 'B', 'C']).toContain(result.rank);
+      }
+    });
+
+    it('完璧なパスは大幅にずれたパスよりスコアが高い', () => {
+      for (const pattern of presetPatterns) {
+        const perfect = calculateScore(perfectPathForPattern(pattern), pattern);
+        const far = calculateScore(
+          Array.from({ length: 30 }, () => ({ x: -500, y: -500 })),
+          pattern,
+        );
+        expect(perfect.score).toBeGreaterThan(far.score);
+      }
+    });
+  });
+
+  describe('精度とスコアの関係', () => {
+    const [triangle] = presetPatterns;
+
+    it('ずれ量が増えるほどスコアが下がる', () => {
+      const offsets = [5, 15, 30];
+      const scores = offsets.map(offset => {
+        const path = perfectPathForPattern(triangle).map(p => ({ x: p.x + offset, y: p.y }));
+        return calculateScore(path, triangle).score;
+      });
+      // scores[0] >= scores[1] >= scores[2]
+      expect(scores[0]).toBeGreaterThanOrEqual(scores[1]);
+      expect(scores[1]).toBeGreaterThanOrEqual(scores[2]);
+    });
+
+    it('difficultyTolerance が大きいほど同じずれに対して高スコア', () => {
+      const path = perfectPathForPattern(triangle).map(p => ({ x: p.x + 20, y: p.y }));
+      const lenient = calculateScore(path, triangle, 2.0);
+      const strict = calculateScore(path, triangle, 0.5);
+      expect(lenient.score).toBeGreaterThan(strict.score);
     });
   });
 });
