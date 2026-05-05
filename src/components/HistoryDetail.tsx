@@ -461,7 +461,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             <div className="mt-3 flex gap-2 flex-wrap justify-center">
               <button
                 onClick={() => {
-                  return isPlaying ? handlePause() : handlePlay();
+                  isPlaying ? handlePause() : handlePlay();
                 }}
                 disabled={!history || !history.data || !history.data.drawLogs || history.data.drawLogs.length === 0}
                 className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
