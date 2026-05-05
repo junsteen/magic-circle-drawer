@@ -436,8 +436,12 @@ export function useMagicCircle(
     if (lastPoint) {
       drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
     }
-    setDrawLogs((prev) => [...prev, [...drawLogRef.current]]);
+    // drawLogRef.current を先にキャプチャしてから clearする
+    // setDrawLogs updater は React バッチ処理で遅延実行されるため、
+    // その時点では drawLogRef.current が既に [] にクリアされている
+    const strokeToSave = [...drawLogRef.current];
     drawLogRef.current = [];
+    setDrawLogs((prev) => [...prev, strokeToSave]);
     setUserPath([]);
     setDebugMsg('描画完了。スコア判定しますか？');
     if (e && canvasRef.current) {
