@@ -88,7 +88,7 @@ export interface UseMagicCircleReturn {
   /** ポインタームーブイベントハンドラー */
   onPointerMove: (e: React.PointerEvent) => void;
   /** ポインタアップイベントハンドラー */
-  onPointerUp: () => void;
+  onPointerUp: (e?: React.PointerEvent) => void;
   // リプレイ関連
   /** 描画ログ（リプレイ用） */
   drawLogs: DrawStroke[];
@@ -414,6 +414,7 @@ export function useMagicCircle(
   }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    console.log('[useMagicCircle] onPointerDown triggered');
     e.stopPropagation();
     if (canvasRef.current) {
       canvasRef.current.setPointerCapture(e.pointerId);
