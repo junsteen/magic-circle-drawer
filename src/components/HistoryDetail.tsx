@@ -159,23 +159,50 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   }, [history]);
 
   const handlePlay = useCallback(() => {
-    if (!history || !canvasRef.current) return;
+    console.log('[HistoryDetail] handlePlay called');
+    if (!history || !canvasRef.current) {
+      console.log('[HistoryDetail] Early return: history or canvas missing');
+      return;
+    }
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('[HistoryDetail] Early return: canvas context missing');
+      return;
+    }
 
-    if (!history.data) return;
-    if (!history.data.drawLogs) return;
+    if (!history.data) {
+      console.log('[HistoryDetail] Early return: history.data missing');
+      return;
+    }
+    if (!history.data.drawLogs) {
+      console.log('[HistoryDetail] Early return: drawLogs missing');
+      return;
+    }
 
+    console.log('[HistoryDetail] drawLogs length:', history.data.drawLogs.length);
+    console.log('[HistoryDetail] drawLogs structure:', history.data.drawLogs);
     const drawLogs = history.data.drawLogs;
     const normalizedLogs = createReplayDrawLogs(drawLogs);
+    console.log('[HistoryDetail] normalizedLogs length:', normalizedLogs.length);
+    console.log('[HistoryDetail] normalizedLogs structure:', normalizedLogs);
+    normalizedLogs.forEach((stroke, idx) => {
+      console.log(`[HistoryDetail] stroke[${idx}] length:`, stroke.length, 'content:', stroke);
+    });
     const STROKE_INTERVAL_MS = 500;
     const allEvents: DrawEvent[] = [];
     let timeOffset = 0;
-    for (const stroke of normalizedLogs) {
-      if (stroke.length === 0) continue;
+    for (let i = 0; i < normalizedLogs.length; i++) {
+      const stroke = normalizedLogs[i];
+      console.log(`[HistoryDetail] Processing stroke ${i}, length: ${stroke.length}`);
+      if (stroke.length === 0) {
+        console.log(`[HistoryDetail] Stroke ${i} is empty, skipping`);
+        continue;
+      }
+      console.log(`[HistoryDetail] Stroke ${i} has ${stroke.length} events`);
       for (const ev of stroke) {
+        console.log(`[HistoryDetail] Adding event: x=${ev.x}, y=${ev.y}, t=${ev.t}`);
         allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
       }
       if (allEvents.length > 0) {
@@ -183,7 +210,11 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
     }
 
-    if (allEvents.length === 0) return;
+    console.log('[HistoryDetail] allEvents length:', allEvents.length);
+    if (allEvents.length === 0) {
+      console.log('[HistoryDetail] Early return: no events to replay');
+      return;
+    }
     const totalDuration = allEvents[allEvents.length - 1].t;
     setTotalDuration(totalDuration);
 
