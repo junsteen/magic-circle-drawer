@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
 import { DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
@@ -38,6 +39,8 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
 }) {
+  const router = useRouter();
+
   const {
     canvasRef, canvasSize, isDrawing, userPath,
     timeLeft, isActive, showResult, scoreResult,
@@ -204,6 +207,15 @@ export default function MagicCircleCanvas({
             >
               {voiceActivation?.isListening ? '🎤' : voiceActivation?.isMicAccessible === false ? '🔇' : '🔊'}
               {' '}音声入力{voiceActivation?.isListening ? '（ON）' : '（OFF）'}
+            </button>
+
+            {/* アプリ情報 */}
+            <button
+              onClick={() => { router.push('/app-info'); setShowMenu(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{ color: '#00e5ff' }}
+            >
+              ℹ️ アプリ情報
             </button>
 
             {/* ヘルプ */}
