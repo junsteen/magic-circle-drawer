@@ -256,13 +256,19 @@ export default function MagicCircleCanvas({
         </div>
       )}
 
-      <div className="relative w-[350px] max-w-full">
+      <div className="relative w-[350px] max-w-full" style={{ touchAction: 'none' }}>
         <canvas
           ref={canvasRef}
           width={canvasSize}
           height={canvasSize}
           className="rounded-lg border-2 border-gray-700 w-full h-auto touch-none"
-          style={{ background: '#0a0a14', display: 'block', pointerEvents: isReplaying ? 'none' : 'auto' }}
+          style={{
+            background: '#0a0a14',
+            display: 'block',
+            pointerEvents: isReplaying ? 'none' : 'auto',
+            touchAction: 'none',
+            cursor: isDrawing ? 'crosshair' : 'auto'
+          }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

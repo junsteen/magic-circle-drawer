@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert Test</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        button { padding: 20px 40px; font-size: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <button onclick="showAlert()">テストアラートを表示</button>
+
+    <script>
+        function showAlert() {
+            console.log("ボタンがクリックされました"); // ログが出るか確認用
+            alert("スマホでアラートが表示されました！");
+        }
+    </script>
+</body>
+</html>
