@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue *)",
+      "WebFetch(domain:github.com)",
+      "Read(//e/work/magic-circle-drawer/**)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(npm install *)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh auth *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(npm test *)"
+    ]
+  }
+}

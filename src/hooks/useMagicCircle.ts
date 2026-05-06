@@ -165,6 +165,10 @@ export function useMagicCircle(
   // リプレイ状態を同期するためのref（userPathエフェクトがアニメーション中にキャンバスクリアしないように）
   const isReplayingRef = useRef(false);
 
+  // stale closure回避用ref: React再レンダリング前にポインターイベントで参照するため
+  const isDrawingRef = useRef(false);
+  const showResultRef = useRef(false);
+
   // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
   const voiceHook = useVoiceActivation(async () => {
     // 音声が検知されたときのコールバック
@@ -390,50 +394,60 @@ export function useMagicCircle(
   }, []);
 
   const startDrawing = useCallback((pos: { x: number; y: number }) => {
-    if (showResult || isReplaying) return;
+    if (showResultRef.current || isReplayingRef.current) return;
     if (!isActive) setIsActive(true);
+    isDrawingRef.current = true;
     setIsDrawing(true);
     setUserPath([{ x: pos.x, y: pos.y }]);
     // 描画ログ記録: start タイミングで新しいストロークを開始
     strokeStartTimeRef.current = performance.now();
     drawLogRef.current = [{ x: pos.x, y: pos.y, t: 0, type: 'start' }];
     setDebugMsg('描画中...');
-  }, [showResult, isActive, isReplaying]);
+  }, [isActive]);
 
   const draw = useCallback((pos: { x: number; y: number }) => {
-    if (!isDrawing || showResult || isReplaying) return;
+    if (!isDrawingRef.current || showResultRef.current || isReplayingRef.current) return;
     setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
     // 描画ログ記録: move イベント
     const elapsed = performance.now() - strokeStartTimeRef.current;
     drawLogRef.current.push({ x: pos.x, y: pos.y, t: elapsed, type: 'move' });
-  }, [isDrawing, showResult, isReplaying]);
+  }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
     if (canvasRef.current) {
-      canvasRef.current.releasePointerCapture(e.pointerId);
+      canvasRef.current.setPointerCapture(e.pointerId);
     }
     startDrawing(getCanvasPos(e.clientX, e.clientY));
   }, [startDrawing, getCanvasPos]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
-    if (isDrawing) draw(getCanvasPos(e.clientX, e.clientY));
-  }, [isDrawing, draw, getCanvasPos]);
+    if (isDrawingRef.current) draw(getCanvasPos(e.clientX, e.clientY));
+  }, [draw, getCanvasPos]);
 
-  const onPointerUp = useCallback(() => {
-    if (isDrawing) {
-      setIsDrawing(false);
-      // 描画ログ記録: end イベントでストロークを保存
-      const elapsed = performance.now() - strokeStartTimeRef.current;
-      const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
+  const onPointerUp = useCallback((e?: React.PointerEvent) => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    setIsDrawing(false);
+    // 描画ログ記録: end イベントでストロークを保存
+    const elapsed = performance.now() - strokeStartTimeRef.current;
+    const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
+    if (lastPoint) {
       drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
-      setDrawLogs((prev) => [...prev, [...drawLogRef.current]]);
-      drawLogRef.current = [];
-      setUserPath([]);
-      setDebugMsg('描画完了。スコア判定しますか？');
     }
-  }, [isDrawing]);
+    // drawLogRef.current を先にキャプチャしてから clearする
+    // setDrawLogs updater は React バッチ処理で遅延実行されるため、
+    // その時点では drawLogRef.current が既に [] にクリアされている
+    const strokeToSave = [...drawLogRef.current];
+    drawLogRef.current = [];
+    setDrawLogs((prev) => [...prev, strokeToSave]);
+    setUserPath([]);
+    setDebugMsg('描画完了。スコア判定しますか？');
+    if (e && canvasRef.current) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
+    }
+  }, []);
 
   const handleEvaluate = useCallback(() => {
     // タイマー停止とアクティブ状態リセット
@@ -450,6 +464,7 @@ export function useMagicCircle(
     result.difficultyMultiplier = DIFFICULTY_MULTIPLIER[difficulty];
 
     setScoreResult(result);
+    showResultRef.current = true;
     setShowResult(true);
     // ハプティックフィードバック（対応デバイスのみ）
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -504,6 +519,8 @@ export function useMagicCircle(
   }, [userPath, currentPattern, difficulty, onScore, drawLogs, canvasRef]);
 
   const handleReset = useCallback(() => {
+    isDrawingRef.current = false;
+    showResultRef.current = false;
     setIsDrawing(false);
     setUserPath([]);
     setIsActive(false);
@@ -529,6 +546,8 @@ export function useMagicCircle(
     const randomP = generateRandomPattern({ difficulty, canvasSize: CANVAS_SIZE });
     setPatterns((prev) => [...prev, randomP]);
     setCurrentIdx((prev) => prev + 1);
+    isDrawingRef.current = false;
+    showResultRef.current = false;
     setIsDrawing(false);
     setUserPath([]);
     setIsActive(false);
@@ -550,6 +569,8 @@ export function useMagicCircle(
     // Go to previous pattern if available
     if (currentIdx > 0) {
       setCurrentIdx((prev) => prev - 1);
+      isDrawingRef.current = false;
+      showResultRef.current = false;
       setIsDrawing(false);
       setUserPath([]);
       setIsActive(false);
@@ -610,6 +631,7 @@ export function useMagicCircle(
     setIsReplaying(true);
     isReplayingRef.current = true;
     setIsActive(false);
+    showResultRef.current = false;
     setShowResult(false);
 
     // サムネイル画像をキャンバスから生成
