@@ -133,21 +133,21 @@ describe('HistoryDetail — 再生ボタン動作', () => {
     (HTMLCanvasElement.prototype as any).getContext = () => null;
   });
 
-  it('▶️ 再生ボタンを押すと ⏸️ 一時停止 に変わる', () => {
+  it('▶️ 再生ボタンを押すと ⏹️ 停止 に変わる', () => {
     renderDetail(makeHistory(2));
     const btn = screen.getByRole('button', { name: /▶️ 再生/ });
 
     act(() => { fireEvent.click(btn); });
 
-    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /⏹️ 停止/ })).toBeTruthy();
   });
 
-  it('⏸️ 一時停止ボタンを押すと ▶️ 再生 に戻る', () => {
+  it('⏹️ 停止ボタンを押すと ▶️ 再生 に戻る', () => {
     renderDetail(makeHistory(2));
     const playBtn = screen.getByRole('button', { name: /▶️ 再生/ });
 
     act(() => { fireEvent.click(playBtn); });
-    const pauseBtn = screen.getByRole('button', { name: /⏸️ 一時停止/ });
+    const pauseBtn = screen.getByRole('button', { name: /⏹️ 停止/ });
     act(() => { fireEvent.click(pauseBtn); });
 
     expect(screen.getByRole('button', { name: /▶️ 再生/ })).toBeTruthy();
@@ -159,7 +159,7 @@ describe('HistoryDetail — 再生ボタン動作', () => {
 
     // 再生開始
     act(() => { fireEvent.click(btn); });
-    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /⏹️ 停止/ })).toBeTruthy();
 
     // 別の履歴に切り替え
     act(() => {
@@ -298,7 +298,7 @@ describe('HistoryDetail — 自動再生', () => {
   it('drawLogs があるとき history が開くと自動再生が始まる', () => {
     renderDetail(makeHistory(2));
     act(() => { vi.runAllTimers(); });
-    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /⏹️ 停止/ })).toBeTruthy();
   });
 
   it('drawLogs が空のとき自動再生は起動しない', () => {
@@ -311,7 +311,7 @@ describe('HistoryDetail — 自動再生', () => {
     const { rerender } = renderDetail(makeHistory(2, 'history-a'));
     act(() => { vi.runAllTimers(); });
     // 一時停止して確認
-    act(() => { fireEvent.click(screen.getByRole('button', { name: /⏸️ 一時停止/ })); });
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /⏹️ 停止/ })); });
     expect(screen.getByRole('button', { name: /▶️ 再生/ })).toBeTruthy();
 
     // 別履歴に切り替え
@@ -326,6 +326,6 @@ describe('HistoryDetail — 自動再生', () => {
     });
     act(() => { vi.runAllTimers(); });
 
-    expect(screen.getByRole('button', { name: /⏸️ 一時停止/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /⏹️ 停止/ })).toBeTruthy();
   });
 });

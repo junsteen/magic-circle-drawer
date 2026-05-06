@@ -498,7 +498,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                 className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
               >
-                {isPlaying ? '⏸️ 一時停止' : '▶️ 再生'}
+                {isPlaying ? '⏹️ 停止' : '▶️ 再生'}
               </button>
               
               {/* Seek Bar */}
