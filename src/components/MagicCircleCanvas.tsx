@@ -27,6 +27,7 @@ export default function MagicCircleCanvas({
   onLoadDataRef,
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate,
+  initialPatternName,
 }: {
   /** スコア計算完了時のコールバック */
   onScore: (result: ScoringResult) => void;
@@ -38,6 +39,7 @@ export default function MagicCircleCanvas({
   onLoadDataRef?: (loadFn: (data: MagicCircleData) => void) => void;
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
+  initialPatternName?: string;
 }) {
   const router = useRouter();
 
@@ -54,7 +56,7 @@ export default function MagicCircleCanvas({
     // 音声検知
     voiceActivation,
     setVoiceActivation
-  } = useMagicCircle(onScore, onReset, onCompletionUpdate);
+  } = useMagicCircle(onScore, onReset, onCompletionUpdate, initialPatternName);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);

@@ -424,7 +424,7 @@ export function useMagicCircle(
       canvas.removeEventListener('pointerup', handlePointerUp, true);
       canvas.removeEventListener('pointerleave', handlePointerUp, true);
     };
-  }, [isDrawing, startDrawing, getCanvasPos, draw]);
+  }, [isDrawing]);
 
   useEffect(() => {
     if (!isReplayingRef.current) {
