@@ -277,7 +277,7 @@ export default function MagicCircleCanvas({
           onPointerLeave={onPointerUp}
         />
 
-        {!isDrawing && !showResult && (
+        {!isDrawing && !showResult && drawLogs.length === 0 && (
           <div
             className="absolute tutorial-arrow"
             style={{
