@@ -120,3 +120,13 @@ body {
 .grimoire-seal-break {
   animation: grimoire-seal-break 900ms ease-out forwards;
 }
+
+/* チャレンジ達成時の発光エフェクト */
+@keyframes grimoire-challenge-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(0, 229, 255, 0.3), inset 0 0 6px rgba(0, 229, 255, 0.06); }
+  50% { box-shadow: 0 0 18px rgba(0, 229, 255, 0.6), inset 0 0 12px rgba(0, 229, 255, 0.12); }
+}
+
+.grimoire-challenge-complete {
+  animation: grimoire-challenge-glow 2.5s ease-in-out infinite;
+}
