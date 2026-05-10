@@ -62,19 +62,36 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   };
 
   const handleDeleteAll = async () => {
-    if (histories.length === 0) return;
+    /** 現在のフィルタで表示中の履歴をすべて削除 */
+    if (filteredHistories.length === 0) return;
+    const filterLabel =
+      selectedFilter === null
+        ? 'すべての履歴'
+        : selectedFilter === STAR_FILTER
+          ? '★お気に入りの履歴'
+          : `タグ「${selectedFilter}」の履歴`;
     if (
       !window.confirm(
-        `すべての履歴（${histories.length}件）を削除しますか？\nこの操作は元に戻せません。`,
+        `${filterLabel}（${filteredHistories.length}件）を削除しますか？\nこの操作は元に戻せません。`,
       )
     )
       return;
     try {
-      await deleteAllHistories();
-      setHistories([]);
-      setSelectedFilter(null);
+      if (selectedFilter === null) {
+        // 全件削除はストアごとクリアして高速化
+        await deleteAllHistories();
+        setHistories([]);
+      } else {
+        const targetIds = new Set(filteredHistories.map((h) => h.id));
+        for (const id of targetIds) {
+          await deleteHistory(id);
+        }
+        setHistories((prev) => prev.filter((h) => !targetIds.has(h.id)));
+        // 削除後、選択中フィルタが空になったら全件表示に戻す
+        setSelectedFilter(null);
+      }
     } catch (e) {
-      console.error('Failed to delete all histories:', e);
+      console.error('Failed to delete histories:', e);
     }
   };
 
@@ -197,7 +214,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
             📜 作成履歴
           </h2>
           <div className="flex items-center gap-2">
-            {histories.length > 0 && (
+            {filteredHistories.length > 0 && (
               <button
                 onClick={handleDeleteAll}
                 className="rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
@@ -207,7 +224,11 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                   background: 'rgba(255, 64, 129, 0.08)',
                   touchAction: 'manipulation',
                 }}
-                title="すべての履歴を削除"
+                title={
+                  selectedFilter === null
+                    ? 'すべての履歴を削除'
+                    : '表示中の履歴をまとめて削除'
+                }
               >
                 🗑 すべて削除
               </button>
