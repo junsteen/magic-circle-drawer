@@ -121,10 +121,14 @@ function ReplayContent() {
           router.push('/');
         }} 
         onReEdit={(data) => {
-          // Navigate to home with data for re-editing
-          // In a real implementation, you might want to pass this via state or context
-          router.push('/');
-        }} 
+          // パターン名をURLパラメータとしてホームに渡して再編集
+          if (data && data.data && data.data.pattern && data.data.pattern.name) {
+            const patternName = encodeURIComponent(data.data.pattern.name);
+            router.push(`/?pattern=${patternName}`);
+          } else {
+            router.push('/');
+          }
+        }}
       />
     </div>
   );

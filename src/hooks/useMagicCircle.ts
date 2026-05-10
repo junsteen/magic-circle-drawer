@@ -88,7 +88,7 @@ export interface UseMagicCircleReturn {
   /** ポインタームーブイベントハンドラー */
   onPointerMove: (e: React.PointerEvent) => void;
   /** ポインタアップイベントハンドラー */
-  onPointerUp: () => void;
+  onPointerUp: (e?: React.PointerEvent) => void;
   // リプレイ関連
   /** 描画ログ（リプレイ用） */
   drawLogs: DrawStroke[];
@@ -132,12 +132,14 @@ export interface UseMagicCircleReturn {
  * @param onScore - スコア計算完了時のコールバック関数
  * @param onReset - リセット時のコールバック関数
  * @param onCompletionUpdate - 完了状況更新時のコールバック関数（オプション）
+ * @param initialPatternName - 再編集用の初期パターン名（オプション）
  * @returns 魔法陣Canvasの状態と制御関数を含むオブジェクト
  */
 export function useMagicCircle(
   onScore: (result: ScoringResult) => void,
   onReset: () => void,
-  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void
+  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void,
+  initialPatternName?: string
 ): UseMagicCircleReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -219,8 +221,15 @@ export function useMagicCircle(
   useEffect(() => {
     const preset = createPresetPattern(CANVAS_SIZE);
     setPatterns(preset);
-    setCurrentIdx(0);
-  }, []);
+
+    // 再編集用の初期パターンが指定されている場合は該当パターンに切り替え
+    if (initialPatternName) {
+      const foundIdx = preset.findIndex(p => p.name === initialPatternName);
+      setCurrentIdx(foundIdx !== -1 ? foundIdx : 0);
+    } else {
+      setCurrentIdx(0);
+    }
+  }, [initialPatternName]);
 
   // Update completion status when patterns change
   useEffect(() => {
@@ -364,19 +373,75 @@ export function useMagicCircle(
     }
   }, [userPath, drawStrokes]);
 
-  useEffect(() => { 
+  useEffect(() => {
     if (currentPattern) {
       drawTemplate(currentPattern);
     }
   }, [drawTemplate, currentPattern]);
-  
+
+  // ネイティブポインターイベントリスナーをキャンバスに直接アタッチ
+  // (React合成イベントの問題を回避)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      console.log('[useMagicCircle-native] pointerdown triggered');
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      startDrawing(getCanvasPos(e.clientX, e.clientY));
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (isDrawing) {
+        console.log('[useMagicCircle-native] pointermove triggered');
+        e.preventDefault();
+        draw(getCanvasPos(e.clientX, e.clientY));
+      }
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (isDrawing) {
+        console.log('[useMagicCircle-native] pointerup triggered');
+        e.preventDefault();
+        // onPointerUp로직을 직접 실행
+        setIsDrawing(false);
+        const elapsed = performance.now() - strokeStartTimeRef.current;
+        const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
+        drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
+        console.log('[useMagicCircle-native] strokeToSave length:', drawLogRef.current.length);
+        const strokeToSave = [...drawLogRef.current];
+        setDrawLogs((prev) => {
+          console.log('[useMagicCircle-native] setDrawLogs callback, adding stroke with', strokeToSave.length, 'events');
+          return [...prev, strokeToSave];
+        });
+        drawLogRef.current = [];
+        setUserPath([]);
+        setDebugMsg('描画完了。スコア判定しますか？');
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    };
+
+    canvas.addEventListener('pointerdown', handlePointerDown, true);
+    canvas.addEventListener('pointermove', handlePointerMove, true);
+    canvas.addEventListener('pointerup', handlePointerUp, true);
+    canvas.addEventListener('pointerleave', handlePointerUp, true);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown, true);
+      canvas.removeEventListener('pointermove', handlePointerMove, true);
+      canvas.removeEventListener('pointerup', handlePointerUp, true);
+      canvas.removeEventListener('pointerleave', handlePointerUp, true);
+    };
+  }, [isDrawing]);
+
   useEffect(() => {
     if (!isReplayingRef.current) {
       // Draw completed strokes
       if (drawLogs.length > 0) {
         drawStrokes(drawLogs);
       }
-      
+
       // Draw current stroke being drawn
       if (userPath.length > 0) {
         drawUserPath();
@@ -414,6 +479,7 @@ export function useMagicCircle(
   }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    console.log('[useMagicCircle] onPointerDown triggered');
     e.stopPropagation();
     if (canvasRef.current) {
       canvasRef.current.setPointerCapture(e.pointerId);
