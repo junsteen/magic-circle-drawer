@@ -320,7 +320,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     // Clamp time between 0 and totalDuration
     const clampedTime = Math.max(0, Math.min(time, totalDuration));
     setCurrentTime(clampedTime);
-    
+
     // If currently playing, restart animation from new position
     if (isPlaying) {
       if (replayAnimRef.current !== null) {
@@ -430,8 +430,85 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       };
       
       replayAnimRef.current = requestAnimationFrame(animate);
+    } else {
+      // 一時停止中にシークした場合、その時刻時点の描画をキャンバスに即時反映する
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx || !history?.data?.drawLogs) return;
+
+      const normalizedLogs = createReplayDrawLogs(history.data.drawLogs);
+      const STROKE_INTERVAL_MS = 500;
+      const allEvents: DrawEvent[] = [];
+      let timeOffset = 0;
+      for (const stroke of normalizedLogs) {
+        if (stroke.length === 0) continue;
+        for (const ev of stroke) {
+          allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+        }
+        if (allEvents.length > 0) {
+          timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+        }
+      }
+
+      drawTemplate(history.data.pattern);
+
+      const pts: { x: number; y: number }[] = [];
+      for (const ev of allEvents) {
+        if (ev.t <= clampedTime) {
+          pts.push({ x: ev.x, y: ev.y });
+        }
+      }
+
+      if (pts.length > 1) {
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = '#00e5ff';
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
     }
   }, [history, isPlaying, currentTime, totalDuration, drawTemplate]);
+
+  const handleShare = useCallback(async () => {
+    if (!history?.data?.drawLogs) return;
+    try {
+      const shareData = {
+        pattern: history.data.pattern,
+        drawLogs: history.data.drawLogs,
+        score: history.score,
+        rank: history.rank,
+        difficulty: history.difficulty,
+        difficultyMultiplier: history.difficultyMultiplier,
+        damageMultiplier: history.damageMultiplier,
+      };
+      const compressed = compressForUrl(shareData);
+      if (!compressed) throw new Error('Failed to compress data');
+      const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Arcane Tracer - ${history.data.pattern.name}`,
+          text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setDebugMsg('📤 共有リンクをクリップボードにコピーしました！');
+        setTimeout(() => setDebugMsg(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to share:', err);
+      setDebugMsg('共有に失敗しました');
+      setTimeout(() => setDebugMsg(''), 3000);
+    }
+  }, [history]);
 
   if (!history) return null;
 
@@ -447,6 +524,12 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const formatDate = (ts: number): string => {
     const d = new Date(ts);
     return d.toLocaleString('ja-JP');
+  };
+
+  const formatTime = (ms: number): string => {
+    const s = Math.floor(ms / 1000);
+    const cs = Math.floor((ms % 1000) / 10);
+    return `${s}:${String(cs).padStart(2, '0')}`;
   };
 
   return (
@@ -473,13 +556,98 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         <div className="flex flex-col gap-4 p-4 sm:flex-row">
           {/* Canvas Area */}
           <div className="flex w-full flex-col items-center sm:w-1/2">
-            <canvas
-              ref={handleCanvasRef}
-              width={CANVAS_SIZE}
-              height={CANVAS_SIZE}
-              className="w-full max-w-[350px] rounded-lg border-2 border-gray-700"
-              style={{ background: '#0a0a14', display: 'block' }}
-            />
+            {/* Canvasとオーバーレイのラッパー */}
+            <div className="relative w-full max-w-[350px]">
+              <canvas
+                ref={handleCanvasRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                className="w-full rounded-lg border-2 border-gray-700 block"
+                style={{ background: '#0a0a14' }}
+              />
+
+              {/* 中央の再生/停止オーバーレイ */}
+              <div
+                className="absolute inset-0 flex items-center justify-center cursor-pointer rounded-lg"
+                onClick={() => isPlaying ? handlePause() : handlePlay()}
+                style={{ background: isPlaying ? 'transparent' : 'rgba(0,0,0,0.15)' }}
+              >
+                {!isPlaying && !!history.data?.drawLogs?.length && (
+                  <div
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: 64,
+                      height: 64,
+                      background: 'rgba(0,0,0,0.65)',
+                      border: '2px solid rgba(0,229,255,0.6)',
+                      boxShadow: '0 0 20px rgba(0,229,255,0.3)',
+                    }}
+                  >
+                    <div style={{
+                      width: 0,
+                      height: 0,
+                      borderTop: '12px solid transparent',
+                      borderBottom: '12px solid transparent',
+                      borderLeft: '20px solid #00e5ff',
+                      marginLeft: 6,
+                    }} />
+                  </div>
+                )}
+              </div>
+
+              {/* 共有ボタン（右上オーバーレイ） */}
+              <button
+                onClick={handleShare}
+                className="absolute top-2 right-2 flex items-center justify-center rounded-full text-sm transition-opacity hover:opacity-80"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: 'rgba(0,0,0,0.65)',
+                  border: '1px solid rgba(0,229,255,0.4)',
+                  color: '#00e5ff',
+                }}
+                title="共有"
+              >
+                📤
+              </button>
+
+              {/* 下部シークバーオーバーレイ */}
+              {totalDuration > 0 && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-b-lg px-3 pb-2 pt-6"
+                  style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}
+                >
+                  <div className="flex justify-between text-xs mb-1" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(totalDuration)}</span>
+                  </div>
+                  <div className="relative">
+                    <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${(currentTime / totalDuration) * 100}%`,
+                          background: '#00e5ff',
+                        }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max={totalDuration}
+                      value={currentTime}
+                      onChange={(e) => {
+                        const time = parseFloat(e.target.value);
+                        setCurrentTime(time);
+                        handleSeek(time);
+                      }}
+                      className="absolute w-full cursor-pointer opacity-0"
+                      style={{ height: 16, top: -7, left: 0 }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Debug / Status */}
             {debugMsg && (
@@ -487,97 +655,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                 {debugMsg}
               </div>
             )}
-
-            {/* Action Buttons */}
-            <div className="mt-3 flex gap-2 flex-wrap justify-center">
-              <button
-                onClick={() => {
-                  isPlaying ? handlePause() : handlePlay();
-                }}
-                disabled={!history || !history.data || !history.data.drawLogs || history.data.drawLogs.length === 0}
-                className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #ffd700, #ff9100)' }}
-              >
-                {isPlaying ? '⏹️ 停止' : '▶️ 再生'}
-              </button>
-              
-              {/* Seek Bar */}
-              {totalDuration > 0 && (
-                <div className="flex-1 min-w-[200px] flex flex-col items-center">
-                  <div className="flex w-full justify-between text-xs text-gray-400">
-                    <span>{Math.floor(currentTime / 1000)}s</span>
-                    <span>{Math.floor(totalDuration / 1000)}s</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max={totalDuration}
-                    value={currentTime}
-                    onChange={(e) => {
-                      const time = parseFloat(e.target.value);
-                      setCurrentTime(time);
-                      handleSeek(time);
-                    }}
-                    className="w-full"
-                  />
-                </div>
-              )}
-              
-              {/* Share Button */}
-              <button
-                onClick={async () => {
-                  if (history && history.data && history.data.drawLogs) {
-                    try {
-                      // Compress the data for URL sharing (only essential data to keep URL short)
-                      const shareData = {
-                        pattern: history.data.pattern,
-                        drawLogs: history.data.drawLogs,
-                        // Include minimal metadata for proper scoring
-                        score: history.score,
-                        rank: history.rank,
-                        difficulty: history.difficulty,
-                        difficultyMultiplier: history.difficultyMultiplier,
-                        damageMultiplier: history.damageMultiplier
-                      };
-                      
-                      const compressed = compressForUrl(shareData);
-                      if (!compressed) {
-                        throw new Error('Failed to compress data');
-                      }
-                      
-                      // Create shareable URL
-                      const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-                      
-                      // Try to use the Web Share API if available
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: `Arcane Tracer - ${history.data.pattern.name}`,
-                          text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
-                          url: shareUrl
-                        });
-                      } else {
-                        // Fallback: copy to clipboard
-                        await navigator.clipboard.writeText(shareUrl);
-                        
-                        // Show success message
-                        const originalMsg = debugMsg;
-                        setDebugMsg('📤 共有リンクをクリップボードにコピーしました！');
-                        setTimeout(() => setDebugMsg(originalMsg), 3000);
-                      }
-                    } catch (err) {
-                      console.error('Failed to share:', err);
-                      const originalMsg = debugMsg;
-                      setDebugMsg('共有に失敗しました');
-                      setTimeout(() => setDebugMsg(originalMsg), 3000);
-                    }
-                  }
-                }}
-                className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-black transition-opacity hover:opacity-80"
-                style={{ background: 'linear-gradient(135deg, #00e5ff, #76ff03)' }}
-              >
-                📤 共有
-              </button>
-            </div>
           </div>
 
           {/* Info Area */}
