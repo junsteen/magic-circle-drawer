@@ -122,8 +122,8 @@ function ReplayContent() {
         }} 
         onReEdit={(data) => {
           // パターン名をURLパラメータとしてホームに渡して再編集
-          if (data && data.pattern && data.pattern.name) {
-            const patternName = encodeURIComponent(data.pattern.name);
+          if (data && data.data && data.data.pattern && data.data.pattern.name) {
+            const patternName = encodeURIComponent(data.data.pattern.name);
             router.push(`/?pattern=${patternName}`);
           } else {
             router.push('/');
