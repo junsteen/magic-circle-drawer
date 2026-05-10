@@ -60,3 +60,8 @@ body {
 .tutorial-arrow {
   animation: pulse-marker 1.5s ease-in-out infinite;
 }
+
+/* 詠唱完了ボタンの呼吸光エフェクト */
+.btn-breathe {
+  animation: glow-pulse 1.8s ease-in-out infinite;
+}
