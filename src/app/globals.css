@@ -75,3 +75,24 @@ body {
 .grimoire-fade-in {
   animation: grimoire-fade 180ms ease-out;
 }
+
+/* 魔導書カード内の魔法陣プレビュー：ゆるやかな回転 */
+@keyframes grimoire-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.grimoire-rotate {
+  animation: grimoire-rotate 60s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* 魔導書カードフレーム：1-2%の控えめパルス */
+@keyframes grimoire-frame-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0); }
+  50% { box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.18); }
+}
+
+.grimoire-card {
+  animation: grimoire-frame-pulse 4s ease-in-out infinite;
+}

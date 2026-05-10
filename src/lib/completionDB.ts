@@ -11,7 +11,7 @@ const STORE_NAME = 'completion';
 /**
  * 完了記録のインターフェース
  */
-interface CompletionRecord {
+export interface CompletionRecord {
   /** パターン名 */
   patternName: string;
   /** 最高スコア */
