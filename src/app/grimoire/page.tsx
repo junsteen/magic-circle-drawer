@@ -181,7 +181,7 @@ function CircleGrid({
   return (
     <div
       className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
-      style={{ scrollSnapType: 'x mandatory' }}
+      style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
     >
       {patterns.map((p) => (
         <button
@@ -189,7 +189,7 @@ function CircleGrid({
           onClick={() =>
             onSelect({ type: 'circle', pattern: p, completion: completionMap.get(p.name) })
           }
-          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0, touchAction: 'manipulation' }}
         >
           <MagicCircleCard pattern={p} completion={completionMap.get(p.name)} />
         </button>
@@ -210,7 +210,7 @@ function AchievementGrid({
   return (
     <div
       className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
-      style={{ scrollSnapType: 'x mandatory' }}
+      style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
     >
       {ACHIEVEMENTS.map((a) => (
         <button
@@ -218,7 +218,7 @@ function AchievementGrid({
           onClick={() =>
             onSelect({ type: 'achievement', achievement: a, unlocked: unlockedIds.has(a.id) })
           }
-          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0, touchAction: 'manipulation' }}
         >
           <AchievementCard
             achievement={a}
@@ -245,7 +245,7 @@ function TitleGrid({
   return (
     <div
       className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
-      style={{ scrollSnapType: 'x mandatory' }}
+      style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
     >
       {TITLES.map((t) => (
         <button
@@ -253,7 +253,7 @@ function TitleGrid({
           onClick={() =>
             onSelect({ type: 'title', title: t, unlocked: unlockedIds.has(t.achievementId) })
           }
-          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0, touchAction: 'manipulation' }}
         >
           <TitleCard
             title={t}
@@ -279,7 +279,7 @@ function ChallengeGrid({
   return (
     <div
       className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
-      style={{ scrollSnapType: 'x mandatory' }}
+      style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
     >
       {CHALLENGES.map((c) => {
         const progress = c.getProgress({ histories, completions });
@@ -287,7 +287,7 @@ function ChallengeGrid({
           <button
             key={c.id}
             onClick={() => onSelect({ type: 'challenge', challenge: c, progress })}
-            style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+            style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0, touchAction: 'manipulation' }}
           >
             <ChallengeCard challenge={c} progress={progress} />
           </button>
