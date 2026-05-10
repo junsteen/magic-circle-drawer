@@ -380,7 +380,7 @@ export default function MagicCircleCanvas({
         <button
           onClick={handleEvaluate}
           disabled={showResult || isReplaying}
-          className="cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80"
+          className={`cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80${(isDrawing || drawLogs.length > 0) && !showResult && !isReplaying ? ' btn-breathe' : ''}`}
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           詠唱完了！
