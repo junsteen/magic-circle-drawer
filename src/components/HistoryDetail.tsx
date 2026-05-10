@@ -320,7 +320,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     // Clamp time between 0 and totalDuration
     const clampedTime = Math.max(0, Math.min(time, totalDuration));
     setCurrentTime(clampedTime);
-    
+
     // If currently playing, restart animation from new position
     if (isPlaying) {
       if (replayAnimRef.current !== null) {
@@ -430,6 +430,50 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       };
       
       replayAnimRef.current = requestAnimationFrame(animate);
+    } else {
+      // 一時停止中にシークした場合、その時刻時点の描画をキャンバスに即時反映する
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx || !history?.data?.drawLogs) return;
+
+      const normalizedLogs = createReplayDrawLogs(history.data.drawLogs);
+      const STROKE_INTERVAL_MS = 500;
+      const allEvents: DrawEvent[] = [];
+      let timeOffset = 0;
+      for (const stroke of normalizedLogs) {
+        if (stroke.length === 0) continue;
+        for (const ev of stroke) {
+          allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+        }
+        if (allEvents.length > 0) {
+          timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+        }
+      }
+
+      drawTemplate(history.data.pattern);
+
+      const pts: { x: number; y: number }[] = [];
+      for (const ev of allEvents) {
+        if (ev.t <= clampedTime) {
+          pts.push({ x: ev.x, y: ev.y });
+        }
+      }
+
+      if (pts.length > 1) {
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = '#00e5ff';
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
     }
   }, [history, isPlaying, currentTime, totalDuration, drawTemplate]);
 
