@@ -36,4 +36,8 @@ export interface MagicCircleHistory {
   damageMultiplier: string;
   thumbnail?: string; // DataURL of canvas snapshot
   createdAt: number;
+  /** ユーザー定義タグ（任意名・複数可） */
+  tags?: string[];
+  /** ★お気に入りフラグ */
+  starred?: boolean;
 }
