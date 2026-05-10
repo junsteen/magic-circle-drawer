@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPresetPattern, type MagicCirclePattern } from '@/lib/patterns';
 import { getAllCompletions, type CompletionRecord } from '@/lib/completionDB';
+import { ACHIEVEMENTS } from '@/lib/achievements';
+import {
+  checkAndUnlockAchievements,
+  getUnlockedAchievementIds,
+} from '@/lib/achievementDB';
 import MagicCircleCard from '@/components/grimoire/MagicCircleCard';
+import AchievementCard from '@/components/grimoire/AchievementCard';
 
 const PATTERN_CANVAS_SIZE = 350;
 
@@ -27,12 +33,22 @@ export default function GrimoirePage() {
   const [tab, setTab] = useState<TabId>('circles');
   const [patterns, setPatterns] = useState<MagicCirclePattern[]>([]);
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
+  const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
+  const [justUnlockedIds, setJustUnlockedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setPatterns(createPresetPattern(PATTERN_CANVAS_SIZE));
     getAllCompletions()
       .then(setCompletions)
       .catch((e) => console.error('Failed to load completions:', e));
+    // 履歴・完了データから条件を再評価し新規解除分を保存
+    checkAndUnlockAchievements()
+      .then(async (newlyUnlocked) => {
+        setJustUnlockedIds(new Set(newlyUnlocked));
+        const all = await getUnlockedAchievementIds();
+        setUnlockedIds(all);
+      })
+      .catch((e) => console.error('Failed to check achievements:', e));
   }, []);
 
   const completionMap = new Map(completions.map((c) => [c.patternName, c]));
@@ -98,12 +114,18 @@ export default function GrimoirePage() {
         {tab === 'circles' && (
           <CircleGrid patterns={patterns} completionMap={completionMap} />
         )}
-        {tab !== 'circles' && (
+        {tab === 'achievements' && (
+          <AchievementGrid
+            unlockedIds={unlockedIds}
+            justUnlockedIds={justUnlockedIds}
+          />
+        )}
+        {(tab === 'titles' || tab === 'challenges') && (
           <p
             className="text-center text-xs"
             style={{ color: '#4a4a6a' }}
           >
-            (T3以降のタスクで実装予定)
+            (T5以降のタスクで実装予定)
           </p>
         )}
       </main>
@@ -135,6 +157,30 @@ function CircleGrid({
           key={p.name}
           pattern={p}
           completion={completionMap.get(p.name)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AchievementGrid({
+  unlockedIds,
+  justUnlockedIds,
+}: {
+  unlockedIds: Set<string>;
+  justUnlockedIds: Set<string>;
+}) {
+  return (
+    <div
+      className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
+      style={{ scrollSnapType: 'x mandatory' }}
+    >
+      {ACHIEVEMENTS.map((a) => (
+        <AchievementCard
+          key={a.id}
+          achievement={a}
+          unlocked={unlockedIds.has(a.id)}
+          justUnlocked={justUnlockedIds.has(a.id)}
         />
       ))}
     </div>
