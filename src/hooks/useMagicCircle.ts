@@ -132,12 +132,14 @@ export interface UseMagicCircleReturn {
  * @param onScore - スコア計算完了時のコールバック関数
  * @param onReset - リセット時のコールバック関数
  * @param onCompletionUpdate - 完了状況更新時のコールバック関数（オプション）
+ * @param initialPatternName - 再編集用の初期パターン名（オプション）
  * @returns 魔法陣Canvasの状態と制御関数を含むオブジェクト
  */
 export function useMagicCircle(
   onScore: (result: ScoringResult) => void,
   onReset: () => void,
-  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void
+  onCompletionUpdate?: (status: { completed: number; total: number } | null) => void,
+  initialPatternName?: string
 ): UseMagicCircleReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -219,8 +221,15 @@ export function useMagicCircle(
   useEffect(() => {
     const preset = createPresetPattern(CANVAS_SIZE);
     setPatterns(preset);
-    setCurrentIdx(0);
-  }, []);
+
+    // 再編集用の初期パターンが指定されている場合は該当パターンに切り替え
+    if (initialPatternName) {
+      const foundIdx = preset.findIndex(p => p.name === initialPatternName);
+      setCurrentIdx(foundIdx !== -1 ? foundIdx : 0);
+    } else {
+      setCurrentIdx(0);
+    }
+  }, [initialPatternName]);
 
   // Update completion status when patterns change
   useEffect(() => {

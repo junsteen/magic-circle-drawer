@@ -1,10 +1,12 @@
 'use client';
 
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import MagicCircleCanvas from '@/components/MagicCircleCanvas';
 import { ScoringResult } from '@/lib/scoring';
-import { useState } from 'react';
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
   const [lastResult, setLastResult] = useState<ScoringResult | null>(null);
   const [completionStatus, setCompletionStatus] = useState<{ completed: number; total: number } | null>(null);
 
@@ -19,6 +21,10 @@ export default function Home() {
   const handleCompletionUpdate = (status: { completed: number; total: number } | null) => {
     setCompletionStatus(status);
   };
+
+  // URLパラメータからパターン名を取得（再編集用）
+  const patternParam = searchParams.get('pattern');
+  const initialPatternName = patternParam ? decodeURIComponent(patternParam) : undefined;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: '#0d0d1a' }}>
@@ -39,6 +45,7 @@ export default function Home() {
         onScore={handleScore}
         onReset={handleReset}
         onCompletionUpdate={handleCompletionUpdate}
+        initialPatternName={initialPatternName}
       />
 
       {lastResult && (
@@ -49,12 +56,12 @@ export default function Home() {
           </div>
         </div>
       )}
-      
+
       {/* 完了状況表示 */}
       {completionStatus && (
         <div className="mt-4 text-center text-sm text-gray-400">
-          魔法陣修得: {completionStatus.completed} / {completionStatus.total} 
-          {completionStatus.completed === completionStatus.total && 
+          魔法陣修得: {completionStatus.completed} / {completionStatus.total}
+          {completionStatus.completed === completionStatus.total &&
             <span className="text-lg font-bold text-green-500 ml-2">🎉 全制覇！</span>
           }
         </div>
@@ -63,3 +70,14 @@ export default function Home() {
   );
 }
 
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: '#0d0d1a' }}>
+        <div className="text-gray-400">読み込み中...</div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
+  );
+}
