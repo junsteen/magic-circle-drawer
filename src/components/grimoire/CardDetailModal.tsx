@@ -19,6 +19,7 @@ interface CardDetailModalProps {
   onClose: () => void;
   onEquip?: (id: string | null) => void;
   equippedTitleId?: string | null;
+  onDraw?: (patternName: string) => void;
 }
 
 export default function CardDetailModal({
@@ -26,6 +27,7 @@ export default function CardDetailModal({
   onClose,
   onEquip,
   equippedTitleId,
+  onDraw,
 }: CardDetailModalProps) {
   return (
     <div
@@ -81,7 +83,7 @@ export default function CardDetailModal({
         </button>
 
         <div style={{ position: 'relative' }}>
-          {card.type === 'circle' && <CircleDetail card={card} />}
+          {card.type === 'circle' && <CircleDetail card={card} onDraw={onDraw} />}
           {card.type === 'achievement' && <AchievementDetail card={card} />}
           {card.type === 'title' && (
             <TitleDetail
@@ -134,8 +136,10 @@ function ModalBackground() {
 
 function CircleDetail({
   card,
+  onDraw,
 }: {
   card: Extract<SelectedCard, { type: 'circle' }>;
+  onDraw?: (patternName: string) => void;
 }) {
   const { pattern, completion } = card;
   return (
@@ -201,6 +205,28 @@ function CircleDetail({
         </div>
       ) : (
         <p style={{ textAlign: 'center', color: '#4a4a6a', fontSize: 12 }}>未挑戦</p>
+      )}
+
+      {onDraw && (
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={() => onDraw(pattern.name)}
+            style={{
+              padding: '9px 28px',
+              background: 'rgba(0,229,255,0.12)',
+              border: '1px solid rgba(0,229,255,0.6)',
+              borderRadius: 6,
+              color: '#00e5ff',
+              fontSize: 12,
+              fontWeight: 'bold',
+              letterSpacing: '0.05em',
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+            }}
+          >
+            このパターンで描く
+          </button>
+        </div>
       )}
     </div>
   );

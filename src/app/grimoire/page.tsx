@@ -64,6 +64,10 @@ export default function GrimoirePage() {
     setEquippedTitleId(id);
   }, []);
 
+  const handleDraw = useCallback((patternName: string) => {
+    router.push(`/?pattern=${encodeURIComponent(patternName)}`);
+  }, [router]);
+
   const completionMap = new Map(completions.map((c) => [c.patternName, c]));
 
   return (
@@ -156,6 +160,7 @@ export default function GrimoirePage() {
           onClose={() => setSelectedCard(null)}
           onEquip={handleEquip}
           equippedTitleId={equippedTitleId}
+          onDraw={handleDraw}
         />
       )}
     </div>
