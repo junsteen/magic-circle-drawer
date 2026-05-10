@@ -394,7 +394,7 @@ export function useMagicCircle(
     };
 
     const handlePointerMove = (e: PointerEvent) => {
-      if (isDrawing) {
+      if (isDrawingRef.current) {
         console.log('[useMagicCircle-native] pointermove triggered');
         e.preventDefault();
         draw(getCanvasPos(e.clientX, e.clientY));
@@ -402,10 +402,11 @@ export function useMagicCircle(
     };
 
     const handlePointerUp = (e: PointerEvent) => {
-      if (isDrawing) {
+      if (isDrawingRef.current) {
         console.log('[useMagicCircle-native] pointerup triggered');
         e.preventDefault();
-        // onPointerUp로직을 직접 실행
+        // pointerleave の二重発火を防ぐため ref を先に false にする
+        isDrawingRef.current = false;
         setIsDrawing(false);
         const elapsed = performance.now() - strokeStartTimeRef.current;
         const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
