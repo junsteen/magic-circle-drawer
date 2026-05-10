@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
-import { getAllHistories, deleteHistory } from '@/lib/historyDB';
+import { getAllHistories, deleteHistory, deleteAllHistories } from '@/lib/historyDB';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
 /**
@@ -48,13 +48,26 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   }, [isOpen, loadHistories]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    /** 履歴アイテムの削除処理 */
+    /** 履歴アイテムの削除処理（確認ダイアログあり） */
     e.stopPropagation();
+    if (!window.confirm('この履歴を削除しますか？')) return;
     try {
       await deleteHistory(id);
       setHistories((prev) => prev.filter((h) => h.id !== id));
     } catch (e) {
       console.error('Failed to delete history:', e);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    /** 全履歴の一括削除処理（確認ダイアログあり） */
+    if (histories.length === 0) return;
+    if (!window.confirm(`すべての履歴（${histories.length}件）を削除しますか？\nこの操作は元に戻せません。`)) return;
+    try {
+      await deleteAllHistories();
+      setHistories([]);
+    } catch (e) {
+      console.error('Failed to delete all histories:', e);
     }
   };
 
@@ -110,12 +123,30 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
           <h2 className="text-lg font-bold" style={{ color: '#00e5ff' }}>📜 作成履歴</h2>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {histories.length > 0 && (
+              <button
+                onClick={handleDeleteAll}
+                className="rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
+                style={{
+                  border: '1px solid rgba(255, 64, 129, 0.5)',
+                  color: '#ff4081',
+                  background: 'rgba(255, 64, 129, 0.08)',
+                  touchAction: 'manipulation',
+                }}
+                title="すべての履歴を削除"
+              >
+                🗑 すべて削除
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+              aria-label="閉じる"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -162,13 +193,19 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                     >
                       {h.rank}
                     </div>
-                    {/* Delete button */}
+                    {/* Delete button (常時表示・タッチデバイス対応) */}
                     <button
                       onClick={(e) => handleDelete(e, h.id)}
-                      className="absolute bottom-1 right-1 rounded-full bg-black/70 p-1 text-xs text-gray-400 opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-xs text-gray-300 transition-colors hover:bg-red-500/30 hover:text-red-300"
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        border: '1px solid rgba(255, 64, 129, 0.4)',
+                        touchAction: 'manipulation',
+                      }}
                       title="削除"
+                      aria-label="この履歴を削除"
                     >
-                      🗑️
+                      🗑
                     </button>
                   </div>
 
