@@ -130,3 +130,13 @@ body {
 .grimoire-challenge-complete {
   animation: grimoire-challenge-glow 2.5s ease-in-out infinite;
 }
+
+/* カード詳細モーダルのフェードイン（150ms） */
+@keyframes grimoire-detail {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.grimoire-detail-in {
+  animation: grimoire-detail 150ms ease-out;
+}
