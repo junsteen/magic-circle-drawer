@@ -162,6 +162,7 @@ export function useMagicCircle(
   /** リプレイ状態の管理 */
   const [isReplaying, setIsReplaying] = useState(false);
   const replayAnimRef = useRef<number | null>(null);
+  const bgAnimRef = useRef<number | null>(null);
   const [savedMagicData, setSavedMagicData] = useState<MagicCircleData | null>(null);
 
   // リプレイ状態を同期するためのref（userPathエフェクトがアニメーション中にキャンバスクリアしないように）
@@ -448,6 +449,96 @@ export function useMagicCircle(
       }
     }
   }, [drawLogs, userPath, drawStrokes, drawUserPath]);
+
+  // 結果表示中に背景でリプレイアニメーションをループ再生
+  useEffect(() => {
+    if (!showResult || drawLogs.length === 0 || !currentPattern) {
+      if (bgAnimRef.current !== null) {
+        cancelAnimationFrame(bgAnimRef.current);
+        bgAnimRef.current = null;
+      }
+      return;
+    }
+
+    const normalizedLogs = createReplayDrawLogs(drawLogs);
+    const STROKE_INTERVAL_MS = 500;
+    const allEvents: DrawEvent[] = [];
+    let timeOffset = 0;
+    for (const stroke of normalizedLogs) {
+      if (stroke.length === 0) continue;
+      for (const ev of stroke) {
+        allEvents.push({ x: ev.x, y: ev.y, t: ev.t + timeOffset, type: ev.type });
+      }
+      if (allEvents.length > 0) {
+        timeOffset = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+      }
+    }
+
+    if (allEvents.length === 0) return;
+    const totalDuration = allEvents[allEvents.length - 1].t + STROKE_INTERVAL_MS;
+
+    let startTime: number | null = null;
+
+    const animate = (now: number) => {
+      if (startTime === null) startTime = now;
+      const elapsed = (now - startTime) % totalDuration;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      drawTemplate(currentPattern);
+
+      const pts: { x: number; y: number }[] = [];
+      for (const ev of allEvents) {
+        if (ev.t <= elapsed) {
+          pts.push({ x: ev.x, y: ev.y });
+        }
+      }
+
+      if (pts.length > 1) {
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = '#00e5ff';
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        const last = pts[pts.length - 1];
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = '#00e5ff';
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 1;
+        ctx.fillStyle = '#00e5ff';
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      bgAnimRef.current = requestAnimationFrame(animate);
+    };
+
+    bgAnimRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (bgAnimRef.current !== null) {
+        cancelAnimationFrame(bgAnimRef.current);
+        bgAnimRef.current = null;
+      }
+    };
+  }, [showResult, drawLogs, currentPattern, drawTemplate]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
