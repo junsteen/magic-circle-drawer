@@ -523,8 +523,15 @@ export function useMagicCircle(
     
     // 難易度に応じた許容誤差を取得
     const tolerance = DIFFICULTY_TOLERANCE[difficulty];
+    // drawLogs（完了済みストローク）から採点用パスを再構築
+    // userPath はストローク終了後にクリアされるため、drawLogs を使用する
+    const scoringPath = drawLogs.flatMap(stroke =>
+      stroke.filter(e => e.type !== 'end').map(e => ({ x: e.x, y: e.y }))
+    );
+    // drawLogs が空の場合（ストローク完了前に評価した場合）は userPath にフォールバック
+    const pathToScore = scoringPath.length >= 10 ? scoringPath : userPath;
     // スコア計算を実行
-    const result = calculateScore(userPath, currentPattern, tolerance);
+    const result = calculateScore(pathToScore, currentPattern, tolerance);
 
     // 難易度倍率を結果に適用
     result.difficultyMultiplier = DIFFICULTY_MULTIPLIER[difficulty];
