@@ -87,6 +87,22 @@ export async function deleteHistory(id: string): Promise<void> {
   });
 }
 
+/** 履歴を一括削除（全削除） */
+/**
+ * すべての履歴データをデータベースから削除
+ * @returns 削除が完了したことを示すPromise
+ */
+export async function deleteAllHistories(): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
 /** 履歴を1件取得 */
 /**
  * 指定されたIDの履歴データをデータベースから取得
