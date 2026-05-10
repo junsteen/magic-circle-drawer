@@ -135,6 +135,15 @@ export default function MagicCircleCanvas({
             className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
             style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
           >
+            {/* 魔導書 */}
+            <button
+              onClick={() => { router.push('/grimoire'); setShowMenu(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{ color: '#00e5ff' }}
+            >
+              📖 魔導書
+            </button>
+
             {/* 作成履歴 */}
             <button
               onClick={() => { setShowHistory(true); setShowMenu(false); }}

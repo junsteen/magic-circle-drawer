@@ -65,3 +65,13 @@ body {
 .btn-breathe {
   animation: glow-pulse 1.8s ease-in-out infinite;
 }
+
+/* 魔導書ページのフェードイン（控えめ・180ms） */
+@keyframes grimoire-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.grimoire-fade-in {
+  animation: grimoire-fade 180ms ease-out;
+}
