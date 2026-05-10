@@ -17,6 +17,7 @@ import MagicCircleCard from '@/components/grimoire/MagicCircleCard';
 import AchievementCard from '@/components/grimoire/AchievementCard';
 import TitleCard from '@/components/grimoire/TitleCard';
 import ChallengeCard from '@/components/grimoire/ChallengeCard';
+import CardDetailModal, { type SelectedCard } from '@/components/grimoire/CardDetailModal';
 
 const PATTERN_CANVAS_SIZE = 350;
 
@@ -38,6 +39,7 @@ export default function GrimoirePage() {
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
   const [justUnlockedIds, setJustUnlockedIds] = useState<Set<string>>(new Set());
   const [equippedTitleId, setEquippedTitleId] = useState<string | null>(null);
+  const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
 
   useEffect(() => {
     setPatterns(createPresetPattern(PATTERN_CANVAS_SIZE));
@@ -108,9 +110,7 @@ export default function GrimoirePage() {
             style={{
               color: tab === t.id ? '#00e5ff' : '#7676aa',
               borderBottom:
-                tab === t.id
-                  ? '1px solid #00e5ff'
-                  : '1px solid transparent',
+                tab === t.id ? '1px solid #00e5ff' : '1px solid transparent',
             }}
           >
             {t.label}
@@ -120,12 +120,17 @@ export default function GrimoirePage() {
 
       <main className="px-4 py-6">
         {tab === 'circles' && (
-          <CircleGrid patterns={patterns} completionMap={completionMap} />
+          <CircleGrid
+            patterns={patterns}
+            completionMap={completionMap}
+            onSelect={setSelectedCard}
+          />
         )}
         {tab === 'achievements' && (
           <AchievementGrid
             unlockedIds={unlockedIds}
             justUnlockedIds={justUnlockedIds}
+            onSelect={setSelectedCard}
           />
         )}
         {tab === 'titles' && (
@@ -133,12 +138,26 @@ export default function GrimoirePage() {
             unlockedIds={unlockedIds}
             equippedTitleId={equippedTitleId}
             onEquip={handleEquip}
+            onSelect={setSelectedCard}
           />
         )}
         {tab === 'challenges' && (
-          <ChallengeGrid histories={histories} completions={completions} />
+          <ChallengeGrid
+            histories={histories}
+            completions={completions}
+            onSelect={setSelectedCard}
+          />
         )}
       </main>
+
+      {selectedCard && (
+        <CardDetailModal
+          card={selectedCard}
+          onClose={() => setSelectedCard(null)}
+          onEquip={handleEquip}
+          equippedTitleId={equippedTitleId}
+        />
+      )}
     </div>
   );
 }
@@ -146,9 +165,11 @@ export default function GrimoirePage() {
 function CircleGrid({
   patterns,
   completionMap,
+  onSelect,
 }: {
   patterns: MagicCirclePattern[];
   completionMap: Map<string, CompletionRecord>;
+  onSelect: (card: SelectedCard) => void;
 }) {
   if (patterns.length === 0) {
     return (
@@ -163,11 +184,15 @@ function CircleGrid({
       style={{ scrollSnapType: 'x mandatory' }}
     >
       {patterns.map((p) => (
-        <MagicCircleCard
+        <button
           key={p.name}
-          pattern={p}
-          completion={completionMap.get(p.name)}
-        />
+          onClick={() =>
+            onSelect({ type: 'circle', pattern: p, completion: completionMap.get(p.name) })
+          }
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+        >
+          <MagicCircleCard pattern={p} completion={completionMap.get(p.name)} />
+        </button>
       ))}
     </div>
   );
@@ -176,9 +201,11 @@ function CircleGrid({
 function AchievementGrid({
   unlockedIds,
   justUnlockedIds,
+  onSelect,
 }: {
   unlockedIds: Set<string>;
   justUnlockedIds: Set<string>;
+  onSelect: (card: SelectedCard) => void;
 }) {
   return (
     <div
@@ -186,12 +213,19 @@ function AchievementGrid({
       style={{ scrollSnapType: 'x mandatory' }}
     >
       {ACHIEVEMENTS.map((a) => (
-        <AchievementCard
+        <button
           key={a.id}
-          achievement={a}
-          unlocked={unlockedIds.has(a.id)}
-          justUnlocked={justUnlockedIds.has(a.id)}
-        />
+          onClick={() =>
+            onSelect({ type: 'achievement', achievement: a, unlocked: unlockedIds.has(a.id) })
+          }
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+        >
+          <AchievementCard
+            achievement={a}
+            unlocked={unlockedIds.has(a.id)}
+            justUnlocked={justUnlockedIds.has(a.id)}
+          />
+        </button>
       ))}
     </div>
   );
@@ -201,10 +235,12 @@ function TitleGrid({
   unlockedIds,
   equippedTitleId,
   onEquip,
+  onSelect,
 }: {
   unlockedIds: Set<string>;
   equippedTitleId: string | null;
   onEquip: (id: string | null) => void;
+  onSelect: (card: SelectedCard) => void;
 }) {
   return (
     <div
@@ -212,13 +248,20 @@ function TitleGrid({
       style={{ scrollSnapType: 'x mandatory' }}
     >
       {TITLES.map((t) => (
-        <TitleCard
+        <button
           key={t.id}
-          title={t}
-          unlocked={unlockedIds.has(t.achievementId)}
-          equipped={equippedTitleId === t.id}
-          onEquip={onEquip}
-        />
+          onClick={() =>
+            onSelect({ type: 'title', title: t, unlocked: unlockedIds.has(t.achievementId) })
+          }
+          style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+        >
+          <TitleCard
+            title={t}
+            unlocked={unlockedIds.has(t.achievementId)}
+            equipped={equippedTitleId === t.id}
+            onEquip={onEquip}
+          />
+        </button>
       ))}
     </div>
   );
@@ -227,22 +270,29 @@ function TitleGrid({
 function ChallengeGrid({
   histories,
   completions,
+  onSelect,
 }: {
   histories: MagicCircleHistory[];
   completions: CompletionRecord[];
+  onSelect: (card: SelectedCard) => void;
 }) {
   return (
     <div
       className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
       style={{ scrollSnapType: 'x mandatory' }}
     >
-      {CHALLENGES.map((c) => (
-        <ChallengeCard
-          key={c.id}
-          challenge={c}
-          progress={c.getProgress({ histories, completions })}
-        />
-      ))}
+      {CHALLENGES.map((c) => {
+        const progress = c.getProgress({ histories, completions });
+        return (
+          <button
+            key={c.id}
+            onClick={() => onSelect({ type: 'challenge', challenge: c, progress })}
+            style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+          >
+            <ChallengeCard challenge={c} progress={progress} />
+          </button>
+        );
+      })}
     </div>
   );
 }

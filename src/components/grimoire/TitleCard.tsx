@@ -61,7 +61,7 @@ export default function TitleCard({
         </div>
         {unlocked && (
           <button
-            onClick={() => onEquip(equipped ? null : title.id)}
+            onClick={(e) => { e.stopPropagation(); onEquip(equipped ? null : title.id); }}
             className="w-full py-1 text-[10px] font-bold tracking-wider transition-colors"
             style={{
               background: equipped
