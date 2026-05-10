@@ -87,6 +87,37 @@ export async function deleteHistory(id: string): Promise<void> {
   });
 }
 
+/** 履歴の一部フィールドを更新（タグ・お気に入りなど） */
+/**
+ * 指定IDの履歴の一部フィールドを更新する
+ * @param id 更新対象の履歴ID
+ * @param updates 上書きするフィールド（部分）
+ * @returns 更新が完了したことを示すPromise
+ */
+export async function updateHistoryFields(
+  id: string,
+  updates: Partial<MagicCircleHistory>,
+): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const existing = getReq.result as MagicCircleHistory | undefined;
+      if (!existing) {
+        reject(new Error(`History not found: ${id}`));
+        return;
+      }
+      const merged: MagicCircleHistory = { ...existing, ...updates, id };
+      const putReq = store.put(merged);
+      putReq.onsuccess = () => resolve();
+      putReq.onerror = () => reject(putReq.error);
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
+}
+
 /** 履歴を一括削除（全削除） */
 /**
  * すべての履歴データをデータベースから削除

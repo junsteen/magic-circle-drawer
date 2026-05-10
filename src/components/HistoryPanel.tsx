@@ -1,9 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
-import { getAllHistories, deleteHistory, deleteAllHistories } from '@/lib/historyDB';
+import {
+  getAllHistories,
+  deleteHistory,
+  deleteAllHistories,
+  updateHistoryFields,
+} from '@/lib/historyDB';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
+
+const STAR_FILTER = '__star__';
 
 /**
  * 履歴パネルコンポーネントのプロパティ
@@ -19,18 +26,15 @@ interface HistoryPanelProps {
 
 /**
  * 履歴パネルコンポーネント
- * 保存された魔法陣の履歴一覧を表示し、選択、共有、削除機能を提供
- * @param isOpen - パネルを開くかどうかのフラグ
- * @param onClose - パネルを閉じるコールバック関数
- * @param onSelect - 履歴アイテムが選択されたときのコールバック関数
- * @returns 履歴パネルのJSX要素（閉じている場合はnull）
+ * 保存された魔法陣の履歴一覧を表示し、選択、共有、削除、タグ管理機能を提供
  */
 export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanelProps) {
   const [histories, setHistories] = useState<MagicCircleHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  /** 選択中フィルタ: null=すべて / STAR_FILTER=★のみ / それ以外=タグ名 */
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   const loadHistories = useCallback(async () => {
-    /** 履歴データの読み込み状態を設定 */
     setIsLoading(true);
     try {
       const data = await getAllHistories();
@@ -43,12 +47,10 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   }, []);
 
   useEffect(() => {
-    /** パネルが開かれたときに履歴データを読み込み */
     if (isOpen) loadHistories();
   }, [isOpen, loadHistories]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    /** 履歴アイテムの削除処理（確認ダイアログあり） */
     e.stopPropagation();
     if (!window.confirm('この履歴を削除しますか？')) return;
     try {
@@ -60,22 +62,94 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   };
 
   const handleDeleteAll = async () => {
-    /** 全履歴の一括削除処理（確認ダイアログあり） */
     if (histories.length === 0) return;
-    if (!window.confirm(`すべての履歴（${histories.length}件）を削除しますか？\nこの操作は元に戻せません。`)) return;
+    if (
+      !window.confirm(
+        `すべての履歴（${histories.length}件）を削除しますか？\nこの操作は元に戻せません。`,
+      )
+    )
+      return;
     try {
       await deleteAllHistories();
       setHistories([]);
+      setSelectedFilter(null);
     } catch (e) {
       console.error('Failed to delete all histories:', e);
     }
   };
 
-  /**
-   * タイムスタンプから相対時間文字列を生成
-   * @param timestamp ミリ秒単位のタイムスタンプ
-   * @returns 「たった今」「5分前」などの相対時間文字列
-   */
+  const handleToggleStar = async (e: React.MouseEvent, h: MagicCircleHistory) => {
+    e.stopPropagation();
+    const next = !h.starred;
+    try {
+      await updateHistoryFields(h.id, { starred: next });
+      setHistories((prev) => prev.map((x) => (x.id === h.id ? { ...x, starred: next } : x)));
+    } catch (e) {
+      console.error('Failed to toggle star:', e);
+    }
+  };
+
+  const handleAddTag = async (e: React.MouseEvent, h: MagicCircleHistory) => {
+    e.stopPropagation();
+    const input = window.prompt('タグ名を入力してください（カンマ区切りで複数指定可）');
+    if (!input) return;
+    const newTags = input
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0 && t.length <= 20);
+    if (newTags.length === 0) return;
+    const merged = Array.from(new Set([...(h.tags ?? []), ...newTags]));
+    try {
+      await updateHistoryFields(h.id, { tags: merged });
+      setHistories((prev) =>
+        prev.map((x) => (x.id === h.id ? { ...x, tags: merged } : x)),
+      );
+    } catch (e) {
+      console.error('Failed to add tag:', e);
+    }
+  };
+
+  const handleRemoveTag = async (
+    e: React.MouseEvent,
+    h: MagicCircleHistory,
+    tag: string,
+  ) => {
+    e.stopPropagation();
+    if (!window.confirm(`タグ「${tag}」を外しますか？`)) return;
+    const next = (h.tags ?? []).filter((t) => t !== tag);
+    try {
+      await updateHistoryFields(h.id, { tags: next });
+      setHistories((prev) =>
+        prev.map((x) => (x.id === h.id ? { ...x, tags: next } : x)),
+      );
+      // 削除後、そのタグがどこにも残っていなければ選択解除
+      if (selectedFilter === tag) {
+        const stillExists = histories.some(
+          (x) => x.id !== h.id && (x.tags ?? []).includes(tag),
+        );
+        if (!stillExists) setSelectedFilter(null);
+      }
+    } catch (e) {
+      console.error('Failed to remove tag:', e);
+    }
+  };
+
+  /** 全履歴から登場するユニークなタグ一覧（昇順） */
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of histories) {
+      for (const t of h.tags ?? []) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [histories]);
+
+  /** フィルタ適用後の表示用履歴 */
+  const filteredHistories = useMemo(() => {
+    if (selectedFilter === null) return histories;
+    if (selectedFilter === STAR_FILTER) return histories.filter((h) => h.starred);
+    return histories.filter((h) => (h.tags ?? []).includes(selectedFilter));
+  }, [histories, selectedFilter]);
+
   const formatTime = (timestamp: number): string => {
     const d = new Date(timestamp);
     const now = new Date();
@@ -84,7 +158,6 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
-
     if (diffSec < 60) return 'たった今';
     if (diffMin < 60) return `${diffMin}分前`;
     if (diffHour < 24) return `${diffHour}時間前`;
@@ -92,17 +165,16 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     return d.toLocaleDateString('ja-JP');
   };
 
-  /**
-   * ランクに対応する色を取得
-   * @param rank ランク文字列（S/A/B/C）
-   * @returns ランクに対応するHEXカラーコード
-   */
   const getRankColor = (rank: string): string => {
     switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
+      case 'S':
+        return '#ffd700';
+      case 'A':
+        return '#00e5ff';
+      case 'B':
+        return '#76ff03';
+      default:
+        return '#ff4081';
     }
   };
 
@@ -110,19 +182,20 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
 
   return (
     <>
-      {/* Backdrop */}
+      <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
       <div
-        className="fixed inset-0 z-40 bg-black/50"
-        onClick={onClose}
-      />
-      {/* Panel */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[70vh] flex-col rounded-t-2xl"
-        style={{ background: '#0d0d1a', border: '1px solid rgba(0,229,255,0.2)', borderBottom: 'none' }}
+        className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl"
+        style={{
+          background: '#0d0d1a',
+          border: '1px solid rgba(0,229,255,0.2)',
+          borderBottom: 'none',
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-          <h2 className="text-lg font-bold" style={{ color: '#00e5ff' }}>📜 作成履歴</h2>
+          <h2 className="text-lg font-bold" style={{ color: '#00e5ff' }}>
+            📜 作成履歴
+          </h2>
           <div className="flex items-center gap-2">
             {histories.length > 0 && (
               <button
@@ -149,10 +222,40 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
           </div>
         </div>
 
+        {/* タグバー（ブックマークバー風） */}
+        {histories.length > 0 && (
+          <div
+            className="flex gap-2 overflow-x-auto border-b border-gray-800 px-3 py-2"
+            style={{ touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
+          >
+            <TagChip
+              label="すべて"
+              active={selectedFilter === null}
+              onClick={() => setSelectedFilter(null)}
+            />
+            <TagChip
+              label="★"
+              active={selectedFilter === STAR_FILTER}
+              onClick={() => setSelectedFilter(STAR_FILTER)}
+              accent
+            />
+            {allTags.map((t) => (
+              <TagChip
+                key={t}
+                label={t}
+                active={selectedFilter === t}
+                onClick={() => setSelectedFilter(t)}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {isLoading && (
-            <div className="flex items-center justify-center py-8 text-gray-400">読み込み中...</div>
+            <div className="flex items-center justify-center py-8 text-gray-400">
+              読み込み中...
+            </div>
           )}
           {!isLoading && histories.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -160,18 +263,27 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
               <p className="mt-2 text-sm">まだ履歴がありません</p>
             </div>
           )}
-          {!isLoading && histories.length > 0 && (
+          {!isLoading && histories.length > 0 && filteredHistories.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+              <span className="text-3xl">🔍</span>
+              <p className="mt-2 text-sm">該当する履歴がありません</p>
+            </div>
+          )}
+          {!isLoading && filteredHistories.length > 0 && (
             <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-3 md:grid-cols-4">
-              {histories.map((h) => (
+              {filteredHistories.map((h) => (
                 <div
                   key={h.id}
                   onClick={() => onSelect(h)}
                   className="group relative cursor-pointer overflow-hidden rounded-lg border border-gray-700 transition-all hover:border-cyan-500 active:scale-95"
                   style={{ background: '#0a0a14' }}
                 >
-                  {/* Thumbnail */}
-                  <div className="relative aspect-square w-full overflow-hidden" style={{ background: '#0a0a14' }}>
+                  <div
+                    className="relative aspect-square w-full overflow-hidden"
+                    style={{ background: '#0a0a14' }}
+                  >
                     {h.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={h.thumbnail}
                         alt={h.data.pattern.name}
@@ -182,7 +294,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                         🔮
                       </div>
                     )}
-                    {/* Overlay rank badge */}
+                    {/* ランクバッジ */}
                     <div
                       className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                       style={{
@@ -193,7 +305,22 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                     >
                       {h.rank}
                     </div>
-                    {/* Delete button (常時表示・タッチデバイス対応) */}
+                    {/* ★ お気に入りトグル */}
+                    <button
+                      onClick={(e) => handleToggleStar(e, h)}
+                      className="absolute bottom-1 left-1 flex h-7 w-7 items-center justify-center rounded-full text-sm transition-colors"
+                      style={{
+                        background: 'rgba(0,0,0,0.7)',
+                        border: `1px solid ${h.starred ? '#ffd700' : 'rgba(255,215,0,0.3)'}`,
+                        color: h.starred ? '#ffd700' : '#7676aa',
+                        touchAction: 'manipulation',
+                      }}
+                      title={h.starred ? 'お気に入り解除' : 'お気に入りに追加'}
+                      aria-label={h.starred ? 'お気に入り解除' : 'お気に入りに追加'}
+                    >
+                      {h.starred ? '★' : '☆'}
+                    </button>
+                    {/* 削除ボタン */}
                     <button
                       onClick={(e) => handleDelete(e, h.id)}
                       className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-xs text-gray-300 transition-colors hover:bg-red-500/30 hover:text-red-300"
@@ -215,69 +342,82 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                       {h.data.pattern.name}
                     </div>
                     <div className="text-xs text-gray-500">{formatTime(h.createdAt)}</div>
+
+                    {/* タグチップ一覧 + 追加ボタン */}
+                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                      {(h.tags ?? []).map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={(e) => handleRemoveTag(e, h, tag)}
+                          className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] transition-colors hover:bg-cyan-500/20"
+                          style={{
+                            background: 'rgba(0, 229, 255, 0.08)',
+                            border: '1px solid rgba(0, 229, 255, 0.3)',
+                            color: '#00e5ff',
+                            touchAction: 'manipulation',
+                          }}
+                          title={`タグ「${tag}」を外す`}
+                        >
+                          {tag} <span className="opacity-60">✕</span>
+                        </button>
+                      ))}
+                      <button
+                        onClick={(e) => handleAddTag(e, h)}
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] transition-colors hover:bg-cyan-500/20"
+                        style={{
+                          background: 'rgba(0, 229, 255, 0.04)',
+                          border: '1px dashed rgba(0, 229, 255, 0.4)',
+                          color: '#00e5ff',
+                          touchAction: 'manipulation',
+                        }}
+                        title="タグを追加"
+                        aria-label="タグを追加"
+                      >
+                        +
+                      </button>
+                    </div>
+
                     {/* Share Button */}
                     <button
                       onClick={async (e) => {
-                        e.stopPropagation(); // Prevent triggering onSelect
+                        e.stopPropagation();
                         if (h && h.data) {
                           try {
-                            // Compress the data for URL sharing (only essential data to keep URL short)
                             const shareData = {
                               pattern: h.data.pattern,
                               drawLogs: h.data.drawLogs,
-                              // Include minimal metadata for proper scoring
                               score: h.score,
                               rank: h.rank,
                               difficulty: h.difficulty,
                               difficultyMultiplier: h.difficultyMultiplier,
-                              damageMultiplier: h.damageMultiplier
+                              damageMultiplier: h.damageMultiplier,
                             };
-                            
                             const compressed = compressForUrl(shareData);
-                            if (!compressed) {
-                              throw new Error('Failed to compress data');
-                            }
-                            
-                            // Create shareable URL
+                            if (!compressed) throw new Error('Failed to compress data');
                             const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-                            
-                            // Try to use the Web Share API if available
                             if (navigator.share) {
                               await navigator.share({
                                 title: `Arcane Tracer - ${h.data.pattern.name}`,
                                 text: `私の魔法陣詠唱結果: ${h.rank}ランク (${h.score}点)`,
-                                url: shareUrl
+                                url: shareUrl,
                               });
                             } else {
-                              // Fallback: copy to clipboard
                               await navigator.clipboard.writeText(shareUrl);
-                              
-                              // Show temporary visual feedback
-                              const originalBtn = e.target as HTMLButtonElement;
+                              const originalBtn = e.currentTarget as HTMLButtonElement;
                               const originalContent = originalBtn.innerHTML;
-                              originalBtn.innerHTML = '✅ コピー済み';
-                              originalBtn.classList.add('bg-green-500');
+                              originalBtn.innerHTML = '✅';
                               setTimeout(() => {
                                 originalBtn.innerHTML = originalContent;
-                                originalBtn.classList.remove('bg-green-500');
                               }, 2000);
                             }
                           } catch (err) {
                             console.error('Failed to share:', err);
-                            // Show error feedback
-                            const originalBtn = e.target as HTMLButtonElement;
-                            const originalContent = originalBtn.innerHTML;
-                            originalBtn.innerHTML = '❌ エラー';
-                            originalBtn.classList.add('bg-red-500');
-                            setTimeout(() => {
-                              originalBtn.innerHTML = originalContent;
-                              originalBtn.classList.remove('bg-red-500');
-                            }, 2000);
                           }
                         }
                       }}
                       className="absolute top-1 left-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all hover:bg-gray-700"
                       title="共有"
+                      style={{ touchAction: 'manipulation' }}
                     >
                       📤
                     </button>
@@ -289,5 +429,36 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
         </div>
       </div>
     </>
+  );
+}
+
+/** タグバー用のチップボタン */
+function TagChip({
+  label,
+  active,
+  onClick,
+  accent,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  accent?: boolean;
+}) {
+  const accentColor = accent ? '#ffd700' : '#00e5ff';
+  return (
+    <button
+      onClick={onClick}
+      className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold transition-colors"
+      style={{
+        background: active
+          ? `${accentColor}22`
+          : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${active ? accentColor : 'rgba(255,255,255,0.1)'}`,
+        color: active ? accentColor : '#7676aa',
+        touchAction: 'manipulation',
+      }}
+    >
+      {label}
+    </button>
   );
 }
