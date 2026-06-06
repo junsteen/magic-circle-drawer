@@ -1,4 +1,3 @@
-import type { MagicCirclePattern } from '@/lib/patterns';
 import { createPresetPattern } from '@/lib/patterns';
 
 /** データベース名 */

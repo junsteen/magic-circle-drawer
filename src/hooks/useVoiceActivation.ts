@@ -26,7 +26,6 @@ export function useVoiceActivation(
   const {
     threshold = 0.1,
     silentTime = 500,
-    checkInterval = 100
   } = options;
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -60,12 +59,14 @@ export function useVoiceActivation(
     }
 
     try {
-      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) {
+      type AudioContextCtor = typeof globalThis.AudioContext;
+      const windowWithWebkit = window as Window & { webkitAudioContext?: AudioContextCtor };
+      const AudioContextCtor = window.AudioContext || windowWithWebkit.webkitAudioContext;
+      if (!AudioContextCtor) {
         console.warn('AudioContext is not supported in this browser');
         return false;
       }
-      audioContextRef.current = new AudioContext();
+      audioContextRef.current = new AudioContextCtor();
       
       // アナライザーノードを作成
       if (audioContextRef.current) {

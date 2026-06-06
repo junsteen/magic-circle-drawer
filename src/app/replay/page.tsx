@@ -1,25 +1,24 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useMemo, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { MagicCircleHistory } from '@/lib/types';
 import { decompressFromUrlOptimized as decompressFromUrl } from '@/lib/shareUtils';
 import HistoryDetail from '@/components/HistoryDetail';
 
-// Helper component to handle search params in suspense
+type ParseResult =
+  | { history: MagicCircleHistory; error: null }
+  | { history: null; error: string };
+
 function ReplayContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [history, setHistory] = useState<MagicCircleHistory | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const { history, error } = useMemo<ParseResult>(() => {
     const dataParam = searchParams.get('data');
     if (!dataParam) {
-      setError('データが見つかりません。有効な共有URLからアクセスしてください。');
-      setLoading(false);
-      return;
+      return { history: null, error: 'データが見つかりません。有効な共有URLからアクセスしてください。' };
     }
 
     // decompressFromUrlOptimized はフラット構造 { pattern, drawLogs, score, ... } を返す
@@ -34,53 +33,37 @@ function ReplayContent() {
     }>(dataParam);
 
     if (!flat) {
-      setError('データの復元に失敗しました。共有リンクが無効または破損している可能性があります。');
-      setLoading(false);
-      return;
+      return { history: null, error: 'データの復元に失敗しました。共有リンクが無効または破損している可能性があります。' };
     }
 
     if (!flat.pattern) {
-      setError('データ形式が不正です。');
-      setLoading(false);
-      return;
+      return { history: null, error: 'データ形式が不正です。' };
     }
 
     if (!Array.isArray(flat.drawLogs)) {
-      setError('描画データが見つかりません。');
-      setLoading(false);
-      return;
+      return { history: null, error: '描画データが見つかりません。' };
     }
 
     // フラット構造から MagicCircleHistory を再構築
+    // IDとタイムスタンプはURLデータから一意に生成（Date.now()はuseMemo内不可）
+    const replayId = `replay_${dataParam.slice(0, 20)}`;
     const decompressedData: MagicCircleHistory = {
-      id: `replay_${Date.now()}`,
+      id: replayId,
       data: {
         pattern: flat.pattern,
         drawLogs: flat.drawLogs,
-        timestamp: Date.now(),
+        timestamp: 0,
       },
       score: flat.score,
       rank: flat.rank,
       difficulty: flat.difficulty,
       difficultyMultiplier: flat.difficultyMultiplier,
       damageMultiplier: flat.damageMultiplier,
-      createdAt: Date.now(),
+      createdAt: 0,
     };
 
-    setHistory(decompressedData);
-    setLoading(false);
-  }, [searchParams, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-400">魔法陣を復元中...</p>
-        </div>
-      </div>
-    );
-  }
+    return { history: decompressedData, error: null };
+  }, [searchParams]);
 
   if (error) {
     return (
@@ -89,12 +72,12 @@ function ReplayContent() {
           <h2 className="text-red-400 mb-4">❌ エラー</h2>
           <p className="text-gray-300">{error}</p>
           <div className="mt-6">
-            <a
+            <Link
               href="/"
               className="inline-block bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors"
             >
               ホームに戻る
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -113,16 +96,13 @@ function ReplayContent() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* HistoryDetail component will handle the replay functionality */}
-      <HistoryDetail 
-        history={history} 
+      <HistoryDetail
+        history={history}
         onClose={() => {
-          // Navigate back to home when closing
           router.push('/');
-        }} 
+        }}
         onReEdit={(data) => {
-          // パターン名をURLパラメータとしてホームに渡して再編集
-          if (data && data.data && data.data.pattern && data.data.pattern.name) {
+          if (data?.data?.pattern?.name) {
             const patternName = encodeURIComponent(data.data.pattern.name);
             router.push(`/?pattern=${patternName}`);
           } else {
