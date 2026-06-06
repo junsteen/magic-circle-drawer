@@ -508,3 +508,21 @@ export function getPatternTemplatePoints(
 ): Point[] {
   return generateEdgePoints(pattern.vertices, pattern.edges, pointsPerEdge);
 }
+
+/**
+ * パターンの外周円情報を取得
+ * @param pattern 魔法陣パターン
+ * @param canvasSize キャンバスサイズ
+ * @returns 外周円の中心座標と半径
+ */
+export function getOuterCircle(pattern: MagicCirclePattern, canvasSize: number) {
+  if (pattern.circles.length === 0) {
+    return { cx: canvasSize / 2, cy: canvasSize / 2, radius: canvasSize * 0.35 };
+  }
+  const lastCircle = pattern.circles[pattern.circles.length - 1];
+  return {
+    cx: lastCircle.cx * canvasSize,
+    cy: lastCircle.cy * canvasSize,
+    radius: lastCircle.radius,
+  };
+}
