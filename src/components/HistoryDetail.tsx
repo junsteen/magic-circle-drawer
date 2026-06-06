@@ -35,6 +35,66 @@ function createReplayDrawLogs(strokes: MagicCircleHistory['data']['drawLogs'] | 
 }
 
 /**
+ * キャンバスにストロークを描画（ストローク間を繋げない）
+ * @param ctx キャンバスコンテキスト
+ * @param events 描画イベントの配列
+ */
+function drawStrokesOnCanvas(ctx: CanvasRenderingContext2D, events: DrawEvent[]) {
+  if (events.length < 1) return;
+
+  ctx.shadowBlur = 2;
+  ctx.shadowColor = '#00e5ff';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // ストロークごとに分割して描画
+  let currentStroke: { x: number; y: number }[] = [];
+  for (const ev of events) {
+    if (ev.type === 'start') {
+      // 新しいストロークの開始
+      if (currentStroke.length > 0) {
+        // 前のストロークを描画
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) {
+          ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        }
+        ctx.stroke();
+      }
+      currentStroke = [{ x: ev.x, y: ev.y }];
+    } else if (ev.type === 'move') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+    } else if (ev.type === 'end') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+      // ストロークを描画
+      if (currentStroke.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) {
+          ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        }
+        ctx.stroke();
+      }
+      currentStroke = [];
+    }
+  }
+
+  // 残りのストロークを描画
+  if (currentStroke.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+    for (let i = 1; i < currentStroke.length; i++) {
+      ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+    }
+    ctx.stroke();
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+/**
  * 履歴詳細モーダルコンポーネント
  * 選択された履歴の詳細情報を表示し、リプレイ再生、共有、再編集機能を提供
  * @param history - 表示する履歴データ
@@ -98,28 +158,19 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       if (!history.data) return;
       if (!history.data.drawLogs) return;
       drawTemplate(history.data.pattern);
-      const allPoints: { x: number; y: number }[] = [];
+
+      // すべてのイベントを一つの配列に集める
+      const allEvents: DrawEvent[] = [];
       for (const stroke of history.data.drawLogs) {
         for (const ev of stroke) {
-          allPoints.push({ x: ev.x, y: ev.y });
+          allEvents.push(ev);
         }
       }
-      if (allPoints.length > 1) {
+
+      if (allEvents.length >= 1) {
         const ctx = node.getContext('2d');
         if (ctx) {
-          ctx.shadowBlur = 2;
-          ctx.shadowColor = '#00e5ff';
-          ctx.strokeStyle = '#00e5ff';
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.beginPath();
-          ctx.moveTo(allPoints[0].x, allPoints[0].y);
-          for (let i = 1; i < allPoints.length; i++) {
-            ctx.lineTo(allPoints[i].x, allPoints[i].y);
-          }
-          ctx.stroke();
-          ctx.shadowBlur = 0;
+          drawStrokesOnCanvas(ctx, allEvents);
         }
       }
     }
@@ -243,19 +294,8 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       }
 
       if (pts.length > 1) {
-        ctx.shadowBlur = 2;
-        ctx.shadowColor = '#00e5ff';
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          ctx.lineTo(pts[i].x, pts[i].y);
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        const ptsWithType = allEvents.filter(ev => ev.t <= elapsed);
+        drawStrokesOnCanvas(ctx, ptsWithType);
 
         // Leading glow
         const last = pts[pts.length - 1];
@@ -277,19 +317,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         if (!history.data) return;
         drawTemplate(history.data.pattern);
         if (pts.length > 1) {
-          ctx.shadowBlur = 2;
-          ctx.shadowColor = '#00e5ff';
-          ctx.strokeStyle = '#00e5ff';
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i = 1; i < pts.length; i++) {
-            ctx.lineTo(pts[i].x, pts[i].y);
-          }
-          ctx.stroke();
-          ctx.shadowBlur = 0;
+          drawStrokesOnCanvas(ctx, allEvents);
         }
         setDebugMsg('🔄 リプレイ完了！');
         replayAnimRef.current = null;
@@ -371,20 +399,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         }
         
         if (pts.length > 1) {
-          ctx.shadowBlur = 2;
-          ctx.shadowColor = '#00e5ff';
-          ctx.strokeStyle = '#00e5ff';
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i = 1; i < pts.length; i++) {
-            ctx.lineTo(pts[i].x, pts[i].y);
-          }
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-          
+          const ptsWithType = allEvents.filter(ev => ev.t <= elapsed);
+          drawStrokesOnCanvas(ctx, ptsWithType);
+
           // Leading glow
           const last = pts[pts.length - 1];
           ctx.shadowBlur = 2;
@@ -405,19 +422,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
           if (!history.data) return;
           drawTemplate(history.data.pattern);
           if (pts.length > 1) {
-            ctx.shadowBlur = 2;
-            ctx.shadowColor = '#00e5ff';
-            ctx.strokeStyle = '#00e5ff';
-            ctx.lineWidth = 4;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            ctx.moveTo(pts[0].x, pts[0].y);
-            for (let i = 1; i < pts.length; i++) {
-              ctx.lineTo(pts[i].x, pts[i].y);
-            }
-            ctx.stroke();
-            ctx.shadowBlur = 0;
+            drawStrokesOnCanvas(ctx, allEvents);
           }
           setDebugMsg('🔄 リプレイ完了！');
           replayAnimRef.current = null;
@@ -425,10 +430,10 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
           setCurrentTime(totalDuration);
           return;
         }
-        
+
         replayAnimRef.current = requestAnimationFrame(animate);
       };
-      
+
       replayAnimRef.current = requestAnimationFrame(animate);
     } else {
       // 一時停止中にシークした場合、その時刻時点の描画をキャンバスに即時反映する
@@ -452,27 +457,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
       drawTemplate(history.data.pattern);
 
-      const pts: { x: number; y: number }[] = [];
-      for (const ev of allEvents) {
-        if (ev.t <= clampedTime) {
-          pts.push({ x: ev.x, y: ev.y });
-        }
-      }
-
-      if (pts.length > 1) {
-        ctx.shadowBlur = 2;
-        ctx.shadowColor = '#00e5ff';
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          ctx.lineTo(pts[i].x, pts[i].y);
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+      const ptsWithType = allEvents.filter(ev => ev.t <= clampedTime);
+      if (ptsWithType.length >= 1) {
+        drawStrokesOnCanvas(ctx, ptsWithType);
       }
     }
   }, [history, isPlaying, currentTime, totalDuration, drawTemplate]);
