@@ -31,6 +31,7 @@ export function useVoiceActivation(
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const microphoneRef = useRef<MediaStream | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const isListeningRef = useRef<boolean>(false);
   const lastVoiceTimeRef = useRef<number>(0);
@@ -92,13 +93,11 @@ export function useVoiceActivation(
     }
 
     try {
-      // マイク入力をアナライザーに接続（まだ接続していない場合）
-      if (audioContextRef.current && microphoneRef.current) {
-        const source = audioContextRef.current.createMediaStreamSource(microphoneRef.current);
-        source.connect(analyserRef.current);
-      } else {
-        console.warn('AudioContext or microphone not available');
-        return;
+      // マイク入力をアナライザーに接続（初回のみ）
+      if (!sourceRef.current) {
+        if (!audioContextRef.current || !microphoneRef.current) return;
+        sourceRef.current = audioContextRef.current.createMediaStreamSource(microphoneRef.current);
+        sourceRef.current.connect(analyserRef.current);
       }
 
       // 周波数データを取得
@@ -180,6 +179,12 @@ export function useVoiceActivation(
         console.error('AudioContext閉じるエラー:', err);
       }
       audioContextRef.current = null;
+    }
+
+    // ソースノードを切断してクリア
+    if (sourceRef.current) {
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
     }
 
     // アナライザーをクリア

@@ -173,15 +173,22 @@ export function useMagicCircle(
   // handleEvaluateはこの位置より後で定義されるため、refで前方参照する
   const handleEvaluateRef = useRef<(() => void) | null>(null);
 
-  // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
-  const voiceHook = useVoiceActivation(async () => {
-    // 音声が検知されたときのコールバック
-    // 評価ボタンを自動的に押す（ただし、アクティブで結果が表示されていない場合のみ）
+  // onCompletionUpdateはレンダリング毎に新しい参照になるためrefで保持（ループ防止）
+  const onCompletionUpdateRef = useRef(onCompletionUpdate);
+  onCompletionUpdateRef.current = onCompletionUpdate;
+
+  // 音声検知コールバックをrefで保持（安定した参照を提供してレンダリングループを防止）
+  const onVoiceDetectedRef = useRef<() => void>(() => {});
+  onVoiceDetectedRef.current = () => {
     if (isActive && !showResult && userPath.length >= 10) {
       handleEvaluateRef.current?.();
       setDebugMsg('🔊 音声検知により自動評価を実行しました');
     }
-  }, {
+  };
+  const stableOnVoiceDetected = useCallback(() => onVoiceDetectedRef.current(), []);
+
+  // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
+  const voiceHook = useVoiceActivation(stableOnVoiceDetected, {
     threshold: 0.15, // やや高めの閾値に設定（環境ノイズ対策）
     silentTime: 800, // 0.8秒無音で音声終了と判定
     checkInterval: 100
@@ -234,7 +241,7 @@ export function useMagicCircle(
     }
   }, [initialPatternName]);
 
-  // Update completion status when patterns change
+  // マウント時に完了状況を読み込み（refを使用してループを防止）
   useEffect(() => {
     let isMounted = true;
     async function loadCompletionStatus() {
@@ -246,28 +253,18 @@ export function useMagicCircle(
         if (isMounted) {
           const status = { completed: completedCount, total: totalCount };
           setCompletionStatus(status);
-          // 親コンポーネントに完了状況を通知
-          if (onCompletionUpdate) {
-            onCompletionUpdate(status);
-          }
+          onCompletionUpdateRef.current?.(status);
         }
       } catch (e) {
         console.error('Failed to load completion status:', e);
-        if (isMounted && onCompletionUpdate) {
-          onCompletionUpdate(null);
+        if (isMounted) {
+          onCompletionUpdateRef.current?.(null);
         }
       }
     }
     loadCompletionStatus();
     return () => { isMounted = false; };
-  }, [onCompletionUpdate]);
-
-  // 完了状況の変更を親に通知する別のエフェクト
-  useEffect(() => {
-    if (onCompletionUpdate) {
-      onCompletionUpdate(completionStatus);
-    }
-  }, [completionStatus, onCompletionUpdate]);
+  }, []);
 
   const currentPattern = patterns[currentIdx];
   /** 残り時間（実際のタイマー値） */
@@ -418,7 +415,6 @@ export function useMagicCircle(
     if (!canvas) return;
 
     const handlePointerDown = (e: PointerEvent) => {
-      console.log('[useMagicCircle-native] pointerdown triggered');
       e.preventDefault();
       canvas.setPointerCapture(e.pointerId);
       startDrawing(getCanvasPos(e.clientX, e.clientY));
@@ -426,7 +422,6 @@ export function useMagicCircle(
 
     const handlePointerMove = (e: PointerEvent) => {
       if (isDrawingRef.current) {
-        console.log('[useMagicCircle-native] pointermove triggered');
         e.preventDefault();
         draw(getCanvasPos(e.clientX, e.clientY));
       }
@@ -434,20 +429,17 @@ export function useMagicCircle(
 
     const handlePointerUp = (e: PointerEvent) => {
       if (isDrawingRef.current) {
-        console.log('[useMagicCircle-native] pointerup triggered');
         e.preventDefault();
         // pointerleave の二重発火を防ぐため ref を先に false にする
         isDrawingRef.current = false;
         setIsDrawing(false);
         const elapsed = performance.now() - strokeStartTimeRef.current;
         const lastPoint = drawLogRef.current[drawLogRef.current.length - 1];
-        drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
-        console.log('[useMagicCircle-native] strokeToSave length:', drawLogRef.current.length);
+        if (lastPoint) {
+          drawLogRef.current.push({ x: lastPoint.x, y: lastPoint.y, t: elapsed, type: 'end' });
+        }
         const strokeToSave = [...drawLogRef.current];
-        setDrawLogs((prev) => {
-          console.log('[useMagicCircle-native] setDrawLogs callback, adding stroke with', strokeToSave.length, 'events');
-          return [...prev, strokeToSave];
-        });
+        setDrawLogs((prev) => [...prev, strokeToSave]);
         drawLogRef.current = [];
         setUserPath([]);
         setDebugMsg('描画完了。スコア判定しますか？');
@@ -573,7 +565,6 @@ export function useMagicCircle(
   }, [showResult, drawLogs, currentPattern, drawTemplate]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    console.log('[useMagicCircle] onPointerDown triggered');
     e.stopPropagation();
     if (canvasRef.current) {
       canvasRef.current.setPointerCapture(e.pointerId);
@@ -834,7 +825,7 @@ export function useMagicCircle(
       score: result.score,
       rank: result.rank,
       difficulty: DIFFICULTY_LABELS[difficulty],
-      difficultyMultiplier: result.difficultyMultiplier ?? 1,
+      difficultyMultiplier: result.difficultyMultiplier,
       damageMultiplier: result.damageMultiplier,
       thumbnail,
       createdAt: Date.now(),

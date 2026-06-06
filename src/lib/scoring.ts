@@ -10,8 +10,8 @@ export interface ScoringResult {
   rank: string;
   /** ダメージ倍率 (例: '120%') */
   damageMultiplier: string;
-  /** 難易度倍率 (オプション) */
-  difficultyMultiplier?: number;
+  /** 難易度倍率 */
+  difficultyMultiplier: number;
 }
 
 /**
@@ -114,7 +114,7 @@ export function calculateScore(
 ): ScoringResult {
   // 最低限の描画点数チェック
   if (userPath.length < 10) {
-    return { score: 0, rank: 'C', damageMultiplier: '0%' };
+    return { score: 0, rank: 'C', damageMultiplier: '0%', difficultyMultiplier: 1 };
   }
 
   // テンプレート点と頂点、周長を取得
@@ -176,5 +176,5 @@ export function calculateScore(
     damageMultiplier = '0%';
   }
 
-  return { score: roundedScore, rank, damageMultiplier };
+  return { score: roundedScore, rank, damageMultiplier, difficultyMultiplier: 1 };
 }

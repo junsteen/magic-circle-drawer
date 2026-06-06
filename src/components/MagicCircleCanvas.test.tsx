@@ -5,6 +5,13 @@ import type { UseMagicCircleReturn } from '@/hooks/useMagicCircle';
 // useMagicCircle フックをモック
 vi.mock('@/hooks/useMagicCircle');
 
+// next/navigation をモック（useRouter はコンポーネント内で直接呼び出される）
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/',
+}));
+
 // 子コンポーネントをモック（テスト対象外）
 vi.mock('./HelpModal', () => ({ default: () => null }));
 vi.mock('./HistoryPanel', () => ({ default: () => null }));
@@ -122,7 +129,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
     it('showResult=true のとき disabled', () => {
       renderCanvas({
         showResult: true,
-        scoreResult: { score: 80, rank: 'A', damageMultiplier: '150%' },
+        scoreResult: { score: 80, rank: 'A', damageMultiplier: '150%', difficultyMultiplier: 1 },
       });
       expect(screen.getByRole('button', { name: '詠唱完了！' })).toBeDisabled();
     });
@@ -136,7 +143,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
   // ─── リプレイボタン（結果画面） ───────────────────────────────────────────
 
   describe('リプレイボタン（結果画面）', () => {
-    const scoreResult = { score: 90, rank: 'S', damageMultiplier: '200%' };
+    const scoreResult = { score: 90, rank: 'S', damageMultiplier: '200%', difficultyMultiplier: 1 };
 
     it('drawLogs あり かつ isReplaying=false のとき enabled', () => {
       renderCanvas({
@@ -185,7 +192,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
     it('showResult=true のとき scoreResult のランクが表示される', () => {
       renderCanvas({
         showResult: true,
-        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%', difficultyMultiplier: 1 },
       });
       expect(screen.getByText('A')).toBeInTheDocument();
     });
@@ -193,7 +200,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
     it('showResult=true のとき scoreResult のスコアが表示される', () => {
       renderCanvas({
         showResult: true,
-        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%', difficultyMultiplier: 1 },
       });
       expect(screen.getByText('85点')).toBeInTheDocument();
     });
@@ -201,7 +208,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
     it('showResult=true のとき damageMultiplier が表示される', () => {
       renderCanvas({
         showResult: true,
-        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%' },
+        scoreResult: { score: 85, rank: 'A', damageMultiplier: '100%', difficultyMultiplier: 1 },
       });
       expect(screen.getByText(/100%/)).toBeInTheDocument();
     });
