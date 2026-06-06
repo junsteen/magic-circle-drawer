@@ -775,18 +775,10 @@ export function useMagicCircle(
   const handleReplay = useCallback(async () => {
     // リプレイ可能かチェック（描画ログがあり、リプレイ中でないこと）
     if (drawLogs.length === 0 || isReplayingRef.current) return;
-    
-    // 評価がまだ行われていない場合は先に評価を実行してスコアデータを取得
-    let result: ScoringResult | null = scoreResult;
-    if (!result && !showResult && isDrawing && userPath.length >= 10) {
-      // 評価を実行してスコアを取得
-      handleEvaluate();
-      // 評価完了を待つ（少し遅延させて状態更新を待機）
-      await new Promise(resolve => setTimeout(resolve, 100));
-      result = scoreResult;
-    }
-    
+
     // スコア結果がない場合はリプレイ用の履歴アイテムを作成できない
+    // （リプレイボタンは showResult=true のときのみ表示されるため scoreResult は必ず存在する）
+    const result: ScoringResult | null = scoreResult;
     if (!result) {
       setDebugMsg('スコアが計算されていないため、リプレイを保存できません');
       return;
@@ -861,7 +853,7 @@ export function useMagicCircle(
     // リプレイページに遷移
     const replayUrl = `/replay?data=${compressed}`;
     router.push(replayUrl);
-  }, [drawLogs, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate, router]);
+  }, [drawLogs, currentPattern, scoreResult, showResult, difficulty, router]);
 
   // ─── 魔法陣データの保存 ───
   /**
@@ -898,7 +890,6 @@ export function useMagicCircle(
    */
   const handleLoadData = useCallback((data: MagicCircleData) => {
     setSavedMagicData(data);
-    drawTemplate(currentPattern);
     setDrawLogs(data.drawLogs);
     setUserPath([]);
     drawTemplate(currentPattern);

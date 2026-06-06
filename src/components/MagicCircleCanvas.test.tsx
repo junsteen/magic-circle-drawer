@@ -90,12 +90,12 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
   describe('前へ（〈）ボタン', () => {
     it('currentIndex=0 のとき disabled', () => {
       renderCanvas({ currentIndex: 0 });
-      expect(screen.getByRole('button', { name: '〈' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '前のパターン' })).toBeDisabled();
     });
 
     it('currentIndex=1 のとき enabled', () => {
       renderCanvas({ currentIndex: 1 });
-      expect(screen.getByRole('button', { name: '〈' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: '前のパターン' })).not.toBeDisabled();
     });
   });
 
@@ -104,17 +104,17 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
   describe('次へ（〉）ボタン', () => {
     it('currentIndex が totalPatterns-1 のとき disabled', () => {
       renderCanvas({ currentIndex: 2, totalPatterns: 3 });
-      expect(screen.getByRole('button', { name: '〉' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '次のパターン' })).toBeDisabled();
     });
 
     it('currentIndex が totalPatterns-1 未満のとき enabled', () => {
       renderCanvas({ currentIndex: 1, totalPatterns: 3 });
-      expect(screen.getByRole('button', { name: '〉' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: '次のパターン' })).not.toBeDisabled();
     });
 
     it('totalPatterns=1 かつ currentIndex=0 のとき disabled', () => {
       renderCanvas({ currentIndex: 0, totalPatterns: 1 });
-      expect(screen.getByRole('button', { name: '〉' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '次のパターン' })).toBeDisabled();
     });
   });
 
@@ -123,7 +123,7 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
   describe('詠唱完了！ボタン', () => {
     it('showResult=false かつ isReplaying=false のとき enabled', () => {
       renderCanvas({ showResult: false, isReplaying: false });
-      expect(screen.getByRole('button', { name: '詠唱完了！' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: '詠唱完了してスコアを判定する' })).not.toBeDisabled();
     });
 
     it('showResult=true のとき disabled', () => {
@@ -131,12 +131,12 @@ describe('MagicCircleCanvas — ボタン disabled 条件', () => {
         showResult: true,
         scoreResult: { score: 80, rank: 'A', damageMultiplier: '150%', difficultyMultiplier: 1 },
       });
-      expect(screen.getByRole('button', { name: '詠唱完了！' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '詠唱完了してスコアを判定する' })).toBeDisabled();
     });
 
     it('isReplaying=true のとき disabled', () => {
       renderCanvas({ isReplaying: true });
-      expect(screen.getByRole('button', { name: '詠唱完了！' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '詠唱完了してスコアを判定する' })).toBeDisabled();
     });
   });
 

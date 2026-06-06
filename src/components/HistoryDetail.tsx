@@ -519,10 +519,16 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
               />
 
               {/* 中央の再生/停止オーバーレイ */}
-              <div
+              <button
                 className="absolute inset-0 flex items-center justify-center cursor-pointer rounded-lg"
                 onClick={() => isPlaying ? handlePause() : handlePlay()}
-                style={{ background: isPlaying ? 'transparent' : 'rgba(0,0,0,0.15)' }}
+                aria-label={isPlaying ? '⏹️ 停止' : '▶️ 再生'}
+                disabled={!history.data?.drawLogs?.length}
+                style={{
+                  background: isPlaying ? 'transparent' : 'rgba(0,0,0,0.15)',
+                  border: 'none',
+                  padding: 0,
+                }}
               >
                 {!isPlaying && !!history.data?.drawLogs?.length && (
                   <div
@@ -545,11 +551,12 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                     }} />
                   </div>
                 )}
-              </div>
+              </button>
 
               {/* 共有ボタン（右上オーバーレイ） */}
               <button
                 onClick={handleShare}
+                aria-label="共有"
                 className="absolute top-2 right-2 flex items-center justify-center rounded-full text-sm transition-opacity hover:opacity-80"
                 style={{
                   width: 32,
@@ -558,7 +565,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
                   border: '1px solid rgba(0,229,255,0.4)',
                   color: '#00e5ff',
                 }}
-                title="共有"
               >
                 📤
               </button>
