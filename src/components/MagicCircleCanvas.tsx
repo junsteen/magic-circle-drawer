@@ -240,6 +240,7 @@ export default function MagicCircleCanvas({
           <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}
+            aria-label="前のパターン"
             className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-600 bg-gray-800/50 text-gray-400 hover:bg-gray-600/70 transition-colors disabled:opacity-50"
           >
             〈
@@ -253,6 +254,7 @@ export default function MagicCircleCanvas({
           <button
             onClick={handleNext}
             disabled={currentIndex >= totalPatterns - 1}
+            aria-label="次のパターン"
             className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-600 bg-gray-800/50 text-gray-400 hover:bg-gray-600/70 transition-colors disabled:opacity-50"
           >
             〉
@@ -382,6 +384,7 @@ export default function MagicCircleCanvas({
         <button
           onClick={handleEvaluate}
           disabled={showResult || isReplaying}
+          aria-label="詠唱完了してスコアを判定する"
           className={`cursor-pointer rounded-md px-6 py-2 font-bold text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-80${(isDrawing || drawLogs.length > 0) && !showResult && !isReplaying ? ' btn-breathe' : ''}`}
           style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
@@ -389,6 +392,7 @@ export default function MagicCircleCanvas({
         </button>
         <button
           onClick={handleReset}
+          aria-label="描画をリセットする"
           className="cursor-pointer rounded-md border-2 border-gray-600 px-6 py-2 font-bold transition-colors hover:bg-gray-800"
         >
           リセット

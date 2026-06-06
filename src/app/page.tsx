@@ -52,7 +52,7 @@ function HomeContent() {
         <div className="mt-4 text-center">
           <div className="text-lg" style={{ color: '#7c4dff' }}>
             前回の結果: <span className="font-bold">{lastResult.rank}</span>{' '}
-            (スコア: {lastResult.score}, 倍率: {lastResult.difficultyMultiplier ?? 1}x, {lastResult.damageMultiplier}ダメージ)
+            (スコア: {lastResult.score}, 倍率: {lastResult.difficultyMultiplier}x, {lastResult.damageMultiplier}ダメージ)
           </div>
         </div>
       )}
