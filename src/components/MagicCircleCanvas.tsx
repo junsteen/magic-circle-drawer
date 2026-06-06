@@ -50,26 +50,19 @@ export default function MagicCircleCanvas({
     difficulty, difficultyLabel, handleEvaluate, handleReset, handleNext, handlePrevious, changeDifficulty,
     getRankColor, onPointerDown, onPointerMove, onPointerUp,
     // リプレイ関連
-    drawLogs, savedMagicData, isReplaying, handleReplay, handleLoadData,
-    // 完了追跡
-    completionStatus,
+    drawLogs, isReplaying, handleReplay, handleLoadData,
     // 音声検知
     voiceActivation,
     setVoiceActivation
   } = useMagicCircle(onScore, onReset, onCompletionUpdate, initialPatternName);
 
   const [showHelp, setShowHelp] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() =>
+    typeof window !== 'undefined' && !localStorage.getItem('tutorialCompleted')
+  );
   const [showHistory, setShowHistory] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
-
-  // 初回訪問時にチュートリアルを自動表示
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !localStorage.getItem('tutorialCompleted')) {
-      setShowTutorial(true);
-    }
-  }, []);
 
   // チュートリアル完了時に localStorage にフラグを保存
   const handleTutorialComplete = useCallback(() => {

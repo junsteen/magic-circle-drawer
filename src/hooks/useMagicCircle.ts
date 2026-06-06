@@ -7,7 +7,6 @@ import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 import {
   type MagicCirclePattern,
   type Difficulty,
-  type Point,
   createPresetPattern,
   generateRandomPattern,
   DIFFICULTY_TIME,
@@ -17,7 +16,7 @@ import {
 } from '@/lib/patterns';
 import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import { addHistory } from '@/lib/historyDB';
-import { updateCompletion, isPatternCompleted, getCompletedCount, getTotalPatternsCount } from '@/lib/completionDB';
+import { updateCompletion, getCompletedCount, getTotalPatternsCount } from '@/lib/completionDB';
 import { compressForUrlOptimized } from '@/lib/shareUtils';
 
 const CANVAS_SIZE = 350;
@@ -171,13 +170,15 @@ export function useMagicCircle(
   // stale closure回避用ref: React再レンダリング前にポインターイベントで参照するため
   const isDrawingRef = useRef(false);
   const showResultRef = useRef(false);
+  // handleEvaluateはこの位置より後で定義されるため、refで前方参照する
+  const handleEvaluateRef = useRef<(() => void) | null>(null);
 
   // 音声検知フックを初期化（コンポーネントレベルで呼び出し）
   const voiceHook = useVoiceActivation(async () => {
     // 音声が検知されたときのコールバック
     // 評価ボタンを自動的に押す（ただし、アクティブで結果が表示されていない場合のみ）
     if (isActive && !showResult && userPath.length >= 10) {
-      handleEvaluate();
+      handleEvaluateRef.current?.();
       setDebugMsg('🔊 音声検知により自動評価を実行しました');
     }
   }, {
@@ -208,7 +209,8 @@ export function useMagicCircle(
         stopListening: voiceHook.stopListening
       });
     }
-  }, [voiceHook?.isMicAccessible, voiceHook?.isListening]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceHook?.isMicAccessible, voiceHook?.isListening, voiceHook?.startListening, voiceHook?.stopListening]);
 
   // ─── パターン・難易度管理 ───
   /** 現在の難易度設定 */
@@ -258,7 +260,7 @@ export function useMagicCircle(
     }
     loadCompletionStatus();
     return () => { isMounted = false; };
-  }, []);
+  }, [onCompletionUpdate]);
 
   // 完了状況の変更を親に通知する別のエフェクト
   useEffect(() => {
@@ -341,7 +343,7 @@ export function useMagicCircle(
       }
       ctx.setLineDash([]); // ダッシュパターンをリセット
     }
-  }, [CANVAS_SIZE]);
+  }, []);
 
   const drawStrokes = useCallback((strokes: { x: number; y: number }[][], offset: { x: number; y: number } = { x: 0, y: 0 }) => {
     const canvas = canvasRef.current;
@@ -379,6 +381,35 @@ export function useMagicCircle(
       drawTemplate(currentPattern);
     }
   }, [drawTemplate, currentPattern]);
+
+  const getCanvasPos = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_SIZE / rect.width;
+    const scaleY = CANVAS_SIZE / rect.height;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }, []);
+
+  const startDrawing = useCallback((pos: { x: number; y: number }) => {
+    if (showResultRef.current || isReplayingRef.current) return;
+    if (!isActive) setIsActive(true);
+    isDrawingRef.current = true;
+    setIsDrawing(true);
+    setUserPath([{ x: pos.x, y: pos.y }]);
+    // 描画ログ記録: start タイミングで新しいストロークを開始
+    strokeStartTimeRef.current = performance.now();
+    drawLogRef.current = [{ x: pos.x, y: pos.y, t: 0, type: 'start' }];
+    setDebugMsg('描画中...');
+  }, [isActive]);
+
+  const draw = useCallback((pos: { x: number; y: number }) => {
+    if (!isDrawingRef.current || showResultRef.current || isReplayingRef.current) return;
+    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
+    // 描画ログ記録: move イベント
+    const elapsed = performance.now() - strokeStartTimeRef.current;
+    drawLogRef.current.push({ x: pos.x, y: pos.y, t: elapsed, type: 'move' });
+  }, []);
 
   // ネイティブポインターイベントリスナーをキャンバスに直接アタッチ
   // (React合成イベントの問題を回避)
@@ -435,7 +466,7 @@ export function useMagicCircle(
       canvas.removeEventListener('pointerup', handlePointerUp, true);
       canvas.removeEventListener('pointerleave', handlePointerUp, true);
     };
-  }, [isDrawing]);
+  }, [isDrawing, startDrawing, draw, getCanvasPos]);
 
   useEffect(() => {
     if (!isReplayingRef.current) {
@@ -540,35 +571,6 @@ export function useMagicCircle(
       }
     };
   }, [showResult, drawLogs, currentPattern, drawTemplate]);
-
-  const getCanvasPos = useCallback((clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_SIZE / rect.width;
-    const scaleY = CANVAS_SIZE / rect.height;
-    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-  }, []);
-
-  const startDrawing = useCallback((pos: { x: number; y: number }) => {
-    if (showResultRef.current || isReplayingRef.current) return;
-    if (!isActive) setIsActive(true);
-    isDrawingRef.current = true;
-    setIsDrawing(true);
-    setUserPath([{ x: pos.x, y: pos.y }]);
-    // 描画ログ記録: start タイミングで新しいストロークを開始
-    strokeStartTimeRef.current = performance.now();
-    drawLogRef.current = [{ x: pos.x, y: pos.y, t: 0, type: 'start' }];
-    setDebugMsg('描画中...');
-  }, [isActive]);
-
-  const draw = useCallback((pos: { x: number; y: number }) => {
-    if (!isDrawingRef.current || showResultRef.current || isReplayingRef.current) return;
-    setUserPath((prev) => [...prev, { x: pos.x, y: pos.y }]);
-    // 描画ログ記録: move イベント
-    const elapsed = performance.now() - strokeStartTimeRef.current;
-    drawLogRef.current.push({ x: pos.x, y: pos.y, t: elapsed, type: 'move' });
-  }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     console.log('[useMagicCircle] onPointerDown triggered');
@@ -679,9 +681,14 @@ export function useMagicCircle(
     
     // ─── 完了状況を更新 ───
     // パターン完了状況をデータベースに記録
-    updateCompletion(currentPattern.name, result.score, result.rank).catch((e) => 
+    updateCompletion(currentPattern.name, result.score, result.rank).catch((e) =>
       console.error('Failed to update completion:', e));
   }, [userPath, currentPattern, difficulty, onScore, drawLogs, canvasRef]);
+
+  // handleEvaluateRefを最新のhandleEvaluateと同期（音声検知コールバックからアクセスするため）
+  useEffect(() => {
+    handleEvaluateRef.current = handleEvaluate;
+  });
 
   const handleReset = useCallback(() => {
     isDrawingRef.current = false;
@@ -752,7 +759,7 @@ export function useMagicCircle(
       }
       setIsReplaying(false);
     }
-  }, [currentIdx, difficulty]);
+  }, [currentIdx, difficulty, patterns]);
 
   const changeDifficulty = useCallback((d: Difficulty) => {
     setDifficulty(d);
@@ -861,7 +868,7 @@ export function useMagicCircle(
     // リプレイページに遷移
     const replayUrl = `/replay?data=${compressed}`;
     router.push(replayUrl);
-  }, [drawLogs, isReplaying, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate]);
+  }, [drawLogs, currentPattern, scoreResult, showResult, isDrawing, userPath, difficulty, handleEvaluate, router]);
 
   // ─── 魔法陣データの保存 ───
   /**

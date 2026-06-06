@@ -5,7 +5,7 @@ import {
   generateRandomPattern,
   getPatternTemplatePoints,
 } from './patterns';
-import type { MagicCirclePattern, Point, Edge } from './patterns';
+import type { Point, Edge } from './patterns';
 
 // ─── ヘルパー ──────────────────────────────────────────────────────────────────
 

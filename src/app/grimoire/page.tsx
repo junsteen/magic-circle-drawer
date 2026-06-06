@@ -33,17 +33,15 @@ const TABS: { id: TabId; label: string }[] = [
 export default function GrimoirePage() {
   const router = useRouter();
   const [tab, setTab] = useState<TabId>('circles');
-  const [patterns, setPatterns] = useState<MagicCirclePattern[]>([]);
+  const [patterns] = useState<MagicCirclePattern[]>(() => createPresetPattern(PATTERN_CANVAS_SIZE));
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [histories, setHistories] = useState<MagicCircleHistory[]>([]);
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
   const [justUnlockedIds, setJustUnlockedIds] = useState<Set<string>>(new Set());
-  const [equippedTitleId, setEquippedTitleId] = useState<string | null>(null);
+  const [equippedTitleId, setEquippedTitleId] = useState<string | null>(() => getEquippedTitleId());
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
 
   useEffect(() => {
-    setPatterns(createPresetPattern(PATTERN_CANVAS_SIZE));
-    setEquippedTitleId(getEquippedTitleId());
     getAllCompletions()
       .then(setCompletions)
       .catch((e) => console.error('Failed to load completions:', e));

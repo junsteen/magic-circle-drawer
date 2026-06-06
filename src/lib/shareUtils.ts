@@ -142,8 +142,8 @@ export function decompressFromUrlOptimized<T>(compressed: string): T | null {
             radius: c.r
           }))
         },
-        drawLogs: parsed.d.map((stroke: any[]) =>
-          stroke.map((event: any) => ({
+        drawLogs: (parsed.d as Array<Array<{ x: number; y: number; t: number; ty: string }>>).map(stroke =>
+          stroke.map(event => ({
             x: event.x,
             y: event.y,
             t: event.t,

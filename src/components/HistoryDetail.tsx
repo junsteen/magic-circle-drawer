@@ -107,7 +107,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const replayAnimRef = useRef<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
   const [totalDuration, setTotalDuration] = useState(0);
   const [debugMsg, setDebugMsg] = useState('');
   const canvasReadyRef = useRef(false);
@@ -191,7 +190,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     setIsPlaying(false);
     setCurrentTime(0);
     setTotalDuration(0);
-    setStartTime(null);
     if (replayAnimRef.current !== null) {
       cancelAnimationFrame(replayAnimRef.current);
       replayAnimRef.current = null;
@@ -275,7 +273,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const startFrom = currentTime >= totalDuration ? 0 : currentTime;
     if (startFrom === 0) setCurrentTime(0);
     const startTime = performance.now() - startFrom;
-    setStartTime(startTime);
     setIsPlaying(true);
     setDebugMsg('🔄 再生中...');
 
@@ -330,7 +327,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     };
 
     replayAnimRef.current = requestAnimationFrame(animate);
-  }, [history, currentTime, totalDuration, drawTemplate]);
+  }, [history, currentTime, drawTemplate]);
 
   // Keep ref in sync with latest handlePlay every render
   handlePlayRef.current = handlePlay;
@@ -366,8 +363,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       drawTemplate(history.data.pattern);
       
       const startTime = performance.now() - clampedTime;
-      setStartTime(startTime);
-      
+
       const drawLogs = history.data.drawLogs;
       const normalizedLogs = createReplayDrawLogs(drawLogs);
       const STROKE_INTERVAL_MS = 500;
@@ -462,7 +458,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
         drawStrokesOnCanvas(ctx, ptsWithType);
       }
     }
-  }, [history, isPlaying, currentTime, totalDuration, drawTemplate]);
+  }, [history, isPlaying, totalDuration, drawTemplate]);
 
   const handleShare = useCallback(async () => {
     if (!history?.data?.drawLogs) return;

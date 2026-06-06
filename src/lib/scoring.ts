@@ -134,7 +134,7 @@ export function calculateScore(
     totalError += Math.min(d, maxAllowedError);
   }
   const avgError = totalError / userPath.length;
-  let accuracy = Math.max(0, 100 - (avgError / maxAllowedError) * 100);
+  const accuracy = Math.max(0, 100 - (avgError / maxAllowedError) * 100);
 
   // 2. チェックポイント: ユーザーがすべての頂点付近を通過したか？
   // 性能問題を避けるため円など多頂点の場合はサンプリング
