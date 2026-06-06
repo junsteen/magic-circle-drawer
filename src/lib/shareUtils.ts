@@ -23,12 +23,18 @@ export function compressForUrl(data: unknown): string {
  */
 export function decompressFromUrl<T>(compressed: string): T | null {
   try {
-    if (!compressed) return null;
+    if (!compressed || typeof compressed !== 'string') return null;
     // compressForUrl が encodeURIComponent で二重エンコードした場合に対応
     // URLSearchParams.get() 経由の場合は既に一度デコード済みのため no-op になる
     const decoded = compressed.includes('%') ? decodeURIComponent(compressed) : compressed;
     const jsonStr = LZString.decompressFromEncodedURIComponent(decoded);
-    if (!jsonStr) return null;
+
+    // jsonStr が空でないことを確認
+    if (!jsonStr || jsonStr.trim() === '') {
+      console.warn('URLデータの解凍結果が空です');
+      return null;
+    }
+
     return JSON.parse(jsonStr) as T;
   } catch (error) {
     console.error('URLデータ解凍に失敗:', error);
@@ -103,18 +109,23 @@ export function compressForUrlOptimized(data: {
  */
 export function decompressFromUrlOptimized<T>(compressed: string): T | null {
   try {
-    if (!compressed) return null;
+    if (!compressed || typeof compressed !== 'string') return null;
     // compressForUrlOptimized が encodeURIComponent で二重エンコードした場合に対応
     const decoded = compressed.includes('%') ? decodeURIComponent(compressed) : compressed;
     const jsonStr = LZString.decompressFromEncodedURIComponent(decoded);
-    if (!jsonStr) return null;
+
+    // jsonStr が空でないことを確認
+    if (!jsonStr || jsonStr.trim() === '') {
+      console.warn('URLデータの解凍結果が空です');
+      return null;
+    }
 
     const parsed = JSON.parse(jsonStr);
-    
+
     // フォーマットを検出: 最適化形式は単一文字キー(p, d, s, rなど)
     // レガシー形式は完全なプロパティ名(pattern, drawLogs, score, rankなど)
     const isOptimizedFormat = !!parsed.p && !!parsed.d;
-    
+
     if (isOptimizedFormat) {
       // 最適化構造から変換
       const decompressed = {
@@ -145,7 +156,7 @@ export function decompressFromUrlOptimized<T>(compressed: string): T | null {
         difficultyMultiplier: parsed.difM / 10, // 10分の1から戻す
         damageMultiplier: parsed.dmgM
       };
-      
+
       return decompressed as T;
     } else {
       // レガシー形式 - 元のインターフェースに合致するようにそのまま返す
