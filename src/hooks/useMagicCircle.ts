@@ -514,14 +514,16 @@ export function useMagicCircle(
 
       drawTemplate(currentPattern);
 
-      const pts: { x: number; y: number }[] = [];
-      for (const ev of allEvents) {
-        if (ev.t <= elapsed) {
-          pts.push({ x: ev.x, y: ev.y });
-        }
+      // 二分探索で elapsed 以前のイベント数を O(log n) で取得
+      let lo = 0, hi = allEvents.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (allEvents[mid].t <= elapsed) lo = mid + 1;
+        else hi = mid;
       }
+      const cutoff = lo;
 
-      if (pts.length > 1) {
+      if (cutoff > 1) {
         ctx.shadowBlur = 2;
         ctx.shadowColor = '#00e5ff';
         ctx.strokeStyle = '#00e5ff';
@@ -529,14 +531,14 @@ export function useMagicCircle(
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.moveTo(allEvents[0].x, allEvents[0].y);
+        for (let i = 1; i < cutoff; i++) {
+          ctx.lineTo(allEvents[i].x, allEvents[i].y);
         }
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        const last = pts[pts.length - 1];
+        const last = allEvents[cutoff - 1];
         ctx.shadowBlur = 2;
         ctx.shadowColor = '#00e5ff';
         ctx.fillStyle = '#ffffff';

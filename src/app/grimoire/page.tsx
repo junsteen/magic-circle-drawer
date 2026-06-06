@@ -40,21 +40,31 @@ export default function GrimoirePage() {
   const [justUnlockedIds, setJustUnlockedIds] = useState<Set<string>>(new Set());
   const [equippedTitleId, setEquippedTitleId] = useState<string | null>(() => getEquippedTitleId());
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     getAllCompletions()
       .then(setCompletions)
-      .catch((e) => console.error('Failed to load completions:', e));
+      .catch((e) => {
+        console.error('Failed to load completions:', e);
+        setLoadError('魔法陣データの読み込みに失敗しました');
+      });
     getAllHistories()
       .then(setHistories)
-      .catch((e) => console.error('Failed to load histories:', e));
+      .catch((e) => {
+        console.error('Failed to load histories:', e);
+        setLoadError('履歴データの読み込みに失敗しました');
+      });
     checkAndUnlockAchievements()
       .then(async (newlyUnlocked) => {
         setJustUnlockedIds(new Set(newlyUnlocked));
         const all = await getUnlockedAchievementIds();
         setUnlockedIds(all);
       })
-      .catch((e) => console.error('Failed to check achievements:', e));
+      .catch((e) => {
+        console.error('Failed to check achievements:', e);
+        setLoadError('アチーブメントデータの読み込みに失敗しました');
+      });
   }, []);
 
   const handleEquip = useCallback((id: string | null) => {
@@ -119,6 +129,27 @@ export default function GrimoirePage() {
           </button>
         ))}
       </nav>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="mx-4 mt-4 flex items-center justify-between rounded-lg px-4 py-3 text-sm"
+          style={{
+            background: 'rgba(255, 64, 129, 0.15)',
+            border: '1px solid rgba(255, 64, 129, 0.5)',
+            color: '#ff4081',
+          }}
+        >
+          <span>⚠️ {loadError}</span>
+          <button
+            onClick={() => setLoadError(null)}
+            aria-label="エラーを閉じる"
+            className="ml-3 text-base leading-none hover:opacity-70"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <main className="px-4 py-6">
         {tab === 'circles' && (
