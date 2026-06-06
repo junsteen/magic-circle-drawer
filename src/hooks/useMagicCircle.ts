@@ -13,6 +13,7 @@ import {
   DIFFICULTY_MULTIPLIER,
   DIFFICULTY_TOLERANCE,
   DIFFICULTY_LABELS,
+  getOuterCircle,
 } from '@/lib/patterns';
 import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import { addHistory } from '@/lib/historyDB';
@@ -172,6 +173,10 @@ export function useMagicCircle(
   const showResultRef = useRef(false);
   // handleEvaluateはこの位置より後で定義されるため、refで前方参照する
   const handleEvaluateRef = useRef<(() => void) | null>(null);
+
+  // チャージアニメーション用ref
+  const chargeAnimRef = useRef<number | null>(null);
+  const chargeStartTimeRef = useRef<number | null>(null);
 
   // onCompletionUpdateはレンダリング毎に新しい参照になるためrefで保持（ループ防止）
   const onCompletionUpdateRef = useRef(onCompletionUpdate);
@@ -342,6 +347,90 @@ export function useMagicCircle(
     }
   }, []);
 
+  /**
+   * チャージ演出を描画
+   * 時間制限の進行度に応じて、魔法陣外周に魔力チャージ演出を表示
+   * @param pattern 魔法陣パターン
+   * @param progress 進行度（0-1: 0=開始、1=完了）
+   * @param currentTime アニメーション用の現在時刻（ミリ秒）
+   */
+  const drawChargeEffect = useCallback(
+    (pattern: MagicCirclePattern | null, progress: number, currentTime: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas || !pattern) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // 外周円の情報を取得
+      const { cx, cy, radius } = getOuterCircle(pattern, CANVAS_SIZE);
+
+      // 進行度を0-1の範囲に制限
+      const normalizedProgress = Math.max(0, Math.min(1, progress));
+
+      // 終了角度（0 → 2π）
+      const endAngle = Math.PI * 2 * normalizedProgress;
+
+      // 開始角度（-π/2 で上から開始）
+      const startAngle = -Math.PI / 2;
+
+      // ─── 微振動エフェクト ───
+      // 進行度に応じて振動幅を増加
+      const vibrationAmount = Math.sin(currentTime / 100) * (normalizedProgress * 0.08);
+      const baseLineWidth = 3;
+      const lineWidth = baseLineWidth + baseLineWidth * vibrationAmount;
+
+      // ─── メイン円弧の描画 ───
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, startAngle, startAngle + endAngle, false);
+      ctx.stroke();
+
+      // ─── 終端の光点（魔力の集束） ───
+      if (normalizedProgress > 0.05) {
+        const endPointAngle = startAngle + endAngle;
+        const endX = cx + radius * Math.cos(endPointAngle);
+        const endY = cy + radius * Math.sin(endPointAngle);
+
+        // 発光効果
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#00e5ff';
+        ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(endX, endY, 5 + normalizedProgress * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 外側の光輪
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(endX, endY, 8 + normalizedProgress * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ─── チャージ完了時のフラッシュ ───
+      if (normalizedProgress >= 0.98) {
+        // フラッシュの透明度を計算（完了に近づくほど明るく）
+        const flashIntensity = Math.max(0, (normalizedProgress - 0.98) / 0.02);
+        const flashAlpha = flashIntensity * 0.3;
+
+        // 完了時の白い円弧フラッシュ
+        ctx.strokeStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+        ctx.lineWidth = 6;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, startAngle + endAngle, false);
+        ctx.stroke();
+      }
+
+      ctx.shadowBlur = 0;
+    },
+    []
+  );
+
   const drawStrokes = useCallback((strokes: { x: number; y: number }[][], offset: { x: number; y: number } = { x: 0, y: 0 }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -378,6 +467,46 @@ export function useMagicCircle(
       drawTemplate(currentPattern);
     }
   }, [drawTemplate, currentPattern]);
+
+  // ─── チャージアニメーションループ ───
+  useEffect(() => {
+    if (!isActive || !currentPattern) {
+      if (chargeAnimRef.current !== null) {
+        cancelAnimationFrame(chargeAnimRef.current);
+        chargeAnimRef.current = null;
+      }
+      chargeStartTimeRef.current = null;
+      return;
+    }
+
+    const maxTime = DIFFICULTY_TIME[difficulty];
+    chargeStartTimeRef.current = performance.now();
+
+    const animate = (now: number) => {
+      if (!chargeStartTimeRef.current || !currentPattern) return;
+
+      // 経過時間から進行度を計算
+      const elapsed = now - chargeStartTimeRef.current;
+      // チャージは、時間が経つにつれて完了に向かう（initialTimeからactualTimeLeftへ）
+      // 進行度 = (経過時間) / (最大時間 * 1000)
+      const progress = Math.min(1, elapsed / (maxTime * 1000));
+
+      // チャージ演出を描画（テンプレートはメイン描画ループで既に描画されている）
+      drawChargeEffect(currentPattern, progress, now);
+
+      chargeAnimRef.current = requestAnimationFrame(animate);
+    };
+
+    chargeAnimRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (chargeAnimRef.current !== null) {
+        cancelAnimationFrame(chargeAnimRef.current);
+        chargeAnimRef.current = null;
+      }
+      chargeStartTimeRef.current = null;
+    };
+  }, [isActive, currentPattern, difficulty, drawChargeEffect]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;

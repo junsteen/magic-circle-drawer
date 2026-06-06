@@ -342,11 +342,6 @@ export default function MagicCircleCanvas({
           </div>
         )}
 
-        {isActive && (
-          <div className="absolute right-2 top-2 rounded-md bg-black/60 px-3 py-1 font-mono text-xl">
-            {timeLeft}s
-          </div>
-        )}
 
         {!isActive && !isDrawing && !showResult && timeLeft === 0 && (
           <div
@@ -368,7 +363,6 @@ export default function MagicCircleCanvas({
       </div>
 
       <div className="mt-1 min-h-[1.25rem] text-sm text-gray-400">
-        {isActive && `⏱ 残り${timeLeft}秒`}
         {!isActive && !isDrawing && !showResult && timeLeft === 0 && <span style={{ color: '#ff4081' }}>⏰ 詠唱終了！リセットして再挑戦</span>}
         {!isActive && !isDrawing && !showResult && timeLeft > 0 && (userPath.length > 0 ? '描画完了。スコア判定しますか？' : `▲ ${guideText}`)}
       </div>
