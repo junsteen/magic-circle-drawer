@@ -14,7 +14,18 @@
       "Bash(git commit -m ' *)",
       "Bash(git commit *)",
       "Bash(npm test *)",
-      "Bash(git rebase *)"
+      "Bash(git rebase *)",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(git reset *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(npx eslint *)",
+      "Bash(git push *)",
+      "PowerShell(Stop-Process -Id 5104 -Force)",
+      "Bash(curl -s http://localhost:3000/)",
+      "PowerShell(Stop-Process -Id 13856 -Force 2>/dev/null; Start-Sleep -Seconds 1; Get-Process node -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process $_ -Force })",
+      "Bash(gh pr create --title '魔導書のメニュー内の更新をバッジで表示（Issue #134）' --body ' *)",
+      "Bash(gh pr *)"
     ]
   }
 }

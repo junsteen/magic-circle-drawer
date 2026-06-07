@@ -474,7 +474,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   };
 
   const formatDate = (ts: number): string => {
-    const d = new Date(ts);
+    // 秒単位（10 桁）の場合はミリ秒に変換、ミリ秒単位（13 桁以上）はそのまま使用
+    const tsMs = ts < 1e12 ? ts * 1000 : ts;
+    const d = new Date(tsMs);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const date = String(d.getDate()).padStart(2, '0');
