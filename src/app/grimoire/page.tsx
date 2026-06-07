@@ -13,6 +13,7 @@ import {
 } from '@/lib/achievementDB';
 import { TITLES, getEquippedTitleId, saveEquippedTitleId } from '@/lib/titles';
 import { CHALLENGES } from '@/lib/challenges';
+import { getUnreadTabs, clearUnreadTab, setUnreadTabsFromNewUnlocks, type UnreadState } from '@/lib/unreadDB';
 import MagicCircleCard from '@/components/grimoire/MagicCircleCard';
 import AchievementCard from '@/components/grimoire/AchievementCard';
 import TitleCard from '@/components/grimoire/TitleCard';
@@ -41,6 +42,12 @@ export default function GrimoirePage() {
   const [equippedTitleId, setEquippedTitleId] = useState<string | null>(() => getEquippedTitleId());
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [unreadTabs, setUnreadTabs] = useState<UnreadState>({
+    circles: false,
+    achievements: false,
+    titles: false,
+    challenges: false,
+  });
 
   useEffect(() => {
     getAllCompletions()
@@ -60,11 +67,17 @@ export default function GrimoirePage() {
         setJustUnlockedIds(new Set(newlyUnlocked));
         const all = await getUnlockedAchievementIds();
         setUnlockedIds(all);
+        await setUnreadTabsFromNewUnlocks(
+          new Set(newlyUnlocked.filter((id) => ACHIEVEMENTS.some((a) => a.id === id))),
+          new Set(newlyUnlocked.filter((id) => TITLES.some((t) => t.achievementId === id))),
+          new Set(),
+        );
       })
       .catch((e) => {
         console.error('Failed to check achievements:', e);
         setLoadError('アチーブメントデータの読み込みに失敗しました');
       });
+    getUnreadTabs().then(setUnreadTabs);
   }, []);
 
   const handleEquip = useCallback((id: string | null) => {
@@ -75,6 +88,13 @@ export default function GrimoirePage() {
   const handleDraw = useCallback((patternName: string) => {
     router.push(`/?pattern=${encodeURIComponent(patternName)}`);
   }, [router]);
+
+  const handleTabChange = useCallback((newTab: TabId) => {
+    setTab(newTab);
+    clearUnreadTab(newTab).then(() => {
+      setUnreadTabs((prev) => ({ ...prev, [newTab]: false }));
+    });
+  }, []);
 
   const completionMap = new Map(completions.map((c) => [c.patternName, c]));
 
@@ -117,8 +137,8 @@ export default function GrimoirePage() {
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
-            className="flex-1 py-3 text-xs font-bold tracking-wider transition-colors"
+            onClick={() => handleTabChange(t.id)}
+            className="flex-1 py-3 text-xs font-bold tracking-wider transition-colors relative"
             style={{
               color: tab === t.id ? '#00e5ff' : '#7676aa',
               borderBottom:
@@ -126,6 +146,22 @@ export default function GrimoirePage() {
             }}
           >
             {t.label}
+            {unreadTabs[t.id] && (
+              <span
+                className="grimoire-unread-badge"
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 6,
+                  height: 6,
+                  background: '#ff4081',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                }}
+                aria-label="未読更新あり"
+              />
+            )}
           </button>
         ))}
       </nav>

@@ -52,6 +52,11 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Tutorial overlay styles */
 .tutorial-overlay {
   animation: fade-in 0.5s ease-out;
@@ -152,6 +157,7 @@ body {
   .grimoire-detail-in,
   .grimoire-card,
   .grimoire-challenge-complete,
+  .grimoire-unread-badge,
   .btn-breathe,
   .tutorial-arrow {
     animation: none;
