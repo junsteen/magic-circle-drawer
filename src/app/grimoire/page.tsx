@@ -72,12 +72,13 @@ export default function GrimoirePage() {
           new Set(newlyUnlocked.filter((id) => TITLES.some((t) => t.achievementId === id))),
           new Set(),
         );
+        const unread = await getUnreadTabs();
+        setUnreadTabs(unread);
       })
       .catch((e) => {
         console.error('Failed to check achievements:', e);
         setLoadError('アチーブメントデータの読み込みに失敗しました');
       });
-    getUnreadTabs().then(setUnreadTabs);
   }, []);
 
   const handleEquip = useCallback((id: string | null) => {
