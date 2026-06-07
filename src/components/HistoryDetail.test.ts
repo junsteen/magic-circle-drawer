@@ -155,5 +155,15 @@ describe('formatDate function', () => {
       const result = formatDate(timestamp2030Ms);
       expect(result).toMatch(/2030/);
     });
+
+    it('IndexedDB から取得した実際のタイムスタンプを処理', () => {
+      // コンソール出力で確認されたミリ秒タイムスタンプ
+      const ts = 1780836687248;
+      const result = formatDate(ts);
+      console.log('✅ formatDate(1780836687248) =', result);
+      // 2026年6月周辺の日付を表すはず
+      expect(result).toMatch(/2026\/06/);
+      expect(result).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
+    });
   });
 });

@@ -59,6 +59,7 @@ export function compressForUrlOptimized(data: {
   difficulty: string;
   difficultyMultiplier: number;
   damageMultiplier: string;
+  createdAt?: number;
 }): string {
   try {
     // 短縮フィールド名を使用した最適化構造を作成
@@ -89,7 +90,8 @@ export function compressForUrlOptimized(data: {
       r: data.rank,
       dif: data.difficulty,
       difM: Number((data.difficultyMultiplier * 10).toFixed(1)), // 小数点以下1桁
-      dmgM: data.damageMultiplier
+      dmgM: data.damageMultiplier,
+      ca: data.createdAt // 作成日時を含める
     };
 
     const jsonStr = JSON.stringify(optimized);
@@ -154,7 +156,8 @@ export function decompressFromUrlOptimized<T>(compressed: string): T | null {
         rank: parsed.r,
         difficulty: parsed.dif,
         difficultyMultiplier: parsed.difM / 10, // 10分の1から戻す
-        damageMultiplier: parsed.dmgM
+        damageMultiplier: parsed.dmgM,
+        createdAt: parsed.ca // 作成日時を復元
       };
 
       return decompressed as T;
