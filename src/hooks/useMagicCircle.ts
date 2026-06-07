@@ -374,10 +374,10 @@ export function useMagicCircle(
       const startAngle = -Math.PI / 2;
 
       // ─── 微振動エフェクト ───
-      // 進行度に応じて振動幅を増加
-      const vibrationAmount = Math.sin(currentTime / 100) * (normalizedProgress * 0.08);
-      const baseLineWidth = 3;
-      const lineWidth = baseLineWidth + baseLineWidth * vibrationAmount;
+      // 進行度に応じて振動幅を増加（±30%まで広がる）
+      const vibrationAmount = Math.sin(currentTime / 80) * (normalizedProgress * 0.3);
+      const baseLineWidth = 1.5;
+      const lineWidth = Math.max(0.5, baseLineWidth * (1 + vibrationAmount));
 
       // ─── メイン円弧の描画 ───
       ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
