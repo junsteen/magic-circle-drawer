@@ -657,7 +657,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             <div className="mb-4">
               <div className="text-sm text-gray-500">作成日時</div>
               <div className="text-sm" style={{ color: '#9c9caf' }}>
-                {formatDate(history.createdAt)}
+                {formatDate(history.createdAt || history.data?.timestamp || Date.now())}
               </div>
             </div>
 
