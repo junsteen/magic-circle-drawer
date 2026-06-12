@@ -9,6 +9,7 @@ import {
   updateHistoryFields,
 } from '@/lib/historyDB';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
+import { ShareModal } from '@/components/ShareModal';
 
 const STAR_FILTER = '__star__';
 
@@ -33,6 +34,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
   const [isLoading, setIsLoading] = useState(false);
   /** 選択中フィルタ: null=すべて / STAR_FILTER=★のみ / それ以外=タグ名 */
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [shareModalData, setShareModalData] = useState<{ url: string; title: string; text: string } | null>(null);
 
   const loadHistories = useCallback(async () => {
     setIsLoading(true);
@@ -199,6 +201,14 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
 
   return (
     <>
+      {shareModalData && (
+        <ShareModal
+          url={shareModalData.url}
+          title={shareModalData.title}
+          text={shareModalData.text}
+          onClose={() => setShareModalData(null)}
+        />
+      )}
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
       <div
         className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl"
@@ -400,40 +410,25 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
 
                     {/* Share Button */}
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         if (h && h.data) {
-                          try {
-                            const shareData = {
-                              pattern: h.data.pattern,
-                              drawLogs: h.data.drawLogs,
-                              score: h.score,
-                              rank: h.rank,
-                              difficulty: h.difficulty,
-                              difficultyMultiplier: h.difficultyMultiplier,
-                              damageMultiplier: h.damageMultiplier,
-                            };
-                            const compressed = compressForUrl(shareData);
-                            if (!compressed) throw new Error('Failed to compress data');
-                            const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-                            if (navigator.share) {
-                              await navigator.share({
-                                title: `Arcane Tracer - ${h.data.pattern.name}`,
-                                text: `私の魔法陣詠唱結果: ${h.rank}ランク (${h.score}点)`,
-                                url: shareUrl,
-                              });
-                            } else {
-                              await navigator.clipboard.writeText(shareUrl);
-                              const originalBtn = e.currentTarget as HTMLButtonElement;
-                              const originalContent = originalBtn.innerHTML;
-                              originalBtn.innerHTML = '✅';
-                              setTimeout(() => {
-                                originalBtn.innerHTML = originalContent;
-                              }, 2000);
-                            }
-                          } catch (err) {
-                            console.error('Failed to share:', err);
-                          }
+                          const shareData = {
+                            pattern: h.data.pattern,
+                            drawLogs: h.data.drawLogs,
+                            score: h.score,
+                            rank: h.rank,
+                            difficulty: h.difficulty,
+                            difficultyMultiplier: h.difficultyMultiplier,
+                            damageMultiplier: h.damageMultiplier,
+                          };
+                          const compressed = compressForUrl(shareData);
+                          if (!compressed) return;
+                          setShareModalData({
+                            url: `${window.location.origin}/replay?data=${compressed}`,
+                            title: `Arcane Tracer - ${h.data.pattern.name}`,
+                            text: `私の魔法陣詠唱結果: ${h.rank}ランク (${h.score}点)`,
+                          });
                         }
                       }}
                       className="absolute top-1 left-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all hover:bg-gray-700"

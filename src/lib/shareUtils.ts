@@ -43,8 +43,10 @@ export function decompressFromUrl<T>(compressed: string): T | null {
 }
 
 /**
- * 魔法陣データ共有用の最適化圧縮
- * フィールド名を短縮し数値精度を最適化することでJSONサイズを削減
+ * 魔法陣データ共有用の最適化圧縮 (v2)
+ * v1からの改善点：
+ * - タイムスタンプをストローク内デルタ値に変換（大幅なバイト削減）
+ * - 座標を整数（*1000）で保存（小数点排除）
  */
 export function compressForUrlOptimized(data: {
   pattern: {
@@ -62,40 +64,39 @@ export function compressForUrlOptimized(data: {
   createdAt?: number;
 }): string {
   try {
-    // 短縮フィールド名を使用した最適化構造を作成
     const optimized = {
+      v: 2, // フォーマットバージョン
       p: {
         n: data.pattern.name,
         v: data.pattern.vertices.map(v => ({
-          x: Math.round(v.x * 100) / 100, // 小数点以下2桁
+          x: Math.round(v.x * 100) / 100,
           y: Math.round(v.y * 100) / 100
         })),
         e: data.pattern.edges,
         c: data.pattern.circles.map(c => ({
-          cx: Number((c.cx * 1000).toFixed(3)), // 0-1範囲の小数点以下3桁
+          cx: Number((c.cx * 1000).toFixed(3)),
           cy: Number((c.cy * 1000).toFixed(3)),
-          r: Math.round(c.radius * 10) / 10 // 半径の小数点以下1桁
+          r: Math.round(c.radius * 10) / 10
         }))
       },
+      // タイムスタンプをデルタ化、座標を整数化（小数点排除）
       d: data.drawLogs.map(stroke =>
-        stroke.map(event => ({
-          x: Math.round(event.x * 100) / 100,
-          y: Math.round(event.y * 100) / 100,
-          t: event.t, // タイムスタンプは整数のまま保持
-          // イベントタイプを単一文字にマッピング
+        stroke.map((event, i) => ({
+          x: Math.round(event.x * 1000),
+          y: Math.round(event.y * 1000),
+          t: i === 0 ? event.t : event.t - stroke[i - 1].t, // デルタタイムスタンプ
           ty: event.type === 'start' ? 's' : event.type === 'move' ? 'm' : 'e'
         }))
       ),
       s: data.score,
       r: data.rank,
       dif: data.difficulty,
-      difM: Number((data.difficultyMultiplier * 10).toFixed(1)), // 小数点以下1桁
+      difM: Number((data.difficultyMultiplier * 10).toFixed(1)),
       dmgM: data.damageMultiplier,
-      ca: data.createdAt // 作成日時を含める
+      ca: data.createdAt
     };
 
     const jsonStr = JSON.stringify(optimized);
-    // encodeURIComponent で + や $ を %2B / %24 に変換しURLセーフにする
     return encodeURIComponent(LZString.compressToEncodedURIComponent(jsonStr));
   } catch (error) {
     console.error('URL用データ圧縮に失敗:', error);
@@ -129,35 +130,47 @@ export function decompressFromUrlOptimized<T>(compressed: string): T | null {
     const isOptimizedFormat = !!parsed.p && !!parsed.d;
 
     if (isOptimizedFormat) {
-      // 最適化構造から変換
+      const isV2 = parsed.v === 2;
+
       const decompressed = {
         pattern: {
           name: parsed.p.n,
-          vertices: parsed.p.v.map((v: {x: number; y: number}) => ({
-            x: v.x,
-            y: v.y
-          })),
+          vertices: parsed.p.v.map((v: {x: number; y: number}) => ({ x: v.x, y: v.y })),
           edges: parsed.p.e,
           circles: parsed.p.c.map((c: {cx: number; cy: number; r: number}) => ({
-            cx: c.cx / 1000, // 0-1000から0-1範囲に戻す
+            cx: c.cx / 1000,
             cy: c.cy / 1000,
             radius: c.r
           }))
         },
-        drawLogs: (parsed.d as Array<Array<{ x: number; y: number; t: number; ty: string }>>).map(stroke =>
-          stroke.map(event => ({
-            x: event.x,
-            y: event.y,
-            t: event.t,
-            type: event.ty === 's' ? 'start' : event.ty === 'm' ? 'move' : 'end' as const
-          }))
-        ),
+        drawLogs: (parsed.d as Array<Array<{ x: number; y: number; t: number; ty: string }>>).map(stroke => {
+          let absTime = 0;
+          return stroke.map((event, i) => {
+            if (isV2) {
+              // v2: 座標を1/1000に戻す、タイムスタンプをデルタから絶対値に復元
+              absTime = i === 0 ? event.t : absTime + event.t;
+              return {
+                x: event.x / 1000,
+                y: event.y / 1000,
+                t: absTime,
+                type: event.ty === 's' ? 'start' : event.ty === 'm' ? 'move' : 'end' as const
+              };
+            }
+            // v1: 座標はそのまま、タイムスタンプは絶対値
+            return {
+              x: event.x,
+              y: event.y,
+              t: event.t,
+              type: event.ty === 's' ? 'start' : event.ty === 'm' ? 'move' : 'end' as const
+            };
+          });
+        }),
         score: parsed.s,
         rank: parsed.r,
         difficulty: parsed.dif,
-        difficultyMultiplier: parsed.difM / 10, // 10分の1から戻す
+        difficultyMultiplier: parsed.difM / 10,
         damageMultiplier: parsed.dmgM,
-        createdAt: parsed.ca // 作成日時を復元
+        createdAt: parsed.ca
       };
 
       return decompressed as T;

@@ -5,6 +5,7 @@ import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
+import { ShareModal } from '@/components/ShareModal';
 
 /**
  * 履歴詳細コンポーネントのプロパティ
@@ -109,6 +110,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [debugMsg, setDebugMsg] = useState('');
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const canvasReadyRef = useRef(false);
 
   const drawTemplate = useCallback((pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices' | 'name'>) => {
@@ -429,37 +431,20 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     }
   }, [history, isPlaying, totalDuration, drawTemplate]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!history?.data?.drawLogs) return;
-    try {
-      const shareData = {
-        pattern: history.data.pattern,
-        drawLogs: history.data.drawLogs,
-        score: history.score,
-        rank: history.rank,
-        difficulty: history.difficulty,
-        difficultyMultiplier: history.difficultyMultiplier,
-        damageMultiplier: history.damageMultiplier,
-      };
-      const compressed = compressForUrl(shareData);
-      if (!compressed) throw new Error('Failed to compress data');
-      const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-      if (navigator.share) {
-        await navigator.share({
-          title: `Arcane Tracer - ${history.data.pattern.name}`,
-          text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
-          url: shareUrl,
-        });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        setDebugMsg('📤 共有リンクをクリップボードにコピーしました！');
-        setTimeout(() => setDebugMsg(''), 3000);
-      }
-    } catch (err) {
-      console.error('Failed to share:', err);
-      setDebugMsg('共有に失敗しました');
-      setTimeout(() => setDebugMsg(''), 3000);
-    }
+    const shareData = {
+      pattern: history.data.pattern,
+      drawLogs: history.data.drawLogs,
+      score: history.score,
+      rank: history.rank,
+      difficulty: history.difficulty,
+      difficultyMultiplier: history.difficultyMultiplier,
+      damageMultiplier: history.damageMultiplier,
+    };
+    const compressed = compressForUrl(shareData);
+    if (!compressed) return;
+    setShareUrl(`${window.location.origin}/replay?data=${compressed}`);
   }, [history]);
 
   if (!history) return null;
@@ -494,6 +479,14 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
   return (
     <>
+      {shareUrl && (
+        <ShareModal
+          url={shareUrl}
+          title={`Arcane Tracer - ${history.data?.pattern?.name ?? ''}`}
+          text={`私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`}
+          onClose={() => setShareUrl(null)}
+        />
+      )}
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} />
       {/* Modal */}
