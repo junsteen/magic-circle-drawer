@@ -3,15 +3,11 @@
 import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
+import { getOuterCircle } from '@/lib/patterns';
 import type { DrawEvent } from '@/lib/types';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 
-// アニメーションスケジュールの要素型
-type AnimElement =
-  | { kind: 'circle'; cx: number; cy: number; radius: number; startTime: number; endTime: number }
-  | { kind: 'edge'; x1: number; y1: number; x2: number; y2: number; startTime: number; endTime: number };
-
-// drawLogsから全イベント配列を構築（totalDuration計算用）
+// drawLogsから全イベント配列を構築（タイミング計算用）
 function buildAllEventsFromLogs(
   drawLogs: MagicCircleHistory['data']['drawLogs'],
   strokeIntervalMs: number
@@ -32,119 +28,75 @@ function buildAllEventsFromLogs(
   return { events: allEvents, totalDuration };
 }
 
-// パターン要素のアニメーションスケジュールを構築
-function buildAnimSchedule(
-  pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices'>,
-  totalDuration: number,
-  canvasSize: number
-): AnimElement[] {
-  const shapes: AnimElement[] = [];
-  const allShapes = [
-    ...pattern.circles.map(c => ({ kind: 'circle' as const, data: c })),
-    ...pattern.edges.map(e => ({ kind: 'edge' as const, data: e })),
-  ];
-  const count = allShapes.length;
-  if (count === 0) return [];
-  const elemDuration = totalDuration / count;
+// ユーザーストロークをキャンバスに描画（ストローク間を繋げない）
+function drawStrokesOnCanvas(ctx: CanvasRenderingContext2D, events: DrawEvent[]) {
+  if (events.length < 1) return;
 
-  allShapes.forEach((shape, i) => {
-    const startTime = i * elemDuration;
-    const endTime = (i + 1) * elemDuration;
-    if (shape.kind === 'circle') {
-      shapes.push({
-        kind: 'circle',
-        cx: shape.data.cx * canvasSize,
-        cy: shape.data.cy * canvasSize,
-        radius: shape.data.radius,
-        startTime,
-        endTime,
-      });
-    } else {
-      const a = pattern.vertices[shape.data.from];
-      const b = pattern.vertices[shape.data.to];
-      shapes.push({ kind: 'edge', x1: a.x, y1: a.y, x2: b.x, y2: b.y, startTime, endTime });
+  ctx.shadowBlur = 2;
+  ctx.shadowColor = '#00e5ff';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let currentStroke: { x: number; y: number }[] = [];
+  for (const ev of events) {
+    if (ev.type === 'start') {
+      if (currentStroke.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        ctx.stroke();
+      }
+      currentStroke = [{ x: ev.x, y: ev.y }];
+    } else if (ev.type === 'move') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+    } else if (ev.type === 'end') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+      if (currentStroke.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        ctx.stroke();
+      }
+      currentStroke = [];
     }
-  });
-  return shapes;
+  }
+  if (currentStroke.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+    for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
 }
 
-// パターンを指定時刻まで描画し、描画中の先端座標を返す
-function drawPatternAtTime(
+// 外周円を progress (0-1) まで弧として描画し、先端座標を返す
+function drawOuterCircleArc(
   ctx: CanvasRenderingContext2D,
-  schedule: AnimElement[],
-  elapsed: number
+  pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices'>,
+  progress: number,
+  canvasSize: number
 ): { x: number; y: number } | null {
-  ctx.strokeStyle = '#00e5ff';
+  if (progress <= 0) return null;
+  const { cx, cy, radius } = getOuterCircle(pattern as MagicCirclePattern, canvasSize);
+  const startAngle = -Math.PI / 2;
+  const endAngle = startAngle + Math.PI * 2 * Math.min(1, progress);
+
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
   ctx.lineWidth = 1.5;
   ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
   ctx.shadowBlur = 8;
   ctx.shadowColor = '#00e5ff';
-
-  let tip: { x: number; y: number } | null = null;
-
-  for (const elem of schedule) {
-    if (elapsed < elem.startTime) break;
-    const progress = Math.min(1, (elapsed - elem.startTime) / (elem.endTime - elem.startTime));
-
-    if (elem.kind === 'circle') {
-      const startAngle = -Math.PI / 2;
-      const endAngle = startAngle + Math.PI * 2 * progress;
-      ctx.beginPath();
-      ctx.arc(elem.cx, elem.cy, elem.radius, startAngle, endAngle);
-      ctx.stroke();
-      if (progress < 1) {
-        tip = {
-          x: elem.cx + elem.radius * Math.cos(endAngle),
-          y: elem.cy + elem.radius * Math.sin(endAngle),
-        };
-      }
-    } else {
-      const endX = elem.x1 + (elem.x2 - elem.x1) * progress;
-      const endY = elem.y1 + (elem.y2 - elem.y1) * progress;
-      ctx.beginPath();
-      ctx.moveTo(elem.x1, elem.y1);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-      if (progress < 1) {
-        tip = { x: endX, y: endY };
-      }
-    }
-  }
-
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, startAngle, endAngle);
+  ctx.stroke();
   ctx.shadowBlur = 0;
-  return tip;
-}
 
-// パターンを完全に描画（最終状態表示用）
-function drawPatternFull(
-  ctx: CanvasRenderingContext2D,
-  pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices'>,
-  canvasSize: number
-) {
-  ctx.strokeStyle = '#00e5ff';
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.shadowBlur = 8;
-  ctx.shadowColor = '#00e5ff';
-
-  for (const circle of pattern.circles) {
-    ctx.beginPath();
-    ctx.arc(circle.cx * canvasSize, circle.cy * canvasSize, circle.radius, 0, Math.PI * 2);
-    ctx.stroke();
+  if (progress < 1) {
+    return { x: cx + radius * Math.cos(endAngle), y: cy + radius * Math.sin(endAngle) };
   }
-
-  for (const edge of pattern.edges) {
-    const a = pattern.vertices[edge.from];
-    const b = pattern.vertices[edge.to];
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-  }
-
-  ctx.shadowBlur = 0;
+  return null;
 }
 
 /**
@@ -161,11 +113,6 @@ interface HistoryDetailProps {
 
 const CANVAS_SIZE = 350;
 
-/**
- * 描画ストロークをリプレイ用に変換（相対タイムスタンプに変換）
- * @param strokes 履歴データの描画ログ
- * @returns 相対タイムスタンプに変換された描画イベントの配列
- */
 
 
 /**
@@ -184,7 +131,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const [totalDuration, setTotalDuration] = useState(0);
   const [debugMsg, setDebugMsg] = useState('');
   const canvasReadyRef = useRef(false);
-  const animScheduleRef = useRef<AnimElement[]>([]);
 
   const drawTemplate = useCallback((pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices' | 'name'>) => {
     const canvas = canvasRef.current;
@@ -232,7 +178,12 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       drawTemplate(history.data.pattern);
       const ctx = node.getContext('2d');
       if (ctx) {
-        drawPatternFull(ctx, history.data.pattern, CANVAS_SIZE);
+        const allEvents: DrawEvent[] = [];
+        for (const stroke of history.data.drawLogs) {
+          for (const ev of stroke) allEvents.push(ev);
+        }
+        if (allEvents.length >= 1) drawStrokesOnCanvas(ctx, allEvents);
+        drawOuterCircleArc(ctx, history.data.pattern, 1, CANVAS_SIZE);
       }
     }
   }, [history, drawTemplate]);
@@ -279,12 +230,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     if (!history.data?.drawLogs) return;
 
     const STROKE_INTERVAL_MS = 500;
-    const { totalDuration: dur } = buildAllEventsFromLogs(history.data.drawLogs, STROKE_INTERVAL_MS);
+    const { events: allEvents, totalDuration: dur } = buildAllEventsFromLogs(history.data.drawLogs, STROKE_INTERVAL_MS);
     if (dur === 0) return;
     setTotalDuration(dur);
-
-    const schedule = buildAnimSchedule(history.data.pattern, dur, CANVAS_SIZE);
-    animScheduleRef.current = schedule;
 
     // 再生完了後に再度押した場合は最初から再生する
     const startFrom = currentTime >= dur ? 0 : currentTime;
@@ -299,27 +247,47 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
       if (!history.data) return;
       drawTemplate(history.data.pattern);
-      const tip = drawPatternAtTime(ctx, animScheduleRef.current, elapsed);
 
-      // 描画中の先端グロー
-      if (tip) {
+      // レイヤー1: ユーザー描画（elapsed時刻まで）
+      const ptsWithType = allEvents.filter(ev => ev.t <= elapsed);
+      if (ptsWithType.length > 1) {
+        drawStrokesOnCanvas(ctx, ptsWithType);
+
+        // ユーザー描画の先端グロー
+        const lastPt = ptsWithType[ptsWithType.length - 1];
         ctx.shadowBlur = 2;
         ctx.shadowColor = '#00e5ff';
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(tip.x, tip.y, 6, 0, Math.PI * 2);
+        ctx.arc(lastPt.x, lastPt.y, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 1;
         ctx.fillStyle = '#00e5ff';
         ctx.beginPath();
-        ctx.arc(tip.x, tip.y, 10, 0, Math.PI * 2);
+        ctx.arc(lastPt.x, lastPt.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // レイヤー2: 外周円弧（elapsed / dur で進行度を計算）
+      const arcProgress = elapsed / dur;
+      const arcTip = drawOuterCircleArc(ctx, history.data.pattern, arcProgress, CANVAS_SIZE);
+
+      // 外周円の先端グロー
+      if (arcTip) {
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#00e5ff';
+        ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(arcTip.x, arcTip.y, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
       if (elapsed >= dur) {
         drawTemplate(history.data.pattern);
-        drawPatternFull(ctx, history.data.pattern, CANVAS_SIZE);
+        drawStrokesOnCanvas(ctx, allEvents);
+        drawOuterCircleArc(ctx, history.data.pattern, 1, CANVAS_SIZE);
         setDebugMsg('🔄 リプレイ完了！');
         replayAnimRef.current = null;
         setIsPlaying(false);
@@ -353,10 +321,8 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     const ctx = canvas?.getContext('2d');
     if (!ctx || !history?.data?.drawLogs) return;
 
-    // スケジュールがなければ構築
-    if (animScheduleRef.current.length === 0 && totalDuration > 0) {
-      animScheduleRef.current = buildAnimSchedule(history.data.pattern, totalDuration, CANVAS_SIZE);
-    }
+    const STROKE_INTERVAL_MS = 500;
+    const { events: allEvents } = buildAllEventsFromLogs(history.data.drawLogs, STROKE_INTERVAL_MS);
 
     if (isPlaying) {
       if (replayAnimRef.current !== null) {
@@ -372,26 +338,40 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
         if (!history.data) return;
         drawTemplate(history.data.pattern);
-        const tip = drawPatternAtTime(ctx, animScheduleRef.current, elapsed);
 
-        if (tip) {
+        const ptsWithType = allEvents.filter(ev => ev.t <= elapsed);
+        if (ptsWithType.length > 1) {
+          drawStrokesOnCanvas(ctx, ptsWithType);
+          const lastPt = ptsWithType[ptsWithType.length - 1];
           ctx.shadowBlur = 2;
           ctx.shadowColor = '#00e5ff';
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 6, 0, Math.PI * 2);
+          ctx.arc(lastPt.x, lastPt.y, 6, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 1;
           ctx.fillStyle = '#00e5ff';
           ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 10, 0, Math.PI * 2);
+          ctx.arc(lastPt.x, lastPt.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        const arcTip = drawOuterCircleArc(ctx, history.data.pattern, elapsed / totalDuration, CANVAS_SIZE);
+        if (arcTip) {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#00e5ff';
+          ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+          ctx.beginPath();
+          ctx.arc(arcTip.x, arcTip.y, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
         }
 
         if (elapsed >= totalDuration) {
           drawTemplate(history.data.pattern);
-          drawPatternFull(ctx, history.data.pattern, CANVAS_SIZE);
+          drawStrokesOnCanvas(ctx, allEvents);
+          drawOuterCircleArc(ctx, history.data.pattern, 1, CANVAS_SIZE);
           setDebugMsg('🔄 リプレイ完了！');
           replayAnimRef.current = null;
           setIsPlaying(false);
@@ -406,7 +386,9 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     } else {
       // 一時停止中にシークした場合、その時刻の状態を即時描画
       drawTemplate(history.data.pattern);
-      drawPatternAtTime(ctx, animScheduleRef.current, clampedTime);
+      const ptsWithType = allEvents.filter(ev => ev.t <= clampedTime);
+      if (ptsWithType.length >= 1) drawStrokesOnCanvas(ctx, ptsWithType);
+      drawOuterCircleArc(ctx, history.data.pattern, clampedTime / totalDuration, CANVAS_SIZE);
     }
   }, [history, isPlaying, totalDuration, drawTemplate]);
 
