@@ -481,7 +481,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     <>
       {shareUrl && (
         <ShareModal
-          url={shareUrl}
+          longUrl={shareUrl}
           title={`Arcane Tracer - ${history.data?.pattern?.name ?? ''}`}
           text={`私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`}
           onClose={() => setShareUrl(null)}

@@ -79,12 +79,12 @@ export function compressForUrlOptimized(data: {
           r: Math.round(c.radius * 10) / 10
         }))
       },
-      // タイムスタンプをデルタ化、座標を整数化（小数点排除）
+      // タイムスタンプをデルタ化（v2改善点）、座標精度はv1と同じ
       d: data.drawLogs.map(stroke =>
         stroke.map((event, i) => ({
-          x: Math.round(event.x * 1000),
-          y: Math.round(event.y * 1000),
-          t: i === 0 ? event.t : event.t - stroke[i - 1].t, // デルタタイムスタンプ
+          x: Math.round(event.x * 100) / 100,
+          y: Math.round(event.y * 100) / 100,
+          t: i === 0 ? event.t : event.t - stroke[i - 1].t,
           ty: event.type === 'start' ? 's' : event.type === 'move' ? 'm' : 'e'
         }))
       ),
@@ -147,11 +147,11 @@ export function decompressFromUrlOptimized<T>(compressed: string): T | null {
           let absTime = 0;
           return stroke.map((event, i) => {
             if (isV2) {
-              // v2: 座標を1/1000に戻す、タイムスタンプをデルタから絶対値に復元
+              // v2: タイムスタンプをデルタから絶対値に復元、座標はv1と同じ
               absTime = i === 0 ? event.t : absTime + event.t;
               return {
-                x: event.x / 1000,
-                y: event.y / 1000,
+                x: event.x,
+                y: event.y,
                 t: absTime,
                 type: event.ty === 's' ? 'start' : event.ty === 'm' ? 'move' : 'end' as const
               };

@@ -203,7 +203,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     <>
       {shareModalData && (
         <ShareModal
-          url={shareModalData.url}
+          longUrl={shareModalData.url}
           title={shareModalData.title}
           text={shareModalData.text}
           onClose={() => setShareModalData(null)}
