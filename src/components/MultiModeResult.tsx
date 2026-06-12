@@ -7,12 +7,14 @@ import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
 
 export interface MultiModeGameResult {
+  mode: 'multi' | 'combo';
   circlesCleared: number;
   scores: ScoringResult[];
   avgScore: number;
   overallRank: string;
   timeLeftOnEnd: number;
   difficulty: Difficulty;
+  maxCombo: number;
 }
 
 interface Props {
@@ -54,7 +56,9 @@ export default function MultiModeResult({ result, onExit }: Props) {
       {unlockInfo && <UnlockModal unlock={unlockInfo} onClose={() => setUnlockInfo(null)} />}
 
       <div className="flex flex-col items-center gap-5 p-6 max-w-sm w-full">
-        <h2 className="text-lg font-bold" style={{ color: '#7c4dff' }}>⚡ マルチモード 結果</h2>
+        <h2 className="text-lg font-bold" style={{ color: result.mode === 'combo' ? '#ffd700' : '#7c4dff' }}>
+          {result.mode === 'combo' ? '🔥 コンボモード 結果' : '⚡ マルチモード 結果'}
+        </h2>
 
         <div className="text-8xl font-bold" style={{ color: rankColor }}>
           {result.overallRank}
@@ -70,6 +74,9 @@ export default function MultiModeResult({ result, onExit }: Props) {
           <Row label="難易度" value={result.difficulty.toUpperCase()} valueColor="#00e5ff" />
           {result.timeLeftOnEnd > 0 && (
             <Row label="残り時間" value={`${result.timeLeftOnEnd}秒`} valueColor="#76ff03" />
+          )}
+          {result.mode === 'combo' && result.maxCombo > 0 && (
+            <Row label="最大コンボ" value={`${result.maxCombo}連続`} valueColor="#ffd700" />
           )}
         </div>
 

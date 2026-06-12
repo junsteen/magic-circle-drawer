@@ -136,6 +136,7 @@ function HomeContent() {
       {/* マルチモード / コンボモード */}
       {(screen.type === 'multi' || screen.type === 'combo') && (
         <MultiModeGame
+          mode={screen.type}
           difficulty={screen.difficulty}
           onExit={handleMultiExit}
         />

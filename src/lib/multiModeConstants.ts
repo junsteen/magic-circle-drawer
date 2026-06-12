@@ -7,11 +7,14 @@ export const MULTI_MODE_INITIAL_TIME: Record<Difficulty, number> = {
   expert: 30,
 };
 
-/** 1枚クリアごとの追加秒数（初期時間を上限とする） */
 export const MULTI_MODE_BONUS_TIME = 5;
-
-/** スコア表示後、次の魔法陣へ自動遷移するまでの時間 (ms) */
 export const MULTI_MODE_RESULT_DISPLAY_MS = 1800;
+
+/** 連続 A 以上の枚数に基づくコンボ倍率（上限 3.0x） */
+export function getComboMultiplier(consecutiveAPlus: number): number {
+  if (consecutiveAPlus <= 0) return 1.0;
+  return Math.min(1.0 + consecutiveAPlus * 0.5, 3.0);
+}
 
 export function calcOverallRank(avgScore: number): string {
   if (avgScore >= 90) return 'S';
