@@ -973,6 +973,7 @@ export function useMagicCircle(
       difficulty: historyItem.difficulty,
       difficultyMultiplier: historyItem.difficultyMultiplier,
       damageMultiplier: historyItem.damageMultiplier,
+      createdAt: historyItem.createdAt,
     };
 
     // 履歴データをURL用に圧縮

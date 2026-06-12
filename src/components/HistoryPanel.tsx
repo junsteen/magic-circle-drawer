@@ -421,6 +421,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
                             difficulty: h.difficulty,
                             difficultyMultiplier: h.difficultyMultiplier,
                             damageMultiplier: h.damageMultiplier,
+                            createdAt: h.createdAt,
                           };
                           const compressed = compressForUrl(shareData);
                           if (!compressed) return;
