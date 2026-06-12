@@ -1,15 +1,20 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import MagicCircleCanvas from '@/components/MagicCircleCanvas';
-import ModeSelectScreen, { type GameMode } from '@/components/ModeSelectScreen';
 import MultiModeGame from '@/components/MultiModeGame';
+import UnlockModal from '@/components/UnlockModal';
 import { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
+import {
+  getAllUnlockStatus,
+  checkPlayBasedUnlocks,
+  type UnlockInfo,
+} from '@/lib/unlocks';
+import { getAllHistories } from '@/lib/historyDB';
 
 type AppScreen =
-  | { type: 'mode-select' }
   | { type: 'single' }
   | { type: 'multi'; difficulty: Difficulty }
   | { type: 'combo'; difficulty: Difficulty };
@@ -19,37 +24,66 @@ function HomeContent() {
   const patternParam = searchParams.get('pattern');
   const initialPatternName = patternParam ? decodeURIComponent(patternParam) : undefined;
 
-  // 再編集URLからの遷移は直接シングルモードへ
-  const [screen, setScreen] = useState<AppScreen>(
-    initialPatternName ? { type: 'single' } : { type: 'mode-select' }
-  );
-
+  const [screen, setScreen] = useState<AppScreen>({ type: 'single' });
   const [lastResult, setLastResult] = useState<ScoringResult | null>(null);
   const [completionStatus, setCompletionStatus] = useState<{
     completed: number;
     total: number;
   } | null>(null);
+  const [unlocks, setUnlocks] = useState(() => getAllUnlockStatus());
+  const [unlockQueue, setUnlockQueue] = useState<UnlockInfo[]>([]);
+  const initCheckedRef = useRef(false);
 
-  const handleModeSelect = (mode: GameMode, difficulty?: Difficulty) => {
-    if (mode === 'single') {
-      setScreen({ type: 'single' });
-    } else if (mode === 'multi') {
-      setScreen({ type: 'multi', difficulty: difficulty ?? 'normal' });
-    } else if (mode === 'combo') {
-      setScreen({ type: 'combo', difficulty: difficulty ?? 'normal' });
-    }
-  };
+  // 初回マウント時: 既存プレイ数でアンロックを付与（既存ユーザー対応）
+  useEffect(() => {
+    if (initCheckedRef.current) return;
+    initCheckedRef.current = true;
+    getAllHistories().then((histories) => {
+      const newUnlocks = checkPlayBasedUnlocks(histories.length);
+      if (newUnlocks.length > 0) {
+        setUnlockQueue((q) => [...q, ...newUnlocks]);
+        setUnlocks(getAllUnlockStatus());
+      }
+    }).catch(() => { /* ignore */ });
+  }, []);
 
-  const goToModeSelect = () => {
+  const handleScore = useCallback(async (result: ScoringResult) => {
+    setLastResult(result);
+    try {
+      const histories = await getAllHistories();
+      const newUnlocks = checkPlayBasedUnlocks(histories.length);
+      if (newUnlocks.length > 0) {
+        setUnlockQueue((q) => [...q, ...newUnlocks]);
+        setUnlocks(getAllUnlockStatus());
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleSwitchMode = useCallback((mode: 'multi' | 'combo', difficulty: Difficulty) => {
     setLastResult(null);
-    setScreen({ type: 'mode-select' });
-  };
+    setScreen({ type: mode, difficulty });
+  }, []);
+
+  const handleMultiExit = useCallback(() => {
+    // マルチモード終了時にアンロック状態を再取得（コンボ解放反映）
+    setUnlocks(getAllUnlockStatus());
+    setScreen({ type: 'single' });
+  }, []);
+
+  const dismissUnlock = useCallback(() => {
+    setUnlockQueue((q) => q.slice(1));
+  }, []);
 
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-4"
       style={{ background: '#0d0d1a' }}
     >
+      {/* アンロック通知（キュー先頭を表示） */}
+      {unlockQueue.length > 0 && (
+        <UnlockModal unlock={unlockQueue[0]} onClose={dismissUnlock} />
+      )}
+
       <header className="mb-4 text-center">
         <h1
           className="text-4xl font-bold tracking-wide"
@@ -64,25 +98,16 @@ function HomeContent() {
         <p className="text-gray-400 mt-2 text-sm">詠唱の正確さが威力になる</p>
       </header>
 
-      {/* モード選択 */}
-      {screen.type === 'mode-select' && (
-        <ModeSelectScreen onSelect={handleModeSelect} />
-      )}
-
       {/* シングルモード */}
       {screen.type === 'single' && (
         <>
-          <button
-            onClick={goToModeSelect}
-            className="mb-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            ← モード選択に戻る
-          </button>
           <MagicCircleCanvas
-            onScore={setLastResult}
+            onScore={handleScore}
             onReset={() => setLastResult(null)}
             onCompletionUpdate={setCompletionStatus}
             initialPatternName={initialPatternName}
+            unlocks={unlocks}
+            onSwitchMode={handleSwitchMode}
           />
           {lastResult && (
             <div className="mt-4 text-center">
@@ -108,11 +133,11 @@ function HomeContent() {
         </>
       )}
 
-      {/* マルチモード / コンボモード（現時点はコンボもマルチと同じゲームロジック） */}
+      {/* マルチモード / コンボモード */}
       {(screen.type === 'multi' || screen.type === 'combo') && (
         <MultiModeGame
           difficulty={screen.difficulty}
-          onExit={goToModeSelect}
+          onExit={handleMultiExit}
         />
       )}
     </div>

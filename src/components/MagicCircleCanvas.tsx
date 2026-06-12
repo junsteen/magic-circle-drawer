@@ -28,6 +28,8 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate,
   initialPatternName,
+  unlocks,
+  onSwitchMode,
 }: {
   /** スコア計算完了時のコールバック */
   onScore: (result: ScoringResult) => void;
@@ -40,6 +42,15 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
   initialPatternName?: string;
+  /** アンロック済み機能フラグ */
+  unlocks?: {
+    history?: boolean;
+    grimoire?: boolean;
+    multiMode?: boolean;
+    comboMode?: boolean;
+  };
+  /** モード切替コールバック */
+  onSwitchMode?: (mode: 'multi' | 'combo', difficulty: Difficulty) => void;
 }) {
   const router = useRouter();
 
@@ -128,23 +139,49 @@ export default function MagicCircleCanvas({
             className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
             style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
           >
-            {/* 魔導書 */}
-            <button
-              onClick={() => { router.push('/grimoire'); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#00e5ff' }}
-            >
-              📖 魔導書
-            </button>
+            {/* マルチモード（アンロック済みのみ） */}
+            {unlocks?.multiMode && (
+              <button
+                onClick={() => { onSwitchMode?.('multi', difficulty); setShowMenu(false); }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+                style={{ color: '#7c4dff' }}
+              >
+                ⚡ マルチモード
+              </button>
+            )}
 
-            {/* 作成履歴 */}
-            <button
-              onClick={() => { setShowHistory(true); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#7c4dff' }}
-            >
-              📜 作成履歴
-            </button>
+            {/* コンボモード（アンロック済みのみ） */}
+            {unlocks?.comboMode && (
+              <button
+                onClick={() => { onSwitchMode?.('combo', difficulty); setShowMenu(false); }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+                style={{ color: '#ffd700' }}
+              >
+                🔥 コンボモード
+              </button>
+            )}
+
+            {/* 魔導書（アンロック済みのみ） */}
+            {unlocks?.grimoire && (
+              <button
+                onClick={() => { router.push('/grimoire'); setShowMenu(false); }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+                style={{ color: '#00e5ff' }}
+              >
+                📖 魔導書
+              </button>
+            )}
+
+            {/* 作成履歴（アンロック済みのみ） */}
+            {unlocks?.history && (
+              <button
+                onClick={() => { setShowHistory(true); setShowMenu(false); }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+                style={{ color: '#00e5ff' }}
+              >
+                📜 作成履歴
+              </button>
+            )}
 
             {/* レベル変更 */}
             <div className="px-3 py-2">
