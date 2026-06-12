@@ -1,3 +1,7 @@
 name = "magic-circle-drawer"
 pages_build_output_dir = "out"
 compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "REPLAY_KV"
+id = "c81c78076a7246a2926374f7c58b42a1"
