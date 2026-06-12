@@ -177,6 +177,9 @@ export function useMagicCircle(
   // チャージアニメーション用ref
   const chargeAnimRef = useRef<number | null>(null);
   const chargeStartTimeRef = useRef<number | null>(null);
+  // チャージアニメーション内のstale closure回避用ref
+  const drawLogsRef = useRef<DrawStroke[]>([]);
+  const userPathRef = useRef<{ x: number; y: number }[]>([]);
 
   // onCompletionUpdateはレンダリング毎に新しい参照になるためrefで保持（ループ防止）
   const onCompletionUpdateRef = useRef(onCompletionUpdate);
@@ -487,11 +490,16 @@ export function useMagicCircle(
 
       // 経過時間から進行度を計算
       const elapsed = now - chargeStartTimeRef.current;
-      // チャージは、時間が経つにつれて完了に向かう（initialTimeからactualTimeLeftへ）
-      // 進行度 = (経過時間) / (最大時間 * 1000)
       const progress = Math.min(1, elapsed / (maxTime * 1000));
 
-      // チャージ演出を描画（テンプレートはメイン描画ループで既に描画されている）
+      // 毎フレームキャンバスを再描画して重ね塗りによる線の太さ蓄積を防ぐ
+      drawTemplate(currentPattern);
+      if (drawLogsRef.current.length > 0) {
+        drawStrokes(drawLogsRef.current);
+      }
+      if (userPathRef.current.length >= 2) {
+        drawStrokes([userPathRef.current]);
+      }
       drawChargeEffect(currentPattern, progress, now);
 
       chargeAnimRef.current = requestAnimationFrame(animate);
@@ -506,7 +514,7 @@ export function useMagicCircle(
       }
       chargeStartTimeRef.current = null;
     };
-  }, [isActive, currentPattern, difficulty, drawChargeEffect]);
+  }, [isActive, currentPattern, difficulty, drawChargeEffect, drawTemplate, drawStrokes]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -590,6 +598,8 @@ export function useMagicCircle(
   }, [isDrawing, startDrawing, draw, getCanvasPos]);
 
   useEffect(() => {
+    drawLogsRef.current = drawLogs;
+    userPathRef.current = userPath;
     if (!isReplayingRef.current) {
       // Draw completed strokes
       if (drawLogs.length > 0) {
