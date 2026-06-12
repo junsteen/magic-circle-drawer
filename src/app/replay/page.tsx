@@ -21,6 +21,7 @@ function buildHistory(flat: {
   difficulty: string;
   difficultyMultiplier: number;
   damageMultiplier: string;
+  createdAt?: number;
 }, idSeed: string): MagicCircleHistory {
   return {
     id: `replay_${idSeed.slice(0, 20)}`,
@@ -34,7 +35,7 @@ function buildHistory(flat: {
     difficulty: flat.difficulty,
     difficultyMultiplier: flat.difficultyMultiplier,
     damageMultiplier: flat.damageMultiplier,
-    createdAt: 0,
+    createdAt: flat.createdAt ?? 0,
   };
 }
 
@@ -49,6 +50,7 @@ function parseCompressed(compressed: string, idSeed: string): SyncResult {
     difficulty: string;
     difficultyMultiplier: number;
     damageMultiplier: string;
+    createdAt?: number;
   }>(compressed);
 
   if (!flat) return { loading: false, history: null, error: 'データの復元に失敗しました。共有リンクが無効または破損している可能性があります。' };

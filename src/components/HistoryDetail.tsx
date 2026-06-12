@@ -404,6 +404,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
       difficulty: history.difficulty,
       difficultyMultiplier: history.difficultyMultiplier,
       damageMultiplier: history.damageMultiplier,
+      createdAt: history.createdAt,
     };
     const compressed = compressForUrl(shareData);
     if (!compressed) return;
@@ -615,7 +616,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             <div className="mb-4">
               <div className="text-sm text-gray-500">作成日時</div>
               <div className="text-sm" style={{ color: '#9c9caf' }}>
-                {history.createdAt ? formatDate(history.createdAt) : '日時不明'}
+                {history.createdAt != null && history.createdAt !== 0 ? formatDate(history.createdAt) : '日時不明'}
               </div>
             </div>
 
