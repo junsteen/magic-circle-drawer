@@ -2,9 +2,7 @@ name = "magic-circle-drawer"
 pages_build_output_dir = "out"
 compatibility_date = "2024-01-01"
 
-# KV namespace はデプロイ前に作成が必要:
-# wrangler kv namespace create REPLAY_KV
-# 上記コマンド実行後に表示される id をここに設定する
-[[kv_namespaces]]
-binding = "REPLAY_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+# REPLAY_KV バインディングは Cloudflare Pages ダッシュボードで設定する:
+# Pages → Settings → Functions → KV namespace bindings
+# binding name: REPLAY_KV
+# wrangler CLI での KV 作成: wrangler kv namespace create REPLAY_KV
