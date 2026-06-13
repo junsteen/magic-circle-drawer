@@ -139,26 +139,31 @@ export default function MagicCircleCanvas({
             className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
             style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
           >
-            {/* マルチモード（アンロック済みのみ） */}
-            {unlocks?.multiMode && (
-              <button
-                onClick={() => { onSwitchMode?.('multi', difficulty); setShowMenu(false); }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-                style={{ color: '#7c4dff' }}
-              >
-                ⚡ マルチモード
-              </button>
-            )}
-
-            {/* コンボモード（アンロック済みのみ） */}
-            {unlocks?.comboMode && (
-              <button
-                onClick={() => { onSwitchMode?.('combo', difficulty); setShowMenu(false); }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-                style={{ color: '#ffd700' }}
-              >
-                🔥 コンボモード
-              </button>
+            {/* モード変更（アンロック済みのみ） */}
+            {(unlocks?.multiMode || unlocks?.comboMode) && (
+              <div className="px-3 py-2">
+                <div className="mb-2 text-xs font-bold text-gray-500">🎮 モード変更</div>
+                <div className="flex flex-wrap gap-1">
+                  {unlocks?.multiMode && (
+                    <button
+                      onClick={() => { onSwitchMode?.('multi', difficulty); setShowMenu(false); }}
+                      className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
+                      style={{ borderColor: '#7c4dff', borderWidth: 2, borderStyle: 'solid', color: '#7c4dff', background: 'transparent' }}
+                    >
+                      ⚡ マルチ
+                    </button>
+                  )}
+                  {unlocks?.comboMode && (
+                    <button
+                      onClick={() => { onSwitchMode?.('combo', difficulty); setShowMenu(false); }}
+                      className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
+                      style={{ borderColor: '#ffd700', borderWidth: 2, borderStyle: 'solid', color: '#ffd700', background: 'transparent' }}
+                    >
+                      🔥 コンボ
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* 魔導書（アンロック済みのみ） */}

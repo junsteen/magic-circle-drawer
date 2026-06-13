@@ -139,6 +139,8 @@ function HomeContent() {
           mode={screen.type}
           difficulty={screen.difficulty}
           onExit={handleMultiExit}
+          unlocks={{ multiMode: unlocks.multiMode, comboMode: unlocks.comboMode }}
+          onSwitchMode={handleSwitchMode}
         />
       )}
     </div>
