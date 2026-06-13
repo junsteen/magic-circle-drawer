@@ -2,10 +2,16 @@
 
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { DrawStroke } from '@/lib/types';
+import { createPresetPattern, getOuterCircle, type MagicCirclePattern } from '@/lib/patterns';
 
 const CANVAS_SIZE = 350;
 const FADE_DURATION_MS = 1000; // 10ステップ × 100ms = 1秒でフェードアウト
 const INTER_ROUND_DELAY_MS = 400;
+
+// パターン名 → パターンデータのマップ（モジュール初期化時に一度だけ生成）
+const PRESET_PATTERNS_MAP = new Map<string, MagicCirclePattern>(
+  createPresetPattern(CANVAS_SIZE).map(p => [p.name, p])
+);
 
 export interface ReplayRound {
   drawLogs: DrawStroke[];
@@ -22,6 +28,7 @@ interface Props {
 
 interface CompletedLayer {
   strokes: DrawStroke[]; // 相対タイムスタンプ済み
+  patternName: string;
   fadeStartTime: number;
 }
 
@@ -35,6 +42,30 @@ function relativizeStrokes(strokes: DrawStroke[]): DrawStroke[] {
   if (all.length === 0) return strokes;
   const t0 = all.reduce((min, e) => Math.min(min, e.t), Infinity);
   return strokes.map(s => s.map(e => ({ ...e, t: e.t - t0 })));
+}
+
+// 外周円を HistoryDetail と同じスタイルで描画
+function drawOuterCircle(
+  ctx: CanvasRenderingContext2D,
+  patternName: string,
+  alpha: number,
+) {
+  if (alpha <= 0) return;
+  const pattern = PRESET_PATTERNS_MAP.get(patternName);
+  if (!pattern) return;
+  const { cx, cy, radius } = getOuterCircle(pattern, CANVAS_SIZE);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#00e5ff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.restore();
 }
 
 function getMaxT(strokes: DrawStroke[]): number {
@@ -118,7 +149,11 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
           const maxT = getMaxT(relStrokes);
           const elapsed = ts - state.startTime;
           if (elapsed >= maxT + 200) {
-            completedLayersRef.current.push({ strokes: relStrokes, fadeStartTime: ts });
+            completedLayersRef.current.push({
+              strokes: relStrokes,
+              patternName: validRounds[state.roundIndex].patternName,
+              fadeStartTime: ts,
+            });
             const nextIndex = state.roundIndex + 1;
             if (nextIndex >= validRounds.length) {
               animStateRef.current = { phase: 'done' };
@@ -146,20 +181,22 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
       // 描画
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      // 完了済みレイヤーをフェードしながら描画
+      // 完了済みレイヤーをフェードしながら描画（外周円 + ストローク）
       for (const layer of completedLayersRef.current) {
         const progress = (ts - layer.fadeStartTime) / FADE_DURATION_MS;
         // 10%ステップで不透明度を下げる (1.0 → 0.9 → ... → 0.0)
         const step = Math.ceil(Math.min(progress, 1) * 10);
         const alpha = Math.max(0, (10 - step) / 10);
+        drawOuterCircle(ctx, layer.patternName, alpha);
         drawStrokes(ctx, layer.strokes, Infinity, alpha);
       }
 
-      // 現在アニメーション中のラウンドを描画
+      // 現在アニメーション中のラウンドを描画（外周円 + ストローク）
       const cur = animStateRef.current;
       if (cur.phase === 'animating') {
         const relStrokes = relRoundsRef.current[cur.roundIndex];
         if (relStrokes) {
+          drawOuterCircle(ctx, validRounds[cur.roundIndex].patternName, 1.0);
           drawStrokes(ctx, relStrokes, ts - cur.startTime, 1.0);
         }
       }
