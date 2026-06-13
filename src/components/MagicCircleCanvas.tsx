@@ -144,11 +144,19 @@ export default function MagicCircleCanvas({
               <div className="px-3 py-2">
                 <div className="mb-2 text-xs font-bold text-gray-500">🎮 モード変更</div>
                 <div className="flex flex-wrap gap-1">
+                  {/* シングル（現在のモード・選択済み） */}
+                  <button
+                    className="rounded-md px-2 py-1 text-xs font-bold transition-all scale-105"
+                    style={{ borderColor: '#00e5ff', borderWidth: 2, borderStyle: 'solid', color: '#00e5ff', background: '#00e5ff18' }}
+                    disabled
+                  >
+                    シングル
+                  </button>
                   {unlocks?.multiMode && (
                     <button
                       onClick={() => { onSwitchMode?.('multi', difficulty); setShowMenu(false); }}
                       className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
-                      style={{ borderColor: '#7c4dff', borderWidth: 2, borderStyle: 'solid', color: '#7c4dff', background: 'transparent' }}
+                      style={{ borderColor: '#7c4dff', borderWidth: 2, borderStyle: 'solid', color: '#999', background: 'transparent' }}
                     >
                       ⚡ マルチ
                     </button>
@@ -157,7 +165,7 @@ export default function MagicCircleCanvas({
                     <button
                       onClick={() => { onSwitchMode?.('combo', difficulty); setShowMenu(false); }}
                       className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
-                      style={{ borderColor: '#ffd700', borderWidth: 2, borderStyle: 'solid', color: '#ffd700', background: 'transparent' }}
+                      style={{ borderColor: '#ffd700', borderWidth: 2, borderStyle: 'solid', color: '#999', background: 'transparent' }}
                     >
                       🔥 コンボ
                     </button>

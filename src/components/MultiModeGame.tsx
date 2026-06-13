@@ -199,9 +199,9 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
                 <button
                   onClick={() => { onExit(); setShowMenu(false); }}
                   className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
-                  style={{ borderColor: '#00e5ff', borderWidth: 2, borderStyle: 'solid', color: '#00e5ff', background: 'transparent' }}
+                  style={{ borderColor: '#00e5ff', borderWidth: 2, borderStyle: 'solid', color: '#999', background: 'transparent' }}
                 >
-                  ⚔️ シングル
+                  シングル
                 </button>
                 {/* マルチ */}
                 {(unlocks?.multiMode ?? true) && (
