@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import { getOuterCircle } from '@/lib/patterns';
+import { getRankColor } from '@/lib/scoring';
 import type { DrawEvent } from '@/lib/types';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
 import { ShareModal } from '@/components/ShareModal';
@@ -412,15 +413,6 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   }, [history]);
 
   if (!history) return null;
-
-  const getRankColor = (rank: string): string => {
-    switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
-    }
-  };
 
   const formatDate = (ts: number): string => {
     // 秒単位（10 桁）の場合はミリ秒に変換、ミリ秒単位（13 桁以上）はそのまま使用

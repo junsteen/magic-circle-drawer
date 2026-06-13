@@ -12,8 +12,10 @@ import {
   getComboMultiplier,
 } from '@/lib/multiModeConstants';
 import MultiModeResult from './MultiModeResult';
+import { type ReplayRound } from './MultiModeReplay';
 import GameMenu from './GameMenu';
 import HistoryPanel from './HistoryPanel';
+import type { DrawStroke } from '@/lib/types';
 
 interface Props {
   mode: 'multi' | 'combo';
@@ -44,6 +46,10 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   const maxComboRef = useRef(0);
   const gameEndedRef = useRef(false);
   const showHistoryRef = useRef(false);
+  // per-circle リプレイ用データキャプチャ
+  const drawLogsRef = useRef<DrawStroke[]>([]);
+  const patternNameRef = useRef<string>('');
+  const roundsRef = useRef<ReplayRound[]>([]);
 
   useEffect(() => { globalTimeLeftRef.current = globalTimeLeft; }, [globalTimeLeft]);
   useEffect(() => { scoresRef.current = scores; }, [scores]);
@@ -74,6 +80,14 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
       setComboCount(comboCountRef.current);
     }
 
+    // コンボ倍率適用後のスコアを使ってリプレイ用データを蓄積
+    roundsRef.current.push({
+      drawLogs: drawLogsRef.current.map(s => [...s]),
+      patternName: patternNameRef.current,
+      rank: result.rank,
+      score: storedResult.score,
+    });
+
     setScores(prev => [...prev, storedResult]);
     setCirclesCleared(prev => prev + 1);
     setGlobalTimeLeft(prev => Math.min(prev + MULTI_MODE_BONUS_TIME, initialTime));
@@ -86,7 +100,12 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
     handleNext, handleReset, handleEvaluate, changeDifficulty,
     onPointerDown, onPointerMove, onPointerUp,
     isReplaying, patternName, getRankColor,
+    drawLogs,
   } = useMagicCircle(handleCircleScore, () => {});
+
+  // リプレイ用: drawLogs と patternName を ref に同期
+  useEffect(() => { drawLogsRef.current = drawLogs; }, [drawLogs]);
+  useEffect(() => { patternNameRef.current = patternName; }, [patternName]);
 
   useEffect(() => {
     changeDifficulty(difficulty);
@@ -158,6 +177,7 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
       timeLeftOnEnd,
       difficulty,
       maxCombo: maxComboRef.current,
+      rounds: roundsRef.current,
     });
   }, [mode, difficulty]);
 
@@ -170,11 +190,11 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
 
   const handleSwitchModeFromMenu = useCallback((newMode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
     if (newMode === 'single') {
-      handleEndSession();
+      onExit();
     } else if (newMode !== mode) {
       onSwitchMode?.(newMode, diff);
     }
-  }, [handleEndSession, mode, onSwitchMode]);
+  }, [onExit, mode, onSwitchMode]);
 
   if (gameResult) {
     return <MultiModeResult result={gameResult} onExit={onExit} />;

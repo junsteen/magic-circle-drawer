@@ -2,6 +2,7 @@
 
 import type { MagicCirclePattern } from '@/lib/patterns';
 import type { CompletionRecord } from '@/lib/completionDB';
+import { getRankColor } from '@/lib/scoring';
 import type { Achievement } from '@/lib/achievements';
 import type { Title } from '@/lib/titles';
 import type { Challenge } from '@/lib/challenges';
@@ -453,19 +454,6 @@ function StatusBadge({ active, label }: { active: boolean; label: string }) {
       {label}
     </span>
   );
-}
-
-function getRankColor(rank: string): string {
-  switch (rank) {
-    case 'S':
-      return '#ffd700';
-    case 'A':
-      return '#00e5ff';
-    case 'B':
-      return '#76ff03';
-    default:
-      return '#ff4081';
-  }
 }
 
 function formatDate(timestamp: number): string {

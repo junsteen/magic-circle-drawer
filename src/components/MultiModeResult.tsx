@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { tryUnlock, isComboModeUnlocked, type UnlockInfo } from '@/lib/unlocks';
+import { getRankColor } from '@/lib/scoring';
 import UnlockModal from './UnlockModal';
+import MultiModeReplay, { type ReplayRound } from './MultiModeReplay';
 import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
 
@@ -15,6 +17,7 @@ export interface MultiModeGameResult {
   timeLeftOnEnd: number;
   difficulty: Difficulty;
   maxCombo: number;
+  rounds?: ReplayRound[];
 }
 
 interface Props {
@@ -22,15 +25,10 @@ interface Props {
   onExit: () => void;
 }
 
-const RANK_COLORS: Record<string, string> = {
-  S: '#ffd700',
-  A: '#00e5ff',
-  B: '#76ff03',
-  C: '#aaaaaa',
-};
 
 export default function MultiModeResult({ result, onExit }: Props) {
   const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
+  const [showReplay, setShowReplay] = useState(false);
   const checkedRef = useRef(false);
 
   useEffect(() => {
@@ -42,7 +40,7 @@ export default function MultiModeResult({ result, onExit }: Props) {
     }
   }, [result.timeLeftOnEnd, result.overallRank]);
 
-  const rankColor = RANK_COLORS[result.overallRank] ?? '#aaaaaa';
+  const rankColor = getRankColor(result.overallRank);
   const totalScore = result.scores.reduce((s, r) => s + r.score, 0);
   const isQualified =
     result.timeLeftOnEnd >= 1 && (result.overallRank === 'S' || result.overallRank === 'A');
@@ -51,9 +49,16 @@ export default function MultiModeResult({ result, onExit }: Props) {
       ? parseInt(localStorage.getItem('arcane_multi_qualify_count') ?? '0', 10)
       : 0;
 
+  const hasReplayData = (result.rounds ?? []).some(
+    r => r.drawLogs.length > 0 && r.drawLogs.some(s => s.length > 0)
+  );
+
   return (
     <>
       {unlockInfo && <UnlockModal unlock={unlockInfo} onClose={() => setUnlockInfo(null)} />}
+      {showReplay && result.rounds && (
+        <MultiModeReplay rounds={result.rounds} mode={result.mode} onClose={() => setShowReplay(false)} />
+      )}
 
       <div className="flex flex-col items-center gap-5 p-6 max-w-sm w-full">
         <h2 className="text-lg font-bold" style={{ color: result.mode === 'combo' ? '#ffd700' : '#7c4dff' }}>
@@ -86,10 +91,20 @@ export default function MultiModeResult({ result, onExit }: Props) {
           </p>
         )}
 
+        {hasReplayData && (
+          <button
+            onClick={() => setShowReplay(true)}
+            className="w-full px-8 py-3 rounded-lg font-bold transition-transform hover:scale-105 active:scale-95"
+            style={{ background: 'rgba(0,229,255,0.1)', border: '2px solid #00e5ff', color: '#00e5ff' }}
+          >
+            🎬 リプレイ
+          </button>
+        )}
+
         <button
           onClick={onExit}
           className="w-full px-8 py-3 rounded-lg font-bold text-black transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #7c4dff, #00e5ff)' }}
+          style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
         >
           ホームに戻る
         </button>

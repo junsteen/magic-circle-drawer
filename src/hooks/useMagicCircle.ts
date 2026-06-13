@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { calculateScore, type ScoringResult } from '@/lib/scoring';
+import { calculateScore, getRankColor, type ScoringResult } from '@/lib/scoring';
 import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 import {
   type MagicCirclePattern,
@@ -896,15 +896,6 @@ export function useMagicCircle(
   const changeDifficulty = useCallback((d: Difficulty) => {
     setDifficulty(d);
   }, []);
-
-  const getRankColor = (rank: string) => {
-    switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
-    }
-  };
 
   // ─── リプレイ機能 ───
   /**
