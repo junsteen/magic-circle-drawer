@@ -185,8 +185,6 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     return d.toLocaleDateString('ja-JP');
   };
 
-
-
   if (!isOpen) return null;
 
   return (

@@ -190,11 +190,11 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
 
   const handleSwitchModeFromMenu = useCallback((newMode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
     if (newMode === 'single') {
-      handleEndSession();
+      onExit();
     } else if (newMode !== mode) {
       onSwitchMode?.(newMode, diff);
     }
-  }, [handleEndSession, mode, onSwitchMode]);
+  }, [onExit, mode, onSwitchMode]);
 
   if (gameResult) {
     return <MultiModeResult result={gameResult} onExit={onExit} />;

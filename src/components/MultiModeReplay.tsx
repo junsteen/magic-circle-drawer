@@ -183,9 +183,12 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
       // 完了済みレイヤーをフェードしながら描画（外周円 + ストローク）
+      let allFaded = true;
       for (const layer of completedLayersRef.current) {
         const progress = (ts - layer.fadeStartTime) / FADE_DURATION_MS;
-        // 10%ステップで不透明度を下げる (1.0 → 0.9 → ... → 0.0)
+        if (progress >= 1) continue; // フェード完了レイヤーはスキップ
+        allFaded = false;
+        // 10%ステップで不透明度を下げる (1.0 → 0.9 → ... → 0.1)
         const step = Math.ceil(Math.min(progress, 1) * 10);
         const alpha = Math.max(0, (10 - step) / 10);
         drawOuterCircle(ctx, layer.patternName, alpha);
@@ -201,11 +204,6 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
           drawStrokes(ctx, relStrokes, ts - cur.startTime, 1.0);
         }
       }
-
-      // 全て完了 & フェード終了したらループ終了
-      const allFaded = completedLayersRef.current.every(
-        l => ts - l.fadeStartTime >= FADE_DURATION_MS
-      );
       if (animStateRef.current.phase !== 'done' || !allFaded) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
