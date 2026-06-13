@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { DrawStroke } from '@/lib/types';
 import { createPresetPattern, getOuterCircle, type MagicCirclePattern } from '@/lib/patterns';
+import { getRankColor } from '@/lib/scoring';
 
 const CANVAS_SIZE = 350;
 const FADE_DURATION_MS = 1000; // 10ステップ × 100ms = 1秒でフェードアウト
@@ -251,9 +252,7 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
               <span className="text-gray-400">
                 {i + 1}. {r.patternName}
               </span>
-              <span className="font-bold" style={{
-                color: r.rank === 'S' ? '#ffd700' : r.rank === 'A' ? '#00e5ff' : r.rank === 'B' ? '#76ff03' : '#aaaaaa'
-              }}>
+              <span className="font-bold" style={{ color: getRankColor(r.rank) }}>
                 {r.rank} {r.score}点
               </span>
             </div>
@@ -273,7 +272,7 @@ export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
           <button
             onClick={onClose}
             className="flex-1 px-4 py-3 rounded-lg font-bold text-black transition-transform hover:scale-105 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #7c4dff, #00e5ff)' }}
+            style={{ background: 'linear-gradient(135deg, #00e5ff, #7c4dff)' }}
           >
             閉じる
           </button>

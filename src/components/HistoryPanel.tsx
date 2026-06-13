@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { MagicCircleHistory } from '@/lib/types';
+import { getRankColor } from '@/lib/scoring';
 import {
   getAllHistories,
   deleteHistory,
@@ -184,18 +185,7 @@ export default function HistoryPanel({ isOpen, onClose, onSelect }: HistoryPanel
     return d.toLocaleDateString('ja-JP');
   };
 
-  const getRankColor = (rank: string): string => {
-    switch (rank) {
-      case 'S':
-        return '#ffd700';
-      case 'A':
-        return '#00e5ff';
-      case 'B':
-        return '#76ff03';
-      default:
-        return '#ff4081';
-    }
-  };
+
 
   if (!isOpen) return null;
 
