@@ -3,10 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Difficulty } from '@/lib/patterns';
-
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: '0.8', normal: '1', hard: '1.3', expert: '1.6',
-};
+import { DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
 
 const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   easy: '#76ff03', normal: '#00e5ff', hard: '#ff9100', expert: '#ff4081',
@@ -69,8 +66,8 @@ export default function GameMenu({
             className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
             style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
           >
-            {/* モード変更（いずれかアンロック済みなら表示） */}
-            {(unlocks?.multiMode || unlocks?.comboMode) && (
+            {/* モード変更（アンロック済みまたは現在マルチ/コンボモードなら表示） */}
+            {(unlocks?.multiMode || unlocks?.comboMode || currentMode !== 'single') && (
               <div className="px-3 py-2">
                 <div className="mb-2 text-xs font-bold text-gray-500">🎮 モード変更</div>
                 <div className="flex flex-wrap gap-1">
@@ -130,7 +127,7 @@ export default function GameMenu({
                     }}
                   >
                     {d.toUpperCase()}
-                    <span className="ml-1 opacity-75">(×{DIFFICULTY_LABELS[d]})</span>
+                    <span className="ml-1 opacity-75">(×{DIFFICULTY_MULTIPLIER[d]})</span>
                   </button>
                 ))}
               </div>

@@ -119,9 +119,9 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
     return () => clearTimeout(timer);
   }, [timeLeft, isActive, showResult, isGameRunning, autoAdvancing, userPath.length, handleEvaluate, handleNext, isCombo]);
 
-  // グローバルタイマー
+  // グローバルタイマー（履歴パネル表示中は停止）
   useEffect(() => {
-    if (!isGameRunning) return;
+    if (!isGameRunning || showHistory) return;
     const interval = setInterval(() => {
       setGlobalTimeLeft(prev => {
         if (prev <= 1) { setIsGameRunning(false); return 0; }
@@ -129,7 +129,7 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isGameRunning]);
+  }, [isGameRunning, showHistory]);
 
   // タイマー 0 → ゲーム終了
   useEffect(() => {
@@ -167,11 +167,11 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
 
   const handleSwitchModeFromMenu = useCallback((newMode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
     if (newMode === 'single') {
-      onExit();
+      handleEndSession();
     } else {
       onSwitchMode?.(newMode, diff);
     }
-  }, [onExit, onSwitchMode]);
+  }, [handleEndSession, onSwitchMode]);
 
   if (gameResult) {
     return <MultiModeResult result={gameResult} onExit={onExit} />;
