@@ -12,12 +12,14 @@ import {
   getComboMultiplier,
 } from '@/lib/multiModeConstants';
 import MultiModeResult from './MultiModeResult';
+import GameMenu from './GameMenu';
+import HistoryPanel from './HistoryPanel';
 
 interface Props {
   mode: 'multi' | 'combo';
   difficulty: Difficulty;
   onExit: () => void;
-  unlocks?: { multiMode?: boolean; comboMode?: boolean };
+  unlocks?: { history?: boolean; multiMode?: boolean; grimoire?: boolean; comboMode?: boolean };
   onSwitchMode?: (mode: 'multi' | 'combo', difficulty: Difficulty) => void;
 }
 
@@ -32,7 +34,7 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   const [autoAdvancing, setAutoAdvancing] = useState(false);
   const [comboCount, setComboCount] = useState(0);
   const [comboBreak, setComboBreak] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [gameResult, setGameResult] = useState<import('./MultiModeResult').MultiModeGameResult | null>(null);
 
   const globalTimeLeftRef = useRef(globalTimeLeft);
@@ -41,10 +43,12 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   const comboCountRef = useRef(0);
   const maxComboRef = useRef(0);
   const gameEndedRef = useRef(false);
+  const showHistoryRef = useRef(false);
 
   useEffect(() => { globalTimeLeftRef.current = globalTimeLeft; }, [globalTimeLeft]);
   useEffect(() => { scoresRef.current = scores; }, [scores]);
   useEffect(() => { circlesClearedRef.current = circlesCleared; }, [circlesCleared]);
+  useEffect(() => { showHistoryRef.current = showHistory; }, [showHistory]);
 
   const handleCircleScore = useCallback((result: ScoringResult) => {
     let storedResult = result;
@@ -117,10 +121,11 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
     return () => clearTimeout(timer);
   }, [timeLeft, isActive, showResult, isGameRunning, autoAdvancing, userPath.length, handleEvaluate, handleNext, isCombo]);
 
-  // グローバルタイマー
+  // グローバルタイマー（履歴パネル表示中はスキップ・インターバルはリセットしない）
   useEffect(() => {
     if (!isGameRunning) return;
     const interval = setInterval(() => {
+      if (showHistoryRef.current) return;
       setGlobalTimeLeft(prev => {
         if (prev <= 1) { setIsGameRunning(false); return 0; }
         return prev - 1;
@@ -163,6 +168,14 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
     buildAndSetResult(globalTimeLeftRef.current);
   }, [buildAndSetResult]);
 
+  const handleSwitchModeFromMenu = useCallback((newMode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
+    if (newMode === 'single') {
+      handleEndSession();
+    } else if (newMode !== mode) {
+      onSwitchMode?.(newMode, diff);
+    }
+  }, [handleEndSession, mode, onSwitchMode]);
+
   if (gameResult) {
     return <MultiModeResult result={gameResult} onExit={onExit} />;
   }
@@ -173,69 +186,22 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {/* ☰ メニューボタン */}
-      <button
-        onClick={() => setShowMenu(v => !v)}
-        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-xl font-bold"
-        style={{ borderColor: 'rgba(0,229,255,0.5)', color: '#00e5ff', background: 'rgba(10,10,20,0.8)' }}
-        aria-label="メニュー"
-      >
-        ☰
-      </button>
+      {/* 作成履歴パネル */}
+      <HistoryPanel
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelect={() => setShowHistory(false)}
+      />
 
-      {/* メニューパネル */}
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-          <div
-            className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
-            style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
-          >
-            {/* モード変更 */}
-            <div className="px-3 py-2">
-              <div className="mb-2 text-xs font-bold text-gray-500">🎮 モード変更</div>
-              <div className="flex flex-wrap gap-1">
-                {/* シングルモードに戻る */}
-                <button
-                  onClick={() => { onExit(); setShowMenu(false); }}
-                  className="rounded-md px-2 py-1 text-xs font-bold transition-all opacity-60 hover:opacity-100"
-                  style={{ borderColor: '#00e5ff', borderWidth: 2, borderStyle: 'solid', color: '#00e5ff', background: 'transparent' }}
-                >
-                  ⚔️ シングル
-                </button>
-                {/* マルチ */}
-                {(unlocks?.multiMode ?? true) && (
-                  <button
-                    onClick={() => { if (mode !== 'multi') { onSwitchMode?.('multi', difficulty); } setShowMenu(false); }}
-                    className={`rounded-md px-2 py-1 text-xs font-bold transition-all ${mode === 'multi' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
-                    style={{
-                      borderColor: '#7c4dff', borderWidth: 2, borderStyle: 'solid',
-                      color: mode === 'multi' ? '#7c4dff' : '#999',
-                      background: mode === 'multi' ? '#7c4dff18' : 'transparent',
-                    }}
-                  >
-                    ⚡ マルチ
-                  </button>
-                )}
-                {/* コンボ */}
-                {unlocks?.comboMode && (
-                  <button
-                    onClick={() => { if (mode !== 'combo') { onSwitchMode?.('combo', difficulty); } setShowMenu(false); }}
-                    className={`rounded-md px-2 py-1 text-xs font-bold transition-all ${mode === 'combo' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
-                    style={{
-                      borderColor: '#ffd700', borderWidth: 2, borderStyle: 'solid',
-                      color: mode === 'combo' ? '#ffd700' : '#999',
-                      background: mode === 'combo' ? '#ffd70018' : 'transparent',
-                    }}
-                  >
-                    🔥 コンボ
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* 共通メニュー */}
+      <GameMenu
+        currentMode={mode}
+        difficulty={difficulty}
+        unlocks={unlocks}
+        onSwitchMode={handleSwitchModeFromMenu}
+        onChangeDifficulty={changeDifficulty}
+        onShowHistory={() => setShowHistory(true)}
+      />
 
       {/* グローバルタイマー HUD */}
       <div className="w-full max-w-[350px]">
