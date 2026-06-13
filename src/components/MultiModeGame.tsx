@@ -43,10 +43,12 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   const comboCountRef = useRef(0);
   const maxComboRef = useRef(0);
   const gameEndedRef = useRef(false);
+  const showHistoryRef = useRef(false);
 
   useEffect(() => { globalTimeLeftRef.current = globalTimeLeft; }, [globalTimeLeft]);
   useEffect(() => { scoresRef.current = scores; }, [scores]);
   useEffect(() => { circlesClearedRef.current = circlesCleared; }, [circlesCleared]);
+  useEffect(() => { showHistoryRef.current = showHistory; }, [showHistory]);
 
   const handleCircleScore = useCallback((result: ScoringResult) => {
     let storedResult = result;
@@ -119,17 +121,18 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
     return () => clearTimeout(timer);
   }, [timeLeft, isActive, showResult, isGameRunning, autoAdvancing, userPath.length, handleEvaluate, handleNext, isCombo]);
 
-  // グローバルタイマー（履歴パネル表示中は停止）
+  // グローバルタイマー（履歴パネル表示中はスキップ・インターバルはリセットしない）
   useEffect(() => {
-    if (!isGameRunning || showHistory) return;
+    if (!isGameRunning) return;
     const interval = setInterval(() => {
+      if (showHistoryRef.current) return;
       setGlobalTimeLeft(prev => {
         if (prev <= 1) { setIsGameRunning(false); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isGameRunning, showHistory]);
+  }, [isGameRunning]);
 
   // タイマー 0 → ゲーム終了
   useEffect(() => {
@@ -168,10 +171,10 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   const handleSwitchModeFromMenu = useCallback((newMode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
     if (newMode === 'single') {
       handleEndSession();
-    } else {
+    } else if (newMode !== mode) {
       onSwitchMode?.(newMode, diff);
     }
-  }, [handleEndSession, onSwitchMode]);
+  }, [handleEndSession, mode, onSwitchMode]);
 
   if (gameResult) {
     return <MultiModeResult result={gameResult} onExit={onExit} />;
