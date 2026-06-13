@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { DrawStroke } from '@/lib/types';
 
 const CANVAS_SIZE = 350;
@@ -16,6 +16,7 @@ export interface ReplayRound {
 
 interface Props {
   rounds: ReplayRound[];
+  mode: 'multi' | 'combo';
   onClose: () => void;
 }
 
@@ -46,12 +47,14 @@ function getMaxT(strokes: DrawStroke[]): number {
   return max;
 }
 
-export default function MultiModeReplay({ rounds, onClose }: Props) {
+export default function MultiModeReplay({ rounds, mode, onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const animStateRef = useRef<AnimState>({ phase: 'animating', roundIndex: 0, startTime: 0 });
   const completedLayersRef = useRef<CompletedLayer[]>([]);
   const relRoundsRef = useRef<DrawStroke[][]>([]);
+  const [animDone, setAnimDone] = useState(false);
+  const [replayKey, setReplayKey] = useState(0);
 
   // 有効なラウンド（描画データあり）だけを対象にする
   const validRounds = useMemo(
@@ -167,12 +170,21 @@ export default function MultiModeReplay({ rounds, onClose }: Props) {
       );
       if (animStateRef.current.phase !== 'done' || !allFaded) {
         rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setAnimDone(true);
       }
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [validRounds, drawStrokes]);
+  }, [validRounds, drawStrokes, replayKey]);
+
+  const handleRestart = useCallback(() => {
+    setAnimDone(false);
+    setReplayKey(k => k + 1);
+  }, []);
+
+  const modeLabel = mode === 'combo' ? '🔥 コンボモード' : '⚡ マルチモード';
 
   return (
     <div
@@ -181,10 +193,11 @@ export default function MultiModeReplay({ rounds, onClose }: Props) {
     >
       <div className="flex flex-col items-center gap-4 p-6 max-w-sm w-full">
         <h2 className="text-xl font-bold" style={{ color: '#00e5ff' }}>
-          🎬 マルチモード リプレイ
+          🎬 {modeLabel} リプレイ
         </h2>
         <p className="text-sm text-gray-400">
           {validRounds.length}枚の魔法陣
+          {animDone && <span className="ml-2 font-bold" style={{ color: '#76ff03' }}>✓ 完了</span>}
         </p>
 
         <canvas
@@ -210,13 +223,24 @@ export default function MultiModeReplay({ rounds, onClose }: Props) {
           ))}
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full px-8 py-3 rounded-lg font-bold text-black transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #7c4dff, #00e5ff)' }}
-        >
-          閉じる
-        </button>
+        <div className="flex gap-3 w-full">
+          {animDone && (
+            <button
+              onClick={handleRestart}
+              className="flex-1 px-4 py-3 rounded-lg font-bold transition-transform hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(118,255,3,0.1)', border: '2px solid #76ff03', color: '#76ff03' }}
+            >
+              もう一度
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-lg font-bold text-black transition-transform hover:scale-105 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #7c4dff, #00e5ff)' }}
+          >
+            閉じる
+          </button>
+        </div>
       </div>
     </div>
   );

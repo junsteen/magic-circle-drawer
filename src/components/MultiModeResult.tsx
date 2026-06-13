@@ -62,7 +62,7 @@ export default function MultiModeResult({ result, onExit }: Props) {
     <>
       {unlockInfo && <UnlockModal unlock={unlockInfo} onClose={() => setUnlockInfo(null)} />}
       {showReplay && result.rounds && (
-        <MultiModeReplay rounds={result.rounds} onClose={() => setShowReplay(false)} />
+        <MultiModeReplay rounds={result.rounds} mode={result.mode} onClose={() => setShowReplay(false)} />
       )}
 
       <div className="flex flex-col items-center gap-5 p-6 max-w-sm w-full">
