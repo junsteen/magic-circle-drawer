@@ -54,7 +54,9 @@ export default function MultiModeResult({ result, onExit }: Props) {
       ? parseInt(localStorage.getItem('arcane_multi_qualify_count') ?? '0', 10)
       : 0;
 
-  const hasReplayData = (result.rounds ?? []).length > 0;
+  const hasReplayData = (result.rounds ?? []).some(
+    r => r.drawLogs.length > 0 && r.drawLogs.some(s => s.length > 0)
+  );
 
   return (
     <>

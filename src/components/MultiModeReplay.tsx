@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { DrawStroke } from '@/lib/types';
 
 const CANVAS_SIZE = 350;
@@ -54,14 +54,14 @@ export default function MultiModeReplay({ rounds, onClose }: Props) {
   const relRoundsRef = useRef<DrawStroke[][]>([]);
 
   // 有効なラウンド（描画データあり）だけを対象にする
-  const validRounds = rounds.filter(
-    r => r.drawLogs.length > 0 && r.drawLogs.some(s => s.length > 0)
+  const validRounds = useMemo(
+    () => rounds.filter(r => r.drawLogs.length > 0 && r.drawLogs.some(s => s.length > 0)),
+    [rounds]
   );
 
   useEffect(() => {
     relRoundsRef.current = validRounds.map(r => relativizeStrokes(r.drawLogs));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rounds]);
+  }, [validRounds]);
 
   const drawStrokes = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -172,8 +172,7 @@ export default function MultiModeReplay({ rounds, onClose }: Props) {
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rounds, drawStrokes]);
+  }, [validRounds, drawStrokes]);
 
   return (
     <div

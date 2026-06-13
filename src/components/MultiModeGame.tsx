@@ -57,14 +57,6 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
   useEffect(() => { showHistoryRef.current = showHistory; }, [showHistory]);
 
   const handleCircleScore = useCallback((result: ScoringResult) => {
-    // スコア通知時点で drawLogs / patternName をキャプチャしてリプレイ用データを蓄積
-    roundsRef.current.push({
-      drawLogs: drawLogsRef.current.map(s => [...s]),
-      patternName: patternNameRef.current,
-      rank: result.rank,
-      score: result.score,
-    });
-
     let storedResult = result;
 
     if (isCombo) {
@@ -87,6 +79,14 @@ export default function MultiModeGame({ mode, difficulty, onExit, unlocks, onSwi
       }
       setComboCount(comboCountRef.current);
     }
+
+    // コンボ倍率適用後のスコアを使ってリプレイ用データを蓄積
+    roundsRef.current.push({
+      drawLogs: drawLogsRef.current.map(s => [...s]),
+      patternName: patternNameRef.current,
+      rank: result.rank,
+      score: storedResult.score,
+    });
 
     setScores(prev => [...prev, storedResult]);
     setCirclesCleared(prev => prev + 1);
