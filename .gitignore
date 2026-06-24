@@ -43,4 +43,5 @@ next-env.d.ts
 certificates
 
 # Claude Code worktrees（Gitlinkとして誤登録されるのを防ぐ）
-.claude/worktrees/.wrangler/
+.claude/worktrees/
+.wrangler/
