@@ -14,6 +14,12 @@ interface Env {
 const CORS = { 'Access-Control-Allow-Origin': '*' };
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  if (!env.AKASHIC_DB) {
+    return new Response(JSON.stringify({ error: 'Database not configured' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', ...CORS },
+    });
+  }
   const url = new URL(request.url);
   const sort = url.searchParams.get('sort') === 'popular' ? 'popular' : 'new';
   const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));

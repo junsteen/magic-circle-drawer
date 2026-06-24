@@ -21,6 +21,12 @@ function generateId(): string {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  if (!env.AKASHIC_DB) {
+    return new Response(JSON.stringify({ error: 'Database not configured' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', ...CORS },
+    });
+  }
   const body = await request.text();
   if (!body || body.length > MAX_BODY_BYTES) {
     return new Response(JSON.stringify({ error: 'Invalid data' }), {

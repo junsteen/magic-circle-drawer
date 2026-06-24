@@ -14,6 +14,12 @@ interface Env {
 const CORS = { 'Access-Control-Allow-Origin': '*' };
 
 export const onRequestPost: PagesFunction<Env> = async ({ params, env }) => {
+  if (!env.AKASHIC_DB) {
+    return new Response(JSON.stringify({ error: 'Database not configured' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', ...CORS },
+    });
+  }
   const id = params.id as string;
   if (!id || id.length !== 8) {
     return new Response(JSON.stringify({ error: 'Invalid ID' }), {

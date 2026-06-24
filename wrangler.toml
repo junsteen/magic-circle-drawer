@@ -7,9 +7,12 @@ binding = "REPLAY_KV"
 id = "c81c78076a7246a2926374f7c58b42a1"
 
 # アカシックレコード用D1データベース
-# 初回セットアップ: wrangler d1 create akashic-record
-# database_id は上記コマンド実行後に取得した値に置き換える
-[[d1_databases]]
-binding = "AKASHIC_DB"
-database_name = "akashic-record"
-database_id = "00000000-0000-0000-0000-000000000000"
+# セットアップ手順:
+#   1. wrangler d1 create akashic-record
+#   2. 取得した database_id を以下のコメントを解除して設定
+#   3. wrangler d1 execute akashic-record --file=migrations/0001_create_patterns.sql
+#
+# [[d1_databases]]
+# binding = "AKASHIC_DB"
+# database_name = "akashic-record"
+# database_id = "<wrangler d1 create で取得したID>"
