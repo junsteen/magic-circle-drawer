@@ -6,13 +6,14 @@ import MagicCircleCanvas from '@/components/MagicCircleCanvas';
 import MultiModeGame from '@/components/MultiModeGame';
 import UnlockModal from '@/components/UnlockModal';
 import { ScoringResult } from '@/lib/scoring';
-import type { Difficulty } from '@/lib/patterns';
+import type { Difficulty, MagicCirclePattern } from '@/lib/patterns';
 import {
   getAllUnlockStatus,
   checkPlayBasedUnlocks,
   type UnlockInfo,
 } from '@/lib/unlocks';
 import { getAllHistories } from '@/lib/historyDB';
+import { getCustomPattern, toMagicCirclePattern } from '@/lib/customPatternDB';
 
 type AppScreen =
   | { type: 'single' }
@@ -22,7 +23,9 @@ type AppScreen =
 function HomeContent() {
   const searchParams = useSearchParams();
   const patternParam = searchParams.get('pattern');
+  const customId = searchParams.get('customId');
   const initialPatternName = patternParam ? decodeURIComponent(patternParam) : undefined;
+  const [initialCustomPattern, setInitialCustomPattern] = useState<MagicCirclePattern | undefined>();
 
   const [screen, setScreen] = useState<AppScreen>({ type: 'single' });
   const [lastResult, setLastResult] = useState<ScoringResult | null>(null);
@@ -33,6 +36,14 @@ function HomeContent() {
   const [unlocks, setUnlocks] = useState(() => getAllUnlockStatus());
   const [unlockQueue, setUnlockQueue] = useState<UnlockInfo[]>([]);
   const initCheckedRef = useRef(false);
+
+  // カスタムパターンIDが指定されていればIndexedDBから読み込む
+  useEffect(() => {
+    if (!customId) return;
+    getCustomPattern(decodeURIComponent(customId)).then((p) => {
+      if (p) setInitialCustomPattern(toMagicCirclePattern(p));
+    }).catch(() => { /* ignore */ });
+  }, [customId]);
 
   // 初回マウント時: 既存プレイ数でアンロックを付与（既存ユーザー対応）
   useEffect(() => {
@@ -106,6 +117,7 @@ function HomeContent() {
             onReset={() => setLastResult(null)}
             onCompletionUpdate={setCompletionStatus}
             initialPatternName={initialPatternName}
+            initialCustomPattern={initialCustomPattern}
             unlocks={unlocks}
             onSwitchMode={handleSwitchMode}
           />

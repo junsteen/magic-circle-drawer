@@ -18,17 +18,20 @@ import MagicCircleCard from '@/components/grimoire/MagicCircleCard';
 import AchievementCard from '@/components/grimoire/AchievementCard';
 import TitleCard from '@/components/grimoire/TitleCard';
 import ChallengeCard from '@/components/grimoire/ChallengeCard';
+import CustomPatternCard from '@/components/grimoire/CustomPatternCard';
 import CardDetailModal, { type SelectedCard } from '@/components/grimoire/CardDetailModal';
+import { getAllCustomPatterns, deleteCustomPattern, type LocalCustomPattern } from '@/lib/customPatternDB';
 
 const PATTERN_CANVAS_SIZE = 350;
 
-type TabId = 'circles' | 'achievements' | 'titles' | 'challenges';
+type TabId = 'circles' | 'achievements' | 'titles' | 'challenges' | 'custom';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'circles', label: '魔法陣' },
   { id: 'achievements', label: 'アチーブメント' },
   { id: 'titles', label: 'タイトル' },
   { id: 'challenges', label: 'チャレンジ' },
+  { id: 'custom', label: 'カスタム' },
 ];
 
 export default function GrimoirePage() {
@@ -48,6 +51,7 @@ export default function GrimoirePage() {
     titles: false,
     challenges: false,
   });
+  const [customPatterns, setCustomPatterns] = useState<LocalCustomPattern[]>([]);
 
   useEffect(() => {
     getAllCompletions()
@@ -62,6 +66,9 @@ export default function GrimoirePage() {
         console.error('Failed to load histories:', e);
         setLoadError('履歴データの読み込みに失敗しました');
       });
+    getAllCustomPatterns()
+      .then(setCustomPatterns)
+      .catch(() => { /* ignore */ });
     checkAndUnlockAchievements()
       .then(async (newlyUnlocked) => {
         setJustUnlockedIds(new Set(newlyUnlocked));
@@ -90,11 +97,23 @@ export default function GrimoirePage() {
     router.push(`/?pattern=${encodeURIComponent(patternName)}`);
   }, [router]);
 
+  const handleDrawCustom = useCallback((id: string) => {
+    router.push(`/?customId=${encodeURIComponent(id)}`);
+  }, [router]);
+
+  const handleDeleteCustom = useCallback(async (id: string) => {
+    await deleteCustomPattern(id);
+    setCustomPatterns((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   const handleTabChange = useCallback((newTab: TabId) => {
     setTab(newTab);
-    clearUnreadTab(newTab).then(() => {
-      setUnreadTabs((prev) => ({ ...prev, [newTab]: false }));
-    });
+    // 'custom' タブはunread管理対象外
+    if (newTab !== 'custom') {
+      clearUnreadTab(newTab as import('@/lib/unreadDB').TabId).then(() => {
+        setUnreadTabs((prev) => ({ ...prev, [newTab]: false }));
+      });
+    }
   }, []);
 
   const completionMap = new Map(completions.map((c) => [c.patternName, c]));
@@ -147,7 +166,7 @@ export default function GrimoirePage() {
             }}
           >
             {t.label}
-            {unreadTabs[t.id] && (
+            {t.id !== 'custom' && unreadTabs[t.id as import('@/lib/unreadDB').TabId] && (
               <span
                 className="grimoire-unread-badge"
                 style={{
@@ -216,6 +235,13 @@ export default function GrimoirePage() {
             histories={histories}
             completions={completions}
             onSelect={setSelectedCard}
+          />
+        )}
+        {tab === 'custom' && (
+          <CustomGrid
+            patterns={customPatterns}
+            onDraw={handleDrawCustom}
+            onDelete={handleDeleteCustom}
           />
         )}
       </main>
@@ -364,6 +390,56 @@ function ChallengeGrid({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function CustomGrid({
+  patterns,
+  onDraw,
+  onDelete,
+}: {
+  patterns: LocalCustomPattern[];
+  onDraw: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (patterns.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-sm" style={{ color: '#4a4a6a' }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>📚</div>
+        <p>ダウンロードしたパターンがありません</p>
+        <p className="mt-1 text-xs">アカシックレコードから魔法陣をダウンロードしてみましょう</p>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="grid grid-flow-col grid-rows-2 gap-3 overflow-x-auto pb-2"
+      style={{ scrollSnapType: 'x mandatory', touchAction: 'pan-x', overscrollBehaviorX: 'contain' }}
+    >
+      {patterns.map((p) => (
+        <div key={p.id} className="flex flex-col gap-1">
+          <button
+            onClick={() => onDraw(p.id)}
+            style={{ display: 'block', cursor: 'pointer', background: 'none', border: 'none', padding: 0, touchAction: 'manipulation' }}
+          >
+            <CustomPatternCard pattern={p} />
+          </button>
+          <button
+            onClick={() => onDelete(p.id)}
+            className="rounded text-[10px] transition-colors hover:opacity-80"
+            style={{
+              background: 'rgba(255,64,129,0.1)',
+              border: '1px solid rgba(255,64,129,0.3)',
+              color: '#ff4081',
+              padding: '2px 0',
+              width: 144,
+            }}
+          >
+            削除
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

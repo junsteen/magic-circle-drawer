@@ -7,16 +7,20 @@ Arcane Tracer のデータ管理は **クライアント側（IndexedDB）** と
 ```
 ブラウザ
 ├── IndexedDB（永続ローカルストレージ）
-│   ├── ArcaneTracerHistory     履歴DB
-│   ├── ArcaneTracerCompletion  完了記録DB
-│   └── achievementDB           実績・称号DB
+│   ├── ArcaneTracerHistory          履歴DB
+│   ├── ArcaneTracerCompletion       完了記録DB
+│   ├── achievementDB                実績・称号DB
+│   └── ArcaneTracerCustomPatterns   カスタムパターンDB（アカシックレコードからDL）
 │
 └── localStorage（軽量ローカルストレージ）
-    └── アンロック状態（history/multiMode/grimoire/comboMode）
+    ├── アンロック状態（history/multiMode/grimoire/comboMode）
+    └── arcane_device_id（アカシックレコード投稿者識別用UUID）
 
 Cloudflare Pages Functions
-└── REPLAY_KV（KV Namespace: c81c78076a7246a2926374f7c58b42a1）
-    └── リプレイデータ（TTL: 30日）
+├── REPLAY_KV（KV Namespace: c81c78076a7246a2926374f7c58b42a1）
+│   └── リプレイデータ（TTL: 30日）
+└── AKASHIC_DB（D1 Database: akashic-record）
+    └── 共有魔法陣パターン（永続保存）
 ```
 
 ---

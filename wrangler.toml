@@ -5,3 +5,10 @@ compatibility_date = "2024-01-01"
 [[kv_namespaces]]
 binding = "REPLAY_KV"
 id = "c81c78076a7246a2926374f7c58b42a1"
+
+# アカシックレコード用D1データベース
+# マイグレーション: wrangler d1 execute akashic-record --file=migrations/0001_create_patterns.sql
+[[d1_databases]]
+binding = "AKASHIC_DB"
+database_name = "akashic-record"
+database_id = "6e058ee6-1eda-4399-8b1e-40ba2d2723f2"

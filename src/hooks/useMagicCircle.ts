@@ -139,7 +139,8 @@ export function useMagicCircle(
   onScore: (result: ScoringResult) => void,
   onReset: () => void,
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void,
-  initialPatternName?: string
+  initialPatternName?: string,
+  initialCustomPattern?: MagicCirclePattern
 ): UseMagicCircleReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -237,6 +238,12 @@ export function useMagicCircle(
 
   // Initialize patterns
   useEffect(() => {
+    // カスタムパターンが指定されている場合はそれのみを使用（ナビゲーション無効）
+    if (initialCustomPattern) {
+      setPatterns([initialCustomPattern]);
+      setCurrentIdx(0);
+      return;
+    }
     const preset = createPresetPattern(CANVAS_SIZE);
     setPatterns(preset);
 
@@ -247,7 +254,7 @@ export function useMagicCircle(
     } else {
       setCurrentIdx(0);
     }
-  }, [initialPatternName]);
+  }, [initialPatternName, initialCustomPattern]);
 
   // マウント時に完了状況を読み込み（refを使用してループを防止）
   useEffect(() => {
