@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import type { ScoringResult } from '@/lib/scoring';
 import type { Difficulty } from '@/lib/patterns';
-import { DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
 import { useMagicCircle } from '@/hooks/useMagicCircle';
+import GameMenu from './GameMenu';
 import type { MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import HelpModal from './HelpModal';
 import HistoryPanel from './HistoryPanel';
@@ -28,6 +27,8 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate,
   initialPatternName,
+  unlocks,
+  onSwitchMode,
 }: {
   /** スコア計算完了時のコールバック */
   onScore: (result: ScoringResult) => void;
@@ -40,8 +41,16 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
   initialPatternName?: string;
+  /** アンロック済み機能フラグ */
+  unlocks?: {
+    history?: boolean;
+    grimoire?: boolean;
+    multiMode?: boolean;
+    comboMode?: boolean;
+  };
+  /** モード切替コールバック */
+  onSwitchMode?: (mode: 'multi' | 'combo', difficulty: Difficulty) => void;
 }) {
-  const router = useRouter();
 
   const {
     canvasRef, canvasSize, isDrawing, userPath,
@@ -61,7 +70,6 @@ export default function MagicCircleCanvas({
     typeof window !== 'undefined' && !localStorage.getItem('tutorialCompleted')
   );
   const [showHistory, setShowHistory] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<MagicCircleHistory | null>(null);
 
   // チュートリアル完了時に localStorage にフラグを保存
@@ -103,6 +111,35 @@ export default function MagicCircleCanvas({
     ? `赤い点から「${patternName}」をなぞってください`
     : '赤い点から魔法陣をなぞってください';
 
+  const handleVoiceToggle = useCallback(async () => {
+    if (voiceActivation) {
+      if (voiceActivation.isListening) {
+        try {
+          await voiceActivation.stopListening();
+          setDebugMsg('🔇 音声検知を停止しました');
+        } catch (err) {
+          console.error('音声検知停止エラー:', err);
+          setDebugMsg('⚠️ 音声検知停止エラー');
+        }
+      } else {
+        try {
+          await voiceActivation.startListening();
+          setDebugMsg('🎤 音声検知を開始しました');
+        } catch (err) {
+          console.error('音声検知開始エラー:', err);
+          setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
+          setVoiceActivation(null);
+        }
+      }
+    } else {
+      setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
+    }
+  }, [voiceActivation, setDebugMsg, setVoiceActivation]);
+
+  const handleSwitchModeFromMenu = useCallback((mode: 'single' | 'multi' | 'combo', diff: Difficulty) => {
+    if (mode !== 'single') onSwitchMode?.(mode, diff);
+  }, [onSwitchMode]);
+
   return (
     <div className="flex flex-col items-center gap-4 p-4">
       {showTutorial && (
@@ -110,131 +147,21 @@ export default function MagicCircleCanvas({
       )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
-      {/* メニューボタン */}
-      <button
-        onClick={() => setShowMenu(v => !v)}
-        className="absolute right-4 top-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 text-xl font-bold"
-        style={{ borderColor: 'rgba(0,229,255,0.5)', color: '#00e5ff', background: 'rgba(10,10,20,0.8)' }}
-        aria-label="メニュー"
-      >
-        ☰
-      </button>
+      {/* 共通メニュー */}
+      <GameMenu
+        currentMode="single"
+        difficulty={difficulty}
+        unlocks={unlocks}
+        onSwitchMode={handleSwitchModeFromMenu}
+        onChangeDifficulty={changeDifficulty}
+        onShowHistory={() => setShowHistory(true)}
+        voiceState={voiceActivation}
+        onVoiceToggle={handleVoiceToggle}
+        onShowHelp={() => setShowHelp(true)}
+      />
 
-      {/* メニューパネル */}
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-          <div
-            className="absolute right-4 top-14 z-50 flex min-w-[240px] flex-col gap-1 rounded-xl border p-2"
-            style={{ background: 'rgba(13,13,26,0.97)', borderColor: 'rgba(0,229,255,0.3)' }}
-          >
-            {/* 魔導書 */}
-            <button
-              onClick={() => { router.push('/grimoire'); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#00e5ff' }}
-            >
-              📖 魔導書
-            </button>
 
-            {/* 作成履歴 */}
-            <button
-              onClick={() => { setShowHistory(true); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#7c4dff' }}
-            >
-              📜 作成履歴
-            </button>
-
-            {/* レベル変更 */}
-            <div className="px-3 py-2">
-              <div className="mb-2 text-xs font-bold text-gray-500">🎯 レベル変更</div>
-              <div className="flex flex-wrap gap-1">
-                {(['easy', 'normal', 'hard', 'expert'] as Difficulty[]).map((d) => {
-                  const colorMap: Record<Difficulty, string> = {
-                    easy: '#76ff03', normal: '#00e5ff', hard: '#ff9100', expert: '#ff4081',
-                  };
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => { changeDifficulty(d); setShowMenu(false); }}
-                      className={`rounded-md px-2 py-1 text-xs font-bold transition-all ${
-                        difficulty === d ? 'scale-105' : 'opacity-50 hover:opacity-75'
-                      }`}
-                      style={{
-                        borderColor: colorMap[d], borderWidth: 2, borderStyle: 'solid',
-                        color: difficulty === d ? colorMap[d] : '#999',
-                        background: difficulty === d ? `${colorMap[d]}18` : 'transparent',
-                      }}
-                    >
-                      {d.toUpperCase()}
-                      <span className="ml-1 opacity-75">(×{DIFFICULTY_MULTIPLIER[d]})</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 音声入力 */}
-            <button
-              onClick={async () => {
-                if (voiceActivation) {
-                  if (voiceActivation.isListening) {
-                    try {
-                      await voiceActivation.stopListening();
-                      setDebugMsg('🔇 音声検知を停止しました');
-                    } catch (err) {
-                      console.error('音声検知停止エラー:', err);
-                      setDebugMsg('⚠️ 音声検知停止エラー');
-                    }
-                  } else {
-                    try {
-                      await voiceActivation.startListening();
-                      setDebugMsg('🎤 音声検知を開始しました');
-                    } catch (err) {
-                      console.error('音声検知開始エラー:', err);
-                      setDebugMsg('⚠️ マイクアクセスが拒否または利用できません');
-                      setVoiceActivation(null);
-                    }
-                  }
-                } else {
-                  setDebugMsg('⚠️ 音声検知は利用できません（マイクアクセスが必要）');
-                }
-                setShowMenu(false);
-              }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{
-                color: voiceActivation?.isListening ? '#76ff03'
-                  : voiceActivation?.isMicAccessible === false ? '#ff4444'
-                  : '#00e5ff',
-              }}
-            >
-              {voiceActivation?.isListening ? '🎤' : voiceActivation?.isMicAccessible === false ? '🔇' : '🔊'}
-              {' '}音声入力{voiceActivation?.isListening ? '（ON）' : '（OFF）'}
-            </button>
-
-            {/* アプリ情報 */}
-            <button
-              onClick={() => { router.push('/app-info'); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#00e5ff' }}
-            >
-              ℹ️ アプリ情報
-            </button>
-
-            {/* ヘルプ */}
-            <button
-              onClick={() => { setShowHelp(true); setShowMenu(false); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ color: '#00e5ff' }}
-            >
-              ❓ ヘルプ
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* パターン名とページネーション - プレイ中は簡素化 */}
+            {/* パターン名とページネーション - プレイ中は簡素化 */}
       {!isActive && (
         <div className="flex items-center gap-2 text-sm">
           <button

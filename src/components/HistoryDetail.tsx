@@ -4,8 +4,102 @@ import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react
 import type { MagicCircleHistory } from '@/lib/types';
 import type { MagicCirclePattern } from '@/lib/patterns';
 import { getOuterCircle } from '@/lib/patterns';
+import { getRankColor } from '@/lib/scoring';
 import type { DrawEvent } from '@/lib/types';
 import { compressForUrlOptimized as compressForUrl } from '@/lib/shareUtils';
+import { ShareModal } from '@/components/ShareModal';
+
+// drawLogsから全イベント配列を構築（タイミング計算用）
+function buildAllEventsFromLogs(
+  drawLogs: MagicCircleHistory['data']['drawLogs'],
+  strokeIntervalMs: number
+): { events: DrawEvent[]; totalDuration: number } {
+  const allEvents: DrawEvent[] = [];
+  let timeOffset = 0;
+  for (const stroke of drawLogs) {
+    if (stroke.length === 0) continue;
+    const t0 = stroke[0].t;
+    for (const ev of stroke) {
+      allEvents.push({ x: ev.x, y: ev.y, t: ev.t - t0 + timeOffset, type: ev.type });
+    }
+    if (allEvents.length > 0) {
+      timeOffset = allEvents[allEvents.length - 1].t + strokeIntervalMs;
+    }
+  }
+  const totalDuration = allEvents.length > 0 ? allEvents[allEvents.length - 1].t + strokeIntervalMs : 0;
+  return { events: allEvents, totalDuration };
+}
+
+// ユーザーストロークをキャンバスに描画（ストローク間を繋げない）
+function drawStrokesOnCanvas(ctx: CanvasRenderingContext2D, events: DrawEvent[]) {
+  if (events.length < 1) return;
+
+  ctx.shadowBlur = 2;
+  ctx.shadowColor = '#00e5ff';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let currentStroke: { x: number; y: number }[] = [];
+  for (const ev of events) {
+    if (ev.type === 'start') {
+      if (currentStroke.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        ctx.stroke();
+      }
+      currentStroke = [{ x: ev.x, y: ev.y }];
+    } else if (ev.type === 'move') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+    } else if (ev.type === 'end') {
+      currentStroke.push({ x: ev.x, y: ev.y });
+      if (currentStroke.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+        for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+        ctx.stroke();
+      }
+      currentStroke = [];
+    }
+  }
+  if (currentStroke.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(currentStroke[0].x, currentStroke[0].y);
+    for (let i = 1; i < currentStroke.length; i++) ctx.lineTo(currentStroke[i].x, currentStroke[i].y);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+}
+
+// 外周円を progress (0-1) まで弧として描画し、先端座標を返す
+function drawOuterCircleArc(
+  ctx: CanvasRenderingContext2D,
+  pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices'>,
+  progress: number,
+  canvasSize: number
+): { x: number; y: number } | null {
+  if (progress <= 0) return null;
+  const { cx, cy, radius } = getOuterCircle(pattern as MagicCirclePattern, canvasSize);
+  const startAngle = -Math.PI / 2;
+  const endAngle = startAngle + Math.PI * 2 * Math.min(1, progress);
+
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#00e5ff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, startAngle, endAngle);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  if (progress < 1) {
+    return { x: cx + radius * Math.cos(endAngle), y: cy + radius * Math.sin(endAngle) };
+  }
+  return null;
+}
 
 // drawLogsから全イベント配列を構築（タイミング計算用）
 function buildAllEventsFromLogs(
@@ -130,6 +224,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [debugMsg, setDebugMsg] = useState('');
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const canvasReadyRef = useRef(false);
 
   const drawTemplate = useCallback((pattern: Pick<MagicCirclePattern, 'circles' | 'edges' | 'vertices' | 'name'>) => {
@@ -392,49 +487,24 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
     }
   }, [history, isPlaying, totalDuration, drawTemplate]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!history?.data?.drawLogs) return;
-    try {
-      const shareData = {
-        pattern: history.data.pattern,
-        drawLogs: history.data.drawLogs,
-        score: history.score,
-        rank: history.rank,
-        difficulty: history.difficulty,
-        difficultyMultiplier: history.difficultyMultiplier,
-        damageMultiplier: history.damageMultiplier,
-      };
-      const compressed = compressForUrl(shareData);
-      if (!compressed) throw new Error('Failed to compress data');
-      const shareUrl = `${window.location.origin}/replay?data=${compressed}`;
-      if (navigator.share) {
-        await navigator.share({
-          title: `Arcane Tracer - ${history.data.pattern.name}`,
-          text: `私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`,
-          url: shareUrl,
-        });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        setDebugMsg('📤 共有リンクをクリップボードにコピーしました！');
-        setTimeout(() => setDebugMsg(''), 3000);
-      }
-    } catch (err) {
-      console.error('Failed to share:', err);
-      setDebugMsg('共有に失敗しました');
-      setTimeout(() => setDebugMsg(''), 3000);
-    }
+    const shareData = {
+      pattern: history.data.pattern,
+      drawLogs: history.data.drawLogs,
+      score: history.score,
+      rank: history.rank,
+      difficulty: history.difficulty,
+      difficultyMultiplier: history.difficultyMultiplier,
+      damageMultiplier: history.damageMultiplier,
+      createdAt: history.createdAt,
+    };
+    const compressed = compressForUrl(shareData);
+    if (!compressed) return;
+    setShareUrl(`${window.location.origin}/replay?data=${compressed}`);
   }, [history]);
 
   if (!history) return null;
-
-  const getRankColor = (rank: string): string => {
-    switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
-    }
-  };
 
   const formatDate = (ts: number): string => {
     // 秒単位（10 桁）の場合はミリ秒に変換、ミリ秒単位（13 桁以上）はそのまま使用
@@ -457,6 +527,14 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
 
   return (
     <>
+      {shareUrl && (
+        <ShareModal
+          longUrl={shareUrl}
+          title={`Arcane Tracer - ${history.data?.pattern?.name ?? ''}`}
+          text={`私の魔法陣詠唱結果: ${history.rank}ランク (${history.score}点)`}
+          onClose={() => setShareUrl(null)}
+        />
+      )}
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} />
       {/* Modal */}
@@ -622,7 +700,7 @@ export default function HistoryDetail({ history, onClose, onReEdit }: HistoryDet
             <div className="mb-4">
               <div className="text-sm text-gray-500">作成日時</div>
               <div className="text-sm" style={{ color: '#9c9caf' }}>
-                {history.createdAt ? formatDate(history.createdAt) : '日時不明'}
+                {history.createdAt != null && history.createdAt !== 0 ? formatDate(history.createdAt) : '日時不明'}
               </div>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { calculateScore, type ScoringResult } from '@/lib/scoring';
+import { calculateScore, getRankColor, type ScoringResult } from '@/lib/scoring';
 import { useVoiceActivation } from '@/hooks/useVoiceActivation';
 import {
   type MagicCirclePattern,
@@ -897,15 +897,6 @@ export function useMagicCircle(
     setDifficulty(d);
   }, []);
 
-  const getRankColor = (rank: string) => {
-    switch (rank) {
-      case 'S': return '#ffd700';
-      case 'A': return '#00e5ff';
-      case 'B': return '#76ff03';
-      default: return '#ff4081';
-    }
-  };
-
   // ─── リプレイ機能 ───
   /**
    * 描画ログのリプレイを実行
@@ -973,6 +964,7 @@ export function useMagicCircle(
       difficulty: historyItem.difficulty,
       difficultyMultiplier: historyItem.difficultyMultiplier,
       damageMultiplier: historyItem.damageMultiplier,
+      createdAt: historyItem.createdAt,
     };
 
     // 履歴データをURL用に圧縮

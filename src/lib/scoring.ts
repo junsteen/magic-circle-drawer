@@ -178,3 +178,15 @@ export function calculateScore(
 
   return { score: roundedScore, rank, damageMultiplier, difficultyMultiplier: 1 };
 }
+
+/**
+ * ランクに対応する表示色を返す
+ */
+export function getRankColor(rank: string): string {
+  switch (rank) {
+    case 'S': return '#ffd700';
+    case 'A': return '#00e5ff';
+    case 'B': return '#76ff03';
+    default:  return '#ff4081';
+  }
+}
