@@ -97,9 +97,9 @@ export default function GameMenu({
               </div>
             )}
 
-            {/* 魔導書 */}
+            {/* アカシックレコード */}
             {unlocks?.grimoire && (
-              <MenuItem icon="📖" label="魔導書" onClick={() => { router.push('/grimoire'); close(); }} />
+              <MenuItem icon="📖" label="アカシックレコード" onClick={() => { router.push('/grimoire'); close(); }} />
             )}
 
             {/* 作成履歴 */}

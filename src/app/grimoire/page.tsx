@@ -126,7 +126,7 @@ export default function GrimoirePage() {
           className="text-base font-bold tracking-widest"
           style={{ color: '#00e5ff' }}
         >
-          魔導書
+          アカシックレコード
         </h1>
         <div className="h-9 w-9" />
       </header>
