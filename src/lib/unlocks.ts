@@ -33,8 +33,8 @@ const UNLOCK_INFO: Record<string, UnlockInfo> = {
   grimoire: {
     key: 'grimoire',
     icon: '📖',
-    title: 'アカシックレコード 解放！',
-    description: '全ての魔法陣パターンを閲覧できるアカシックレコードが解放されました。メニューから開けます。',
+    title: '魔導書 解放！',
+    description: '全ての魔法陣パターンを閲覧できる魔導書が解放されました。メニューから開けます。',
   },
   comboMode: {
     key: 'comboMode',

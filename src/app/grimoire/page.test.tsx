@@ -64,10 +64,10 @@ describe('GrimoirePage', () => {
   // ─── 正常系 ──────────────────────────────────────────────────────────────────
 
   describe('正常系', () => {
-    it('ページタイトル「アカシックレコード」が表示される', () => {
+    it('ページタイトル「魔導書」が表示される', () => {
       setupSuccessMocks();
       render(<GrimoirePage />);
-      expect(screen.getByText('アカシックレコード')).toBeTruthy();
+      expect(screen.getByText('魔導書')).toBeTruthy();
     });
 
     it('4つのタブ（魔法陣・アチーブメント・タイトル・チャレンジ）が表示される', () => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { ScoringResult } from '@/lib/scoring';
-import type { Difficulty } from '@/lib/patterns';
+import type { Difficulty, MagicCirclePattern } from '@/lib/patterns';
 import { useMagicCircle } from '@/hooks/useMagicCircle';
 import GameMenu from './GameMenu';
 import type { MagicCircleData, MagicCircleHistory } from '@/lib/types';
@@ -27,6 +27,7 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate,
   initialPatternName,
+  initialCustomPattern,
   unlocks,
   onSwitchMode,
 }: {
@@ -41,6 +42,8 @@ export default function MagicCircleCanvas({
   /** 完了状況更新時のコールバック（オプション） */
   onCompletionUpdate?: (status: { completed: number; total: number } | null) => void;
   initialPatternName?: string;
+  /** カスタムパターン（アカシックレコードからダウンロードしたもの） */
+  initialCustomPattern?: MagicCirclePattern;
   /** アンロック済み機能フラグ */
   unlocks?: {
     history?: boolean;
@@ -63,7 +66,7 @@ export default function MagicCircleCanvas({
     // 音声検知
     voiceActivation,
     setVoiceActivation
-  } = useMagicCircle(onScore, onReset, onCompletionUpdate, initialPatternName);
+  } = useMagicCircle(onScore, onReset, onCompletionUpdate, initialPatternName, initialCustomPattern);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showTutorial, setShowTutorial] = useState(() =>
