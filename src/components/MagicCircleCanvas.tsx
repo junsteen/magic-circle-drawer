@@ -222,6 +222,15 @@ export default function MagicCircleCanvas({
               ℹ️ アプリ情報
             </button>
 
+            {/* 設定 */}
+            <button
+              onClick={() => { router.push('/settings'); setShowMenu(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
+              style={{ color: '#00e5ff' }}
+            >
+              ⚙️ 設定
+            </button>
+
             {/* ヘルプ */}
             <button
               onClick={() => { setShowHelp(true); setShowMenu(false); }}

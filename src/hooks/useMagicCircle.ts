@@ -18,6 +18,7 @@ import {
 import type { DrawEvent, DrawStroke, MagicCircleData, MagicCircleHistory } from '@/lib/types';
 import { addHistory } from '@/lib/historyDB';
 import { updateCompletion, getCompletedCount, getTotalPatternsCount } from '@/lib/completionDB';
+import { loadSettings } from '@/lib/userSettings';
 import { compressForUrlOptimized } from '@/lib/shareUtils';
 
 const CANVAS_SIZE = 350;
@@ -229,7 +230,9 @@ export function useMagicCircle(
 
   // ─── パターン・難易度管理 ───
   /** 現在の難易度設定 */
-  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
+  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+    try { return (loadSettings().defaultDifficulty as Difficulty) || 'normal'; } catch { return 'normal'; }
+  });
   /** 魔法陣パターンのリスト */
   const [patterns, setPatterns] = useState<MagicCirclePattern[]>([]);
   /** 現在のパターンインデックス */
