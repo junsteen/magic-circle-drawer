@@ -7,7 +7,9 @@ binding = "REPLAY_KV"
 id = "c81c78076a7246a2926374f7c58b42a1"
 
 # アカシックレコード用D1データベース
+# レイド魔法陣のシグナリング用テーブルも同じDBに同居させている
 # マイグレーション: wrangler d1 execute akashic-record --file=migrations/0001_create_patterns.sql
+# マイグレーション: wrangler d1 execute akashic-record --file=migrations/0002_create_raid_rooms.sql
 [[d1_databases]]
 binding = "AKASHIC_DB"
 database_name = "akashic-record"
