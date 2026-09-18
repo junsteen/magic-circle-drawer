@@ -7,7 +7,7 @@
  * ボス戦・スコア集計・合体判定は Phase 2 で載せる。
  */
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import RaidCanvas, { type RaidCanvasHandle } from '@/components/raid/RaidCanvas';
@@ -22,6 +22,7 @@ function RaidContent() {
   const initialCode = searchParams.get('code') ?? '';
 
   const canvasRef = useRef<RaidCanvasHandle>(null);
+  const [copied, setCopied] = useState(false);
 
   const {
     status,
@@ -54,6 +55,16 @@ function RaidContent() {
     ? `${window.location.origin}/raid?code=${room.code}`
     : '';
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 安全でないコンテキストなどでクリップボードが使えない場合は何もしない
+    }
+  };
+
   if (!inRoom) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4" style={{ background: '#0d0d1a' }}>
@@ -83,13 +94,22 @@ function RaidContent() {
             {room.code}
           </div>
         </div>
-        <button
-          onClick={() => { leave(); router.push('/'); }}
-          className="rounded-md border-2 px-3 py-1 text-xs font-bold"
-          style={{ borderColor: '#ff4081', color: '#ff4081' }}
-        >
-          退出
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className="rounded-md border-2 px-3 py-1 text-xs font-bold"
+            style={{ borderColor: '#00e5ff', color: '#00e5ff' }}
+          >
+            {copied ? 'コピーしました' : 'リンクをコピー'}
+          </button>
+          <button
+            onClick={() => { leave(); router.push('/'); }}
+            className="rounded-md border-2 px-3 py-1 text-xs font-bold"
+            style={{ borderColor: '#ff4081', color: '#ff4081' }}
+          >
+            退出
+          </button>
+        </div>
       </div>
 
       {peers.length < 2 && shareUrl && (
