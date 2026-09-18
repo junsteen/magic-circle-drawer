@@ -117,8 +117,10 @@ Cloudflare Pages Functions + D1 です。既存のアカシックレコードと
 マイグレーションの適用:
 
 ```
-wrangler d1 execute akashic-record --file=migrations/0002_create_raid_rooms.sql
+wrangler d1 execute akashic-record --remote --file=migrations/0002_create_raid_rooms.sql
 ```
+
+`--remote` を付けないと、本番ではなく手元の検証用DBに適用されます。また非対話環境で実行する場合は `CLOUDFLARE_API_TOKEN` が必要です。
 
 ## 関連ファイル
 
