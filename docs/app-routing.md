@@ -12,6 +12,14 @@ src/app/
 ├── page.tsx           # ホームページ
 ├── favicon.ico        # アプリケーションファビコン
 ├── globals.css        # グローバルCSSスタイル
+├── akashic/           # アカシックレコード
+│   └── page.tsx
+├── app-info/          # アプリ情報
+│   └── page.tsx
+├── grimoire/          # 魔導書
+│   └── page.tsx
+├── raid/              # レイド魔法陣
+│   └── page.tsx
 └── replay/            # リプレイルートセグメント
     └── page.tsx       # リプレイページ
 ```
@@ -19,6 +27,10 @@ src/app/
 ### ルーティングシステム
 アプリケーションはNext.js 16 App Routerを使用し、ファイルシステムベースのルーティングを行います:
 - `/` → `src/app/page.tsx` (ホームページ)
+- `/akashic` → `src/app/akashic/page.tsx` (アカシックレコード)
+- `/app-info` → `src/app/app-info/page.tsx` (アプリ情報)
+- `/grimoire` → `src/app/grimoire/page.tsx` (魔導書)
+- `/raid` → `src/app/raid/page.tsx` (レイド魔法陣)
 - `/replay` → `src/app/replay/page.tsx` (リプレイページ)
 
 ## 主要ファイル
@@ -69,8 +81,13 @@ URLパラメータから共有された図面を表示するページ。
 
 ### URL構造
 - ホーム: `/`
-- リプレイ: `/replay?data={compressed_drawing_data}`
-- 他に現在定義されているルートはなし
+- リプレイ: `/replay?data={compressed_drawing_data}` または `/replay?id={short_id}`
+- レイド魔法陣: `/raid`、参加時は `/raid?code={合言葉6文字}`
+- アカシックレコード: `/akashic`
+- 魔導書: `/grimoire`
+- アプリ情報: `/app-info`
+
+静的エクスポート（`output: 'export'`）のため動的ルート（`/raid/[code]`）は使わず、クエリパラメータで表現しています。`useSearchParams` を使うページは `<Suspense>` でラップする必要があります（`/raid` と `/replay` が該当）。
 
 ## Next.js固有の機能
 

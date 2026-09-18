@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Difficulty } from '@/lib/patterns';
 import { DIFFICULTY_MULTIPLIER } from '@/lib/patterns';
+import { RAID_THEME_COLOR } from '@/lib/raidConstants';
 
 const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   easy: '#76ff03', normal: '#00e5ff', hard: '#ff9100', expert: '#ff4081',
@@ -97,6 +98,14 @@ export default function GameMenu({
               </div>
             )}
 
+            {/* レイド魔法陣（常に表示） */}
+            <MenuItem
+              icon="🛡"
+              label="レイド魔法陣"
+              color={RAID_THEME_COLOR}
+              onClick={() => { router.push('/raid'); close(); }}
+            />
+
             {/* アカシックレコード（常に表示） */}
             <MenuItem icon="📚" label="アカシックレコード" onClick={() => { router.push('/akashic'); close(); }} />
 
@@ -189,12 +198,14 @@ function ModeBtn({
   );
 }
 
-function MenuItem({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function MenuItem({ icon, label, onClick, color = '#00e5ff' }: {
+  icon: string; label: string; onClick: () => void; color?: string;
+}) {
   return (
     <button
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-      style={{ color: '#00e5ff' }}
+      style={{ color }}
     >
       {icon} {label}
     </button>

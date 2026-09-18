@@ -14,13 +14,14 @@ Arcane Tracer のデータ管理は **クライアント側（IndexedDB）** と
 │
 └── localStorage（軽量ローカルストレージ）
     ├── アンロック状態（history/multiMode/grimoire/comboMode）
-    └── arcane_device_id（アカシックレコード投稿者識別用UUID）
+    └── arcane_device_id（アカシックレコード投稿者・レイド参加者の識別用UUID）
 
 Cloudflare Pages Functions
 ├── REPLAY_KV（KV Namespace: c81c78076a7246a2926374f7c58b42a1）
 │   └── リプレイデータ（TTL: 30日）
 └── AKASHIC_DB（D1 Database: akashic-record）
-    └── 共有魔法陣パターン（永続保存）
+    ├── 共有魔法陣パターン（永続保存）
+    └── レイド魔法陣のルームとシグナリング（TTL: 10分）
 ```
 
 ---
@@ -135,6 +136,24 @@ loadReplayFromKV(id: string): Promise<string | null>        // データ取得
 描画データ → LZString圧縮 → POST /api/replay/save → 8文字ID → ?id=A3bCd9eF として共有
 ```
 利点: URLが短く、QRコード化しやすい
+
+---
+
+## レイド魔法陣のサーバー側データ
+
+`AKASHIC_DB`（D1）に3テーブルを同居させている。新規 D1 を作ると `database_id` の払い出しが必要になるため、既存バインディングを再利用している。
+
+| テーブル | 内容 | 寿命 |
+|---|---|---|
+| `raid_rooms` | ルーム（合言葉・ホスト・有効期限） | 10分 |
+| `raid_members` | 参加者（合言葉 + デバイスIDが主キー） | ルームと同じ |
+| `raid_signals` | WebRTC の SDP / ICE を中継するメッセージ | ルームと同じ |
+
+`raid_signals.id` は SQLite の rowid 別名で自動採番され、クライアントはこれをカーソルにして「前回以降の自分宛」だけを取得する。
+
+期限切れルームとその関連行は、次に誰かがルームを作成したときにまとめて削除される（定期実行ではなくアクセス契機の掃除）。
+
+P2P 接続が確立したあとの描画データはサーバを通らず、DataChannel で直接やり取りされるため、**描画内容がサーバに保存されることはない**。詳細は `docs/raid-mode.md` を参照。
 
 ---
 
